@@ -1,0 +1,94 @@
+<div class="flex flex-col overflow-x-hidden bg-background min-h-screen md:h-[100dvh] md:flex-row md:overflow-hidden">
+  <app-sidebar class="app-sidebar-host" />
+  <main class="app-shell-main-pad app-shell-sidebar-offset flex-1 min-w-0 overflow-x-hidden">
+    <div class="max-w-md mx-auto">
+      <h1 class="text-2xl font-bold text-foreground mb-2">Rate your driver</h1>
+      <p class="text-muted-foreground text-sm mb-6">You received this link after your delivery was completed.</p>
+
+      @if (notFound()) {
+        <app-empty-state
+          surface="card"
+          title="We couldn’t open this rating"
+          hint="This order may not exist, or you don’t have access to rate it. Use My Orders to find deliveries you can review."
+        >
+          <a
+            routerLink="/customer/orders"
+            class="inline-block rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[#16A34A] transition"
+          >
+            Back to my orders
+          </a>
+        </app-empty-state>
+      } @else if (order(); as o) {
+        @if (o.rating != null || o.hasReview || ratingSuccess()) {
+          <p class="text-primary font-medium py-4">Thanks — this order has already been rated.</p>
+          <button
+            type="button"
+            (click)="goOrders()"
+            class="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90"
+          >
+            View my orders
+          </button>
+        } @else if (o.status !== 'delivered' && o.status !== 'completed') {
+          <p class="text-muted-foreground text-sm py-4">
+            Rating opens once the job is marked delivered. Current status: <strong>{{ o.status }}</strong>
+          </p>
+          <a routerLink="/customer/orders" class="text-primary font-medium hover:text-primary/90"
+            >Open my orders</a
+          >
+        } @else {
+          <p class="text-sm text-muted-foreground mb-4">
+            Driver:
+            @if (o.driverId && typeof o.driverId === 'object') {
+              {{ o.driverId.name ?? 'Your driver' }}
+            } @else {
+              Your driver
+            }
+          </p>
+          <p class="text-sm text-foreground mb-4">How was your experience?</p>
+          <div class="flex gap-1 mb-4">
+            @for (star of [1, 2, 3, 4, 5]; track star) {
+              <button
+                type="button"
+                (click)="setStar(star)"
+                class="p-1 focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                [attr.aria-label]="'Rate ' + star + ' stars'"
+              >
+                <span
+                  class="text-3xl transition-colors"
+                  [class.text-primary]="star <= ratingStars()"
+                  [class.text-muted-foreground/40]="star > ratingStars()"
+                  >★</span
+                >
+              </button>
+            }
+          </div>
+          <p class="text-xs text-muted-foreground mb-2">Comments (optional)</p>
+          <textarea
+            [ngModel]="reviewText()"
+            (ngModelChange)="reviewText.set($event)"
+            rows="3"
+            class="w-full rounded-lg border border-border/40 bg-input/70 px-3 py-2 text-sm text-foreground mb-4"
+            placeholder="Anything you'd like to add?"
+          ></textarea>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              (click)="submitRating()"
+              [disabled]="ratingStars() < 1 || ratingSubmittingOrderId() === o._id"
+              class="flex-1 py-2.5 rounded-lg font-medium text-primary-foreground bg-primary hover:bg-[#16A34A] disabled:opacity-60"
+            >
+              {{ ratingSubmittingOrderId() === o._id ? 'Submitting…' : 'Submit rating' }}
+            </button>
+            <a
+              routerLink="/customer/orders"
+              class="px-4 py-2.5 rounded-lg font-medium text-foreground bg-secondary/40 hover:bg-secondary/55 inline-flex items-center"
+              >Cancel</a
+            >
+          </div>
+        }
+      } @else {
+        <app-empty-state title="Loading your order" hint="Fetching your latest order list…" />
+      }
+    </div>
+  </main>
+</div>

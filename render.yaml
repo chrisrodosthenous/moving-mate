@@ -1,0 +1,37 @@
+# Render blueprint — Moving Mate (single web service)
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: moving-mate
+    runtime: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm ci && npm ci --prefix server && npm run build:prod
+    startCommand: npm start --prefix server
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PAYMENTS_PROVIDER
+        value: mock
+      - key: CLIENT_URL
+        value: https://moving-mate.com
+      - key: EXTRA_ALLOWED_ORIGINS
+        value: https://moving-mate.com,https://www.moving-mate.com
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.sendgrid.net
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        value: apikey
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        value: Moving Mate <noreply@moving-mate.com>

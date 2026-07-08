@@ -1,0 +1,31 @@
+@if (order(); as ord) {
+  <div
+    class="fixed inset-0 z-[78] bg-black/50 backdrop-blur-[1px] transition-opacity duration-300 ease-out"
+    [class.pointer-events-none]="!sheetOpen()"
+    [class.opacity-0]="!sheetOpen()"
+    [class.opacity-100]="sheetOpen()"
+    aria-hidden="true"
+    tabindex="-1"
+    (click)="beginClose()"
+  ></div>
+
+  <aside
+    data-testid="order-chat-drawer"
+    class="fixed inset-y-0 right-0 z-[80] flex max-h-[100dvh] w-full max-w-full flex-col overflow-hidden rounded-l-xl border border-border/30 border-r-0 bg-card/92 backdrop-blur-md shadow-[0_0_40px_rgba(0,0,0,0.15)] transition-transform duration-300 ease-out md:w-[min(480px,100%)] md:max-w-[min(500px,96vw)]"
+    [class.translate-x-full]="!sheetOpen()"
+    [class.translate-x-0]="sheetOpen()"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Order chat"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="flex min-h-0 min-w-0 flex-1 flex-col">
+      <app-chat-window
+        [order]="ord"
+        [currentUserId]="resolvedViewerId()"
+        [fillParent]="true"
+        (closeDrawer)="beginClose()"
+      />
+    </div>
+  </aside>
+}

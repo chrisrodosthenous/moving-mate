@@ -1,0 +1,20 @@
+<div class="flex min-h-screen flex-col overflow-x-hidden md:h-[100dvh] md:flex-row md:overflow-hidden">
+  <app-sidebar class="app-sidebar-host" />
+  <div class="app-shell-sidebar-offset map-container relative min-h-[50vh] min-w-0 flex-1 overflow-x-hidden md:min-h-screen">
+  <google-map
+    height="100%"
+    width="100%"
+    [center]="center"
+    [zoom]="zoom"
+    [options]="options"
+  >
+    @for (m of markerPositions(); track m.orderId + m.label) {
+      <map-marker
+        [position]="m.pos"
+        [label]="m.label"
+        [options]="getMarkerOptions(m.accepted)"
+      />
+    }
+  </google-map>
+  </div>
+</div>

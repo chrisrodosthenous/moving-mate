@@ -1,0 +1,158 @@
+<div class="driver-job-detail-root w-full min-w-0 max-w-3xl">
+  <a
+    routerLink="/driver/tasks"
+    class="text-sm font-medium text-primary hover:text-primary mb-5 inline-flex items-center gap-1"
+  >
+  ← Back to My trips
+    </a>
+
+    @if (tripStatusError(); as te) {
+      <div class="mb-5 alert-error px-4 py-3 text-sm" role="alert">
+        {{ te }}
+      </div>
+    }
+
+  @if (order(); as o) {
+    <div class="rounded-xl border border-border/30 bg-card/85 backdrop-blur-sm p-4 shadow-sm sm:p-5">
+      <div class="flex flex-wrap items-start justify-between gap-4 mb-2">
+        <div>
+          <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary">
+            {{ displayStatus(o.status) }}
+          </span>
+          <p class="text-lg font-semibold text-card-title mt-2">{{ customerName(o) }}</p>
+        </div>
+        <span class="text-lg font-semibold text-primary"> €{{ o.price | number: '1.2-2' }} </span>
+      </div>
+
+      <div class="mt-3 flex gap-3 pt-3 border-t border-border/20">
+        <div
+          class="shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-border/30 bg-secondary/20 flex items-center justify-center"
+        >
+          @if (o.cargoImageUrl) {
+            <img
+              [src]="cargoImageUrl(o)"
+              alt="Cargo"
+              class="w-full h-full object-cover"
+              loading="lazy"
+            />
+          } @else {
+            <span class="text-[10px] text-subtle text-center px-2 leading-tight">No cargo photo</span>
+          }
+        </div>
+        <div class="min-w-0 flex-1 space-y-1.5">
+          <p class="text-xs text-muted">
+            <span class="font-medium text-muted">Submitted</span>
+            {{ submissionDateIso(o) | date: 'medium' }}
+          </p>
+          <p class="text-sm text-foreground">
+            <span class="font-medium text-muted">Customer</span>
+            {{ customerName(o) }}
+          </p>
+          @if (customerDialPhone(o); as phone) {
+            <p class="text-xs">
+              <a [href]="'tel:' + phone" class="text-primary hover:text-primary/90 font-medium">{{ phone }}</a>
+            </p>
+          }
+        </div>
+      </div>
+
+      <div class="mt-4 space-y-2 text-sm text-muted">
+        <p>
+          <span class="font-medium text-muted">From:</span>
+          {{ o.pickupLocation.address }}
+        </p>
+        <p>
+          <span class="font-medium text-muted">To:</span>
+          {{ o.dropoffLocation.address }}
+        </p>
+        <p class="text-xs">
+          <span class="font-medium text-muted">Cargo:</span>
+          {{ cargoInventorySummary(o) }}
+        </p>
+        @if (o.cargoImageUrl) {
+          <p class="text-xs">
+            <a
+              [href]="cargoImageUrl(o)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-primary hover:text-primary/90 font-medium"
+              >Open cargo photo</a
+            >
+          </p>
+        }
+        @if (o.scheduledAt) {
+          <p class="text-xs text-muted">
+            <span class="font-medium text-muted">Scheduled:</span>
+            {{ o.scheduledAt | date: 'medium' }}
+          </p>
+        }
+
+        <section
+          class="mt-4 rounded-lg border border-[#49769F]/30 bg-[#0A4174]/40 p-4 text-sm"
+          aria-label="Logistics Summary"
+        >
+          <h3 class="mb-2 font-semibold text-white">Logistics details</h3>
+          <ul class="space-y-1 text-[#BDD8E9]">
+            <li><strong class="text-[#BDD8E9]/90">Vehicle type:</strong> {{ vehicleTypeLabel(o.vehicleType) }}</li>
+            <li><strong class="text-[#BDD8E9]/90">Floors:</strong> Pickup: floor {{ o.pickupFloor ?? '0' }} → Delivery: floor {{ o.destinationFloor ?? '0' }}</li>
+            <li><strong class="text-[#BDD8E9]/90">Elevator:</strong> {{ o.hasElevator === true ? 'Yes' : o.hasElevator === false ? 'No' : 'Not specified' }}</li>
+            <li><strong class="text-[#BDD8E9]/90">Loading help:</strong> {{ o.laborRequired === 'driver_plus_helper' ? 'Driver + 1 helper' : o.laborRequired === 'driver' ? 'Driver assistance' : 'None (transport only)' }}</li>
+          </ul>
+        </section>
+
+        <div class="mt-5 flex flex-col gap-3 border-t border-border/20 pt-4">
+          @if (
+            o.status === 'accepted' ||
+            o.status === 'picked_up' ||
+            o.status === 'driver_is_on_the_way' ||
+            o.status === 'in_progress'
+          ) {
+            <ui-button
+              type="button"
+              variant="outline"
+              (click)="viewRoute(o, $event)"
+              [className]="
+                'w-full min-h-[48px] justify-center rounded-xl border-border/40 bg-card/85 backdrop-blur-sm px-4 py-3 text-sm font-semibold text-card-foreground hover:bg-secondary/20 sm:w-max'
+              "
+            >
+              View Route
+            </ui-button>
+          }
+          @if (canShowMarkPickedUp(o)) {
+            <ui-button
+              type="button"
+              [disabled]="isTripBusy(o._id)"
+              (click)="startDelivery(o._id)"
+              [className]="
+                'w-full min-h-[48px] justify-center rounded-xl border-0 bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:bg-[#16A34A] disabled:opacity-60 sm:w-max'
+              "
+            >
+              {{ isTripBusy(o._id) ? '…' : 'Mark picked up' }}
+            </ui-button>
+          }
+          @if (canShowMarkDelivered(o)) {
+            <ui-button
+              type="button"
+              [disabled]="isTripBusy(o._id)"
+              (click)="markCompleted(o._id)"
+              [className]="
+                'w-full min-h-[48px] justify-center rounded-xl border-0 bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-60 sm:w-max'
+              "
+            >
+              {{ isTripBusy(o._id) ? '…' : 'Mark delivered' }}
+            </ui-button>
+          }
+        </div>
+      </div>
+    </div>
+  } @else if (loading()) {
+    <p class="text-muted text-center py-12">Loading job…</p>
+  } @else if (notFound()) {
+    <div class="rounded-xl border border-border/30 bg-card/85 backdrop-blur-sm p-8 text-center shadow-sm">
+      <p class="text-muted mb-2">This job could not be found in your list.</p>
+      <a routerLink="/driver/tasks" class="text-primary font-medium hover:text-primary">Return to My trips</a>
+    </div>
+  }
+</div>
+
+<app-order-route-preview-dialog [order]="routePreviewOrder()" (closed)="closeRoutePreview()" />

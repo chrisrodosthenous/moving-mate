@@ -1,0 +1,207 @@
+<div class="driver-available-root flex min-h-0 w-full flex-1 flex-col" data-testid="driver-available-orders">
+  @if (gateLoading()) {
+    <div class="rounded-xl border border-subtle bg-transparent px-4 py-8 text-sm text-muted">
+      Checking account…
+    </div>
+  } @else if (locked()) {
+    <div class="space-y-4">
+      <div
+        class="rounded-2xl border-2 border-primary/30 bg-warning/15 px-6 py-10 text-center shadow-sm"
+        role="alert"
+      >
+        <p class="text-lg font-semibold text-foreground">Account not verified</p>
+        <p class="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">{{ lockMessage() }}</p>
+        <a
+          routerLink="/profile"
+          class="mt-6 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-[#16A34A]"
+        >
+          Open profile
+        </a>
+      </div>
+    </div>
+  } @else {
+    <!-- Bleed past shell outlet padding when split — matches driver My Trips stable height chain. -->
+    <div
+      class="flex min-h-0 w-full flex-1 flex-col"
+      [class.-mx-6]="selectedOrder() && isMdUp()"
+      [class.overflow-hidden]="selectedOrder() && isMdUp()"
+      [class.md:-mx-8]="selectedOrder() && isMdUp()"
+    >
+      <div
+        class="driver-available-route-split flex min-h-0 w-full flex-1 flex-col overflow-hidden max-md:min-h-[calc(100svh-11rem)] md:flex-row md:min-h-0"
+        [class.driver-available-split-row--pinned]="selectedOrder() && isMdUp()"
+      >
+      <div
+        class="w-full shrink-0 overflow-y-auto p-4 transition-all duration-300 md:min-h-0"
+        [class.md:w-1/2]="selectedOrder() && isMdUp()"
+        aria-label="Available jobs list"
+      >
+        <div class="mb-6 md:mb-7">
+          <p
+            class="max-w-prose text-sm leading-relaxed text-muted"
+            id="available-jobs-list-intro"
+          >
+            Browse available orders in your area. Tap anywhere on a job card — or Accept after preview — to interact;
+            route opens in the split map on desktop.
+          </p>
+        </div>
+
+        @if (newOrderToast()) {
+          <div
+            class="mb-4 rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-medium text-foreground shadow-sm"
+            role="status"
+          >
+            New order available!
+          </div>
+        }
+
+        @if (error()) {
+          <div class="mb-4 alert-error px-4 py-3 text-sm">
+            {{ error() }}
+          </div>
+        }
+
+        @if (acceptError()) {
+          <div class="mb-4 alert-error px-4 py-3 text-sm">
+            {{ acceptError() }}
+          </div>
+        }
+
+        <div class="space-y-4 pb-6">
+          @if (loading() && orders().length === 0) {
+            <p class="py-8 text-sm text-muted">Loading orders…</p>
+          } @else if (orders().length === 0) {
+            <app-empty-state
+              title="No orders available"
+              hint="There are no pending jobs in your districts right now. Check back later."
+            />
+          } @else {
+            @for (order of orders(); track trackByOrderId($index, order)) {
+              <app-driver-job-card
+                [order]="order"
+                [selected]="selectedOrder()?._id === order._id"
+                [highlighted]="isHighlighted(order._id)"
+                [showActiveBadge]="selectedOrder()?._id === order._id"
+                [cargoImageUrl]="cargoImageUrl(order) || null"
+                (cardActivate)="onJobCardActivate(order, $event)"
+                (cargoPhotoClick)="openCargoLightbox(order, $event)"
+              >
+                @if (selectedOrder()?._id === order._id && routeInfo(); as info) {
+                  <div class="mt-3 rounded-lg border border-[#7BBDE8]/25 bg-[#7BBDE8]/10 px-3 py-2">
+                    <p class="text-xs font-medium text-[#BDD8E9]/90">Route</p>
+                    <p class="text-sm font-semibold text-[#7BBDE8]">{{ info.distanceKm }} km · {{ info.durationMinutes }} min</p>
+                  </div>
+                }
+                @if (order.status === 'pending' && (order.paymentStatus ?? 'unpaid') === 'unpaid') {
+                  <p
+                    class="mt-2 rounded-md border border-amber-500/35 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-200"
+                    data-testid="driver-awaiting-payment"
+                  >
+                    Awaiting customer payment — accept will unlock once paid
+                  </p>
+                }
+                <div class="mt-4 flex w-full flex-wrap justify-stretch gap-2 sm:justify-start" data-no-card-activate>
+                  <button
+                    type="button"
+                    (click)="acceptOrder(order, $event)"
+                    [disabled]="isAccepting(order)"
+                    [class]="acceptBtnClass"
+                    [attr.data-testid]="'accept-order-' + order._id"
+                  >
+                    {{ isAccepting(order) ? 'Accepting…' : 'Accept order' }}
+                  </button>
+                </div>
+              </app-driver-job-card>
+            }
+          }
+          @if (hasMore()) {
+            <div class="mt-2 flex justify-center">
+              <ui-button
+                type="button"
+                variant="outline"
+                (click)="loadMoreAvailable()"
+                [disabled]="loadingMore()"
+                [className]="
+                  'inline-flex min-h-[44px] items-center justify-center rounded-lg border-border/30 bg-card/85 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-card-foreground shadow-sm transition hover:bg-secondary/20 disabled:opacity-60'
+                "
+              >
+                {{ loadingMore() ? 'Loading…' : 'Load more' }}
+              </ui-button>
+            </div>
+          }
+        </div>
+      </div>
+
+      @if (selectedOrder() && isMdUp()) {
+        <div
+          class="route-map-pane relative hidden min-h-0 md:flex md:w-1/2 md:flex-1 md:flex-col md:self-stretch md:border-l md:border-border/30 md:bg-muted/35"
+          role="region"
+          aria-label="Route map"
+        >
+          <button
+            type="button"
+            (click)="clearMapSelection()"
+            class="absolute top-4 right-4 z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-0 bg-card/90 backdrop-blur-sm text-xl leading-none text-muted shadow-md outline-none ring-1 ring-black/5 transition hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            aria-label="Close route preview"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <div class="route-map-pane__fill relative min-h-0 w-full flex-1 md:min-h-0">
+            <google-map
+              class="absolute inset-0 block min-h-0 min-w-0 overflow-hidden"
+              height="100%"
+              width="100%"
+              style="display: block; height: 100%; width: 100%; min-height: 0"
+              [center]="center()"
+              [zoom]="zoom"
+              [options]="mapOptions()"
+              (mapInitialized)="onMapReady($event)"
+            >
+              @if (directionsResult(); as dirs) {
+                <map-directions-renderer
+                  [directions]="dirs"
+                  [options]="directionsRendererOptions"
+                ></map-directions-renderer>
+              }
+              @if (pickupPosition(); as pos) {
+                <map-marker [position]="pos" label="A" title="Pickup"></map-marker>
+              }
+              @if (dropoffPosition(); as pos) {
+                <map-marker [position]="pos" label="B" title="Dropoff"></map-marker>
+              }
+            </google-map>
+          </div>
+        </div>
+      }
+      </div>
+    </div>
+  }
+</div>
+
+@if (!gateLoading() && !locked() && selectedOrder(); as previewJob) {
+  @if (!isMdUp()) {
+    <app-order-route-preview-dialog
+      [order]="previewJob"
+      [embedMode]="false"
+      (closed)="clearMapSelection()"
+    >
+      <div
+        routePreviewModalFooter
+        class="shrink-0 border-t border-border/30 bg-card/90 backdrop-blur-md px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3"
+      >
+        <button
+          type="button"
+          (click)="acceptOrder(previewJob, $event)"
+          [disabled]="isAccepting(previewJob)"
+          class="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-[#7BBDE8] px-4 text-base font-bold text-[#001D39] shadow-[0_4px_12px_rgba(123,189,232,0.3)] transition hover:bg-[#6EA2B3] disabled:opacity-60"
+        >
+          {{ isAccepting(previewJob) ? 'Accepting…' : 'Accept order' }}
+        </button>
+      </div>
+    </app-order-route-preview-dialog>
+  }
+}
+
+@if (cargoLightboxUrl(); as lbUrl) {
+  <app-cargo-photo-lightbox [imageUrl]="lbUrl" (closed)="onCargoLightboxClosed()" />
+}

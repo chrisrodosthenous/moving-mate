@@ -1,0 +1,11 @@
+.customer-shell-main {
+  min-height: 0;
+}
+
+/**
+ * Unified page titles inside the customer shell so every route aligns the same vertically.
+ */
+#customer-main-content :is(h1.customer-page-title) {
+  margin-top: 0;
+  margin-bottom: 1.5rem; /* mb-6 */
+}

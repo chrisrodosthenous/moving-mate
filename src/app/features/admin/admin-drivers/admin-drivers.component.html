@@ -1,0 +1,108 @@
+<section class="space-y-4" aria-labelledby="admin-drivers-heading">
+  <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+    <div>
+      <h2 id="admin-drivers-heading" class="text-lg font-semibold text-text">Drivers</h2>
+      <p class="mt-1 text-sm text-secondary">
+        {{ showingLabel() }} · Priority dispatch at {{ priorityThreshold }}+ ★
+      </p>
+    </div>
+    <input
+      type="text"
+      [class]="table.search"
+      placeholder="Search..."
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+      aria-label="Search drivers"
+    />
+  </div>
+
+  @if (loading()) {
+    <p class="text-sm text-secondary" aria-live="polite">Loading drivers…</p>
+  }
+
+  <div [class]="table.container">
+    <p [class]="table.scrollHint">Swipe horizontally to view all columns</p>
+    <div [class]="table.scrollWrap">
+      <table class="min-w-[880px] w-full border-collapse">
+        <thead [class]="table.thead">
+          <tr>
+            <th [class]="table.th" scope="col">Driver Name</th>
+            <th [class]="table.th" scope="col">Current District</th>
+            <th [class]="table.th" scope="col">Driver Rating</th>
+            <th [class]="table.th" scope="col">Active Vehicle</th>
+            <th [class]="table.th" scope="col">Completed Trips</th>
+            <th [class]="table.th" scope="col">Availability</th>
+            <th [class]="table.th" scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody [class]="table.tbody">
+          @for (row of displayedRows(); track row.user._id) {
+            <tr [class]="table.tr">
+              <td [class]="table.td + ' font-medium'">{{ row.fullName }}</td>
+              <td [class]="table.td">{{ row.district }}</td>
+              <td [class]="table.td">
+                <span
+                  class="inline-flex items-center gap-1 tabular-nums"
+                  [class.text-primary]="row.priority"
+                  [class.font-semibold]="row.priority"
+                >
+                  <lucide-icon
+                    name="star"
+                    [size]="16"
+                    [class]="row.priority ? 'fill-primary text-primary' : 'text-secondary'"
+                    aria-hidden="true"
+                  />
+                  {{ ratingDisplay(row.rating) }}
+                  @if (row.priority) {
+                    <span class="ml-1 text-[10px] font-bold uppercase tracking-wide text-primary"
+                      >Priority</span
+                    >
+                  }
+                </span>
+              </td>
+              <td [class]="table.td">{{ row.vehicle }}</td>
+              <td [class]="table.td + ' tabular-nums'">{{ row.completedTrips }}</td>
+              <td [class]="table.td">
+                <span [class]="badgeClass(row.availability.tone)">{{ row.availability.label }}</span>
+              </td>
+              <td [class]="table.td">
+                <ui-button
+                  type="button"
+                  variant="outline"
+                  [className]="table.actionBtn + ' border-accent/30'"
+                  (click)="viewDriver.emit(row.user)"
+                >
+                  View / Edit
+                </ui-button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td [attr.colspan]="7" class="px-4 py-10 text-center text-sm text-secondary">
+                @if (loading()) {
+                  Loading…
+                } @else if (search()) {
+                  No drivers match your search.
+                } @else {
+                  No drivers found.
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (hasMore()) {
+      <div class="flex justify-center border-t border-accent/10 px-4 py-4">
+        <ui-button
+          type="button"
+          variant="outline"
+          [className]="'min-w-[10rem] border-accent/30 text-text hover:bg-accent/15'"
+          (click)="loadMore()"
+        >
+          Load more
+        </ui-button>
+      </div>
+    }
+  </div>
+</section>

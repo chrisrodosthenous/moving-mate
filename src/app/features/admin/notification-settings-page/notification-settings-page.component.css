@@ -1,0 +1,4 @@
+/* Content band on the shared navy admin shell */
+.notification-settings-inner {
+  min-height: min(60vh, 100%);
+}

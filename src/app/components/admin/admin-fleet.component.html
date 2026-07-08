@@ -1,0 +1,229 @@
+<section class="fleet-view">
+  <aside class="fleet-list border-r border-border/25 bg-secondary/70">
+    <div class="p-4 border-b border-border/25">
+      <p class="text-primary text-xs font-semibold uppercase tracking-wide">Total Drivers</p>
+      <p class="text-2xl font-bold text-brand-400 mt-1" data-testid="admin-stat-drivers">{{ totalDriversCount() }}</p>
+    </div>
+    <div class="p-3 border-b border-border/25 flex gap-2 flex-wrap">
+      <button
+        type="button"
+        (click)="driverTabChange.emit(fleetTabEnum.NOT_VERIFIED)"
+        class="tab-btn"
+        [class.tab-btn-active]="driverTab() === fleetTabEnum.NOT_VERIFIED"
+      >
+        Not Verified
+      </button>
+      <button
+        type="button"
+        (click)="driverTabChange.emit(fleetTabEnum.PENDING)"
+        class="tab-btn relative pr-6"
+        [class.tab-btn-active]="driverTab() === fleetTabEnum.PENDING"
+      >
+        Pending
+        @if (pendingDrivers().length > 0) {
+          <span
+            class="absolute -right-0.5 -top-1.5 h-[1.125rem] min-w-[1.125rem] rounded-full bg-primary px-1 text-center text-[10px] font-bold leading-[1.125rem] text-primary-foreground shadow"
+            aria-label="Pending verification drivers"
+          >
+            {{ pendingDrivers().length > 99 ? '99+' : pendingDrivers().length }}
+          </span>
+        }
+      </button>
+      <button
+        type="button"
+        (click)="driverTabChange.emit(fleetTabEnum.VERIFIED)"
+        class="tab-btn"
+        [class.tab-btn-active]="driverTab() === fleetTabEnum.VERIFIED"
+      >
+        Verified
+      </button>
+    </div>
+    <div class="list-scroll p-3">
+      @if (driverTab() === fleetTabEnum.NOT_VERIFIED) {
+        @if (notVerifiedDrivers().length === 0) {
+          <app-empty-state
+            tone="admin"
+            title="No drivers in this category"
+            hint="Registered drivers who have not completed verification appear here."
+          />
+        } @else {
+          @for (u of notVerifiedDrivers(); track u._id) {
+            <button
+              type="button"
+              (click)="selectDriver.emit(u)"
+              class="list-item"
+              [class.list-item-active]="selectedDriver()?._id === u._id"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="text-sm text-foreground">{{ (u.firstName + ' ' + u.lastName).trim() || u.email }}</p>
+                  <p class="text-xs text-primary">{{ u.phoneNumber || u.email }}</p>
+                </div>
+                @if (u.vehicleType) {
+                  <span [class]="driverVehicleBadgeClass">{{ vehicleTypeBadge(u.vehicleType) }}</span>
+                }
+              </div>
+            </button>
+          }
+        }
+      } @else if (driverTab() === fleetTabEnum.PENDING) {
+        @if (pendingDrivers().length === 0) {
+          <app-empty-state
+            tone="admin"
+            title="No pending verifications"
+            hint="Drivers who submitted documents for review will appear here."
+          />
+        } @else {
+          @for (u of pendingDrivers(); track u._id) {
+            <button
+              type="button"
+              (click)="selectDriver.emit(u)"
+              class="list-item"
+              [class.list-item-active]="selectedDriver()?._id === u._id"
+              [attr.data-testid]="'admin-pending-card-' + u._id"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm text-foreground">{{ (u.firstName + ' ' + u.lastName).trim() || u.email }}</p>
+                  <p class="text-xs text-primary">{{ u.phoneNumber || u.email }}</p>
+                  @if (u.vehicleType) {
+                    <span [class]="driverVehicleBadgeClass + ' mt-2'">{{ vehicleTypeBadge(u.vehicleType) }}</span>
+                  }
+                </div>
+                @if (vehiclePhotoSrc(u); as photoSrc) {
+                  <img
+                    [src]="photoSrc"
+                    alt="Vehicle thumbnail"
+                    class="h-12 w-12 shrink-0 rounded-md border border-[#49769F]/45 object-cover"
+                    (click)="onVehiclePhotoClick($event, u.vehiclePhotoUrl)"
+                  />
+                }
+              </div>
+            </button>
+          }
+        }
+      } @else if (driverTab() === fleetTabEnum.VERIFIED) {
+        @if (verifiedDrivers().length === 0) {
+          <app-empty-state
+            tone="admin"
+            title="No verified drivers yet"
+            hint="Approved drivers are listed here once verification is complete."
+          />
+        } @else {
+          @for (u of verifiedDrivers(); track u._id) {
+            <button
+              type="button"
+              (click)="selectDriver.emit(u)"
+              class="list-item"
+              [class.list-item-active]="selectedDriver()?._id === u._id"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="text-sm text-foreground">{{ (u.firstName + ' ' + u.lastName).trim() || u.email }}</p>
+                  <p class="text-xs text-primary">{{ u.phoneNumber || u.email }}</p>
+                </div>
+                @if (u.vehicleType) {
+                  <span [class]="driverVehicleBadgeClass">{{ vehicleTypeBadge(u.vehicleType) }}</span>
+                }
+              </div>
+            </button>
+          }
+        }
+      }
+    </div>
+  </aside>
+  <section class="fleet-main bg-secondary/35">
+    @if (selectedDriver(); as driver) {
+      <div class="h-full p-5 overflow-y-auto">
+        <h4 class="text-sm font-semibold text-muted-foreground mb-2">Driver profile</h4>
+        <div class="space-y-2 text-sm">
+          <p class="text-xs text-foreground">Name: {{ (driver.firstName + ' ' + driver.lastName).trim() || driver.email }}</p>
+          <p class="text-xs text-foreground">Email: {{ driver.email || '—' }}</p>
+          <p class="text-xs text-foreground">Phone: {{ driver.phoneNumber || '—' }}</p>
+          <p class="text-xs text-foreground">Date of Birth: {{ formatDateLabel(driver.dateOfBirth) }}</p>
+
+          <div class="mt-3 rounded-lg border border-[#49769F]/35 bg-[#001D39]/35 p-3">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-[#7BBDE8] mb-2">Vehicle details</p>
+            @if (driver.vehicleType) {
+              <div class="mb-3 flex flex-wrap items-center gap-2">
+                <span class="text-xs text-[#BDD8E9]/80">Category</span>
+                <span [class]="driverVehicleBadgeClass">{{ vehicleTypeBadge(driver.vehicleType) }}</span>
+                <span class="text-xs text-[#BDD8E9]/70">{{ vehicleTypeLabel(driver.vehicleType) }}</span>
+              </div>
+            } @else {
+              <p class="text-xs text-muted-foreground mb-3">No vehicle category on file.</p>
+            }
+            @if (vehiclePhotoSrc(driver); as photoSrc) {
+              <p class="text-[11px] text-[#7BBDE8] mb-1">Vehicle photo (verification)</p>
+              <ui-button
+                type="button"
+                (click)="openVehiclePhotoPreview.emit(driver.vehiclePhotoUrl!)"
+                variant="ghost"
+                [className]="'flex h-32 w-full max-w-xs items-center justify-center overflow-hidden rounded-lg border border-dashed border-[#49769F]/50 bg-[#0A4174]/40 !p-1'"
+              >
+                <img
+                  [src]="photoSrc"
+                  alt="Vehicle verification photo"
+                  class="max-h-full max-w-full object-contain"
+                />
+              </ui-button>
+              <p class="mt-1 text-[10px] text-[#BDD8E9]/60">Click to open full-size preview</p>
+            } @else {
+              <p class="text-xs text-muted-foreground">No vehicle photo uploaded.</p>
+            }
+          </div>
+
+          @if (driver.licenseUrl) {
+            <div class="mt-2">
+              <p class="text-[11px] text-primary mb-1">License / ID document</p>
+              <ui-button
+                type="button"
+                (click)="openLicensePreview.emit(driver.licenseUrl!)"
+                variant="ghost"
+                [className]="'flex h-28 w-28 items-center justify-center overflow-hidden rounded border border-border/40 bg-secondary/30 !p-1'"
+              >
+                <img
+                  [src]="licenseBaseUrl() + driver.licenseUrl"
+                  alt="License document"
+                  class="max-h-full max-w-full object-contain"
+                />
+              </ui-button>
+            </div>
+          } @else {
+            <p class="text-xs text-muted-foreground mt-2">No license document uploaded.</p>
+          }
+        </div>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <ui-button
+            type="button"
+            [disabled]="verifyingId() === driver._id || !canReviewDriver(driver)"
+            (click)="approveDriver.emit(driver._id)"
+            [className]="driverVerifyBtnClass"
+            [attr.data-testid]="'admin-approve-' + driver._id"
+          >
+            Verify Driver
+          </ui-button>
+          <ui-button
+            type="button"
+            variant="destructive"
+            [disabled]="verifyingId() === driver._id"
+            (click)="rejectDriver.emit(driver)"
+            [className]="'min-h-11 shrink-0 rounded-lg px-4 text-sm font-medium !bg-destructive !text-destructive-foreground hover:!bg-destructive/80'"
+            [attr.data-testid]="'admin-reject-' + driver._id"
+          >
+            Reject
+          </ui-button>
+        </div>
+      </div>
+    } @else {
+      <div class="h-full flex items-center justify-center p-4">
+        <app-empty-state
+          tone="admin"
+          surface="card"
+          title="Select a driver"
+          hint="Choose someone from the list to review vehicle details, license, and approve or reject."
+        />
+      </div>
+    }
+  </section>
+</section>

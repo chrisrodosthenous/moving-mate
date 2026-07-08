@@ -1,0 +1,44 @@
+@if (dialog.visible()) {
+  <div
+    class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
+    role="presentation"
+  >
+    <div class="absolute inset-0" (click)="onBackdrop()">
+      <ui-dialog-backdrop />
+    </div>
+    <ui-dialog-panel
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="dialog.title() ? 'dialog-title' : null"
+      [attr.aria-describedby]="'dialog-description'"
+      (click)="$event.stopPropagation()"
+    >
+      @if (dialog.title(); as t) {
+        <h2 id="dialog-title" class="mb-2 text-lg font-semibold tracking-tight text-card-foreground">
+          {{ t }}
+        </h2>
+      }
+      <p id="dialog-description" class="mb-6 text-sm leading-relaxed text-muted-foreground">
+        {{ dialog.message() }}
+      </p>
+      <div class="flex flex-wrap items-center justify-end gap-3">
+        <ui-button
+          type="button"
+          variant="outline"
+          (click)="dialog.onCancel()"
+          [className]="'px-4 py-2.5 rounded-lg text-primary-foreground'"
+        >
+          Cancel
+        </ui-button>
+        <ui-button
+          type="button"
+          variant="default"
+          (click)="dialog.onConfirm()"
+          [className]="'px-4 py-2.5 rounded-lg'"
+        >
+          Confirm
+        </ui-button>
+      </div>
+    </ui-dialog-panel>
+  </div>
+}

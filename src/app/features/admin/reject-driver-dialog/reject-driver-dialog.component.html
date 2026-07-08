@@ -1,0 +1,38 @@
+<h2 mat-dialog-title data-testid="admin-reject-modal">Reject driver verification</h2>
+
+<mat-dialog-content>
+  <p class="mb-3 text-sm text-secondary">
+    You are rejecting
+    <span class="font-medium text-text">{{ data.driverName }}</span>. Please provide a reason (shown to the
+    driver by email).
+  </p>
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>Rejection reason</mat-label>
+    <textarea
+      matInput
+      rows="4"
+      name="rejectionReason"
+      [(ngModel)]="reason"
+      (blur)="onReasonBlur()"
+      placeholder="e.g. License image is unreadable, or documents do not match requirements."
+      data-testid="admin-reject-reason-input"
+    ></textarea>
+    @if (reasonTouched && !reason.trim()) {
+      <mat-error class="text-xs">Please enter a rejection reason.</mat-error>
+    }
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button type="button" mat-button (click)="cancel()">Cancel</button>
+  <button
+    type="button"
+    mat-flat-button
+    color="warn"
+    [disabled]="!reason.trim()"
+    (click)="submit()"
+    data-testid="admin-reject-submit"
+  >
+    Reject
+  </button>
+</mat-dialog-actions>

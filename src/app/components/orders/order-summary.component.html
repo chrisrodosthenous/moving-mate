@@ -1,0 +1,56 @@
+<div class="flex w-full min-w-0 flex-col gap-4 md:gap-8 lg:gap-12 pb-1" data-testid="order-summary-panel">
+  @if (loading()) {
+    <p class="text-xs text-[#BDD8E9]/80 xs:text-sm">Calculating route…</p>
+  } @else if (pricingBreakdown(); as breakdown) {
+    <div
+      class="flex w-full min-w-0 flex-col gap-3 rounded-lg border border-[#49769F]/40 bg-[#001224]/50 p-3 xs:p-4 sm:p-5 md:grid md:grid-cols-1 md:gap-4 lg:gap-5"
+      data-testid="order-pricing-breakdown"
+    >
+      <p
+        class="text-[11px] text-[#BDD8E9]/75 xs:text-xs md:col-span-full md:text-sm"
+        data-testid="order-summary-distance"
+      >
+        {{ breakdown.distanceKm | number: '1.1-1' }} km · {{ durationText() }}
+      </p>
+
+      <dl class="flex w-full min-w-0 flex-col gap-2 text-[11px] xs:text-xs md:col-span-full md:grid md:grid-cols-2 md:gap-x-4 md:gap-y-2 lg:grid-cols-1 lg:gap-2 md:text-sm">
+        <div class="flex flex-col gap-0.5 xs:flex-row xs:items-center xs:justify-between xs:gap-3 text-[#BDD8E9]/90">
+          <dt>Vehicle Base Fee</dt>
+          <dd class="tabular-nums xs:text-right">€{{ breakdown.baseFee | number: '1.2-2' }}</dd>
+        </div>
+        <div class="flex flex-col gap-0.5 xs:flex-row xs:items-start xs:justify-between xs:gap-3 text-[#BDD8E9]/90 md:col-span-2 lg:col-span-1">
+          <dt class="shrink-0">Route Cost</dt>
+          <dd class="min-w-0 tabular-nums break-words xs:text-right">
+            {{ breakdown.distanceKm | number: '1.1-1' }} km × €{{ breakdown.ratePerKm | number: '1.2-2' }}
+            <span class="text-[#BDD8E9]"> = €{{ breakdown.distanceCost | number: '1.2-2' }}</span>
+          </dd>
+        </div>
+        <div class="flex flex-col gap-0.5 xs:flex-row xs:items-center xs:justify-between xs:gap-3 text-[#BDD8E9]/90">
+          <dt>Add-ons (Labor/Floors)</dt>
+          <dd class="tabular-nums xs:text-right">€{{ breakdown.addonsTotal | number: '1.2-2' }}</dd>
+        </div>
+        <div
+          class="flex flex-col gap-1 border-t border-[#49769F]/35 pt-2 text-sm font-bold text-[#BDD8E9] xs:flex-row xs:items-center xs:justify-between xs:gap-3 xs:text-base md:col-span-2 lg:col-span-1"
+        >
+          <dt>Total</dt>
+          <dd class="tabular-nums xs:text-right" data-testid="order-summary-price">
+            €{{ breakdown.total | number: '1.2-2' }}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  }
+
+  <div class="flex w-full flex-col items-stretch px-0 md:items-center md:px-2">
+    <ui-button
+      type="button"
+      (click)="onConfirmClick()"
+      [disabled]="!canConfirm()"
+      [className]="
+        'inline-flex min-h-[48px] w-full items-center justify-center rounded-lg px-4 py-3 text-[13px] font-semibold xs:px-6 xs:text-sm md:w-auto md:max-w-full md:px-8 md:min-w-[min(14rem,calc(100vw-3rem))]'
+      "
+    >
+      {{ createSubmitting() ? 'Creating…' : 'Confirm Order' }}
+    </ui-button>
+  </div>
+</div>

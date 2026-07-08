@@ -1,0 +1,40 @@
+<nav
+  class="fixed inset-x-0 bottom-0 z-[58] flex min-w-0 overflow-x-hidden border-t border-border/20 bg-popover/94 backdrop-blur-md pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.45)] md:hidden"
+  aria-label="Driver shortcuts"
+>
+  <div class="mx-auto flex w-full min-w-0 max-w-7xl px-1 xs:px-2">
+    <a
+      routerLink="/driver/dashboard"
+      routerLinkActive="text-primary"
+      [routerLinkActiveOptions]="{ exact: true }"
+      class="flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[9px] font-medium leading-tight text-foreground transition hover:text-primary xs:px-2 xs:text-[10px] sm:text-xs"
+    >
+      <lucide-icon name="home" [size]="20" aria-hidden="true"></lucide-icon>
+      <span class="truncate">Dashboard</span>
+    </a>
+    <a
+      routerLink="/driver/available"
+      routerLinkActive="text-primary"
+      class="flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[9px] font-medium leading-tight text-foreground transition hover:text-primary xs:px-2 xs:text-[10px] sm:text-xs"
+    >
+      <lucide-icon name="truck" [size]="20" aria-hidden="true"></lucide-icon>
+      <span class="truncate text-center leading-tight">Jobs</span>
+    </a>
+    <a
+      routerLink="/driver/tasks"
+      routerLinkActive="text-primary"
+      class="flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[9px] font-medium leading-tight text-foreground transition hover:text-primary xs:px-2 xs:text-[10px] sm:text-xs"
+    >
+      <lucide-icon name="circle-check" [size]="20" aria-hidden="true"></lucide-icon>
+      <span class="truncate">Trips</span>
+    </a>
+    <a
+      routerLink="/profile"
+      routerLinkActive="text-primary"
+      class="flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[9px] font-medium leading-tight text-foreground transition hover:text-primary xs:px-2 xs:text-[10px] sm:text-xs"
+    >
+      <lucide-icon name="user" [size]="20" aria-hidden="true"></lucide-icon>
+      <span class="truncate">Profile</span>
+    </a>
+  </div>
+</nav>

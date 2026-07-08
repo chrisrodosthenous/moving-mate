@@ -1,0 +1,662 @@
+<div [class]="ordersOuterRootClass()" [attr.data-chat-drawer-open]="isChatDrawerOpen()">
+  @if (!hideShell()) {
+    <app-sidebar class="app-sidebar-host" />
+  }
+  <div
+    class="flex w-full min-w-0 min-h-0 flex-1 flex-col overflow-x-hidden px-0 pt-0 md:min-h-0"
+    [class.md:overflow-hidden]="ordersSplitMapOpen()"
+    [class.app-shell-sidebar-offset]="!hideShell()"
+  >
+    @if (!hideShell()) {
+      <header class="app-shell-header">
+        <h1 class="app-shell-header-title">My Orders</h1>
+      </header>
+    }
+
+    <div class="flex w-full min-w-0 flex-1 flex-col md:min-h-0" [ngClass]="ordersContentOuterClass()">
+      @if (listError()) {
+        <div class="alert-error text-sm px-4 py-3 mb-6">
+          {{ listError() }}
+        </div>
+      }
+      @if (error()) {
+        <div class="alert-error text-sm px-4 py-3 mb-6">
+          {{ error() }}
+        </div>
+      }
+
+      @if (loading() && orders().length === 0) {
+        <div class="space-y-4 py-2" aria-busy="true" aria-label="Loading orders">
+          @for (s of [1, 2, 3, 4]; track s) {
+            <div class="animate-pulse rounded-xl border border-subtle bg-surface-card p-4 shadow-sm">
+              <div class="mb-3 h-4 w-24 rounded bg-surface-track"></div>
+              <div class="mb-2 h-3 max-w-md w-full rounded bg-surface-track"></div>
+              <div class="h-3 w-48 rounded bg-surface-track"></div>
+              <div class="mt-4 flex gap-2">
+                <div class="h-10 flex-1 rounded-lg bg-surface-track xs:max-w-[8rem]"></div>
+                <div class="h-10 flex-1 rounded-lg bg-surface-track xs:max-w-[8rem]"></div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else if (!hasOrdersInView()) {
+        <div class="flex min-h-[40vh] w-full flex-col items-center justify-center py-12">
+        <app-empty-state
+          class="w-full max-w-md"
+          surface="card"
+          title="No orders found yet!"
+          hint="Get started by creating your first order or browse available jobs."
+        >
+          @if (auth.user()?.role === 'customer') {
+            <a
+              routerLink="/customer/book"
+              class="inline-block px-4 py-2 rounded-lg font-medium text-primary-foreground bg-primary hover:bg-primary/90 transition"
+            >
+              Create your first order
+            </a>
+          } @else {
+            <a
+              routerLink="/driver/available"
+              class="inline-block px-4 py-2 rounded-lg font-medium text-primary-foreground bg-primary hover:bg-primary/90 transition"
+            >
+              Browse available jobs
+            </a>
+          }
+        </app-empty-state>
+        </div>
+      } @else {
+        <div [class]="ordersRouteSplitRowClass()">
+          <div
+            class="w-full shrink-0 overflow-y-auto p-4 transition-all duration-300 md:min-h-0"
+            [class.lg:w-1/2]="routePreviewOrder()"
+          >
+          <section class="min-w-0 w-full" aria-label="Your orders">
+            <div class="mb-6 md:mb-7">
+              <p
+                class="max-w-prose text-sm leading-relaxed text-muted"
+                id="my-orders-list-intro"
+              >
+                Tap anywhere on an order card, or use &ldquo;View Route&rdquo;, to preview the trip on the map.
+              </p>
+            </div>
+        <div
+          class="flex flex-wrap gap-4"
+          role="tablist"
+          aria-label="Order lists"
+        >
+          <button
+            type="button"
+            role="tab"
+            [attr.id]="'my-orders-tab-active'"
+            data-testid="my-orders-tab-active"
+            [attr.aria-selected]="activeTab() === 'active'"
+            [attr.tabindex]="activeTab() === 'active' ? 0 : -1"
+            class="min-h-[44px] shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            [ngClass]="tabButtonClass(activeTab() === 'active')"
+            (click)="selectOrdersTab('active')"
+          >
+            Active Orders
+          </button>
+          <button
+            type="button"
+            role="tab"
+            [attr.id]="'my-orders-tab-completed'"
+            data-testid="my-orders-tab-completed"
+            [attr.aria-selected]="activeTab() === 'completed'"
+            [attr.tabindex]="activeTab() === 'completed' ? 0 : -1"
+            class="min-h-[44px] shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            [ngClass]="tabButtonClass(activeTab() === 'completed')"
+            (click)="selectOrdersTab('completed')"
+          >
+            Completed Orders
+          </button>
+        </div>
+
+        @if (activeTab() === 'active') {
+          @if (activeOrders().length === 0) {
+            <div
+              class="mt-8 flex min-h-[28vh] flex-col items-center justify-center rounded-xl border border-dashed border-subtle bg-surface-card/60 px-4 py-10 text-center"
+            >
+              <p class="text-base font-medium text-muted">No active deliveries at the moment.</p>
+              <p class="mt-1 max-w-sm text-sm text-muted">
+                When you book a move or a driver accepts a job, it will show up here.
+              </p>
+            </div>
+          } @else {
+          <section class="mt-6 mb-2">
+            <div class="flex flex-col gap-4 sm:gap-5 md:gap-4" [@customerOrderListStagger]="activeStaggerKey()">
+            @for (order of activeOrders(); track trackByOrderId($index, order)) {
+              <ui-card
+                [attr.tabindex]="0"
+                [attr.data-testid]="'customer-order-card-' + order._id"
+                [className]="orderCardShellClass(order, 'active')"
+                (click)="onOrderCardOpenRoute(order, $event)"
+                (keydown.enter)="onOrderCardOpenRoute(order, $event)"
+                (keydown.space)="$event.preventDefault(); onOrderCardOpenRoute(order, $event)"
+              >
+                <div class="mb-3 flex flex-col gap-3">
+                  <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate font-mono text-xs font-semibold tracking-wide text-card-title">
+                        #{{ orderShortId(order) }}
+                      </p>
+                      <p class="mt-0.5 text-xs text-muted">
+                        Submitted {{ submissionDateIso(order) | date: 'mediumDate' }}
+                      </p>
+                      <p class="mt-1 text-base font-semibold text-primary tabular-nums">
+                        €{{ order.price | number: '1.2-2' }}
+                      </p>
+                      @if (order.status === 'pending') {
+                        <p
+                          class="mt-1 text-xs font-medium"
+                          [class.text-warning]="canPayOrder(order)"
+                          [class.text-primary]="!canPayOrder(order)"
+                          [attr.data-testid]="'order-payment-status-' + order._id"
+                        >
+                          {{ paymentLabel(order) }}
+                        </p>
+                      }
+                    </div>
+                    <ui-badge
+                      class="shrink-0"
+                      [variant]="orderStatusToBadgeVariant(order.status)"
+                      [className]="'rounded-full font-medium !px-2.5 !py-1'"
+                      [attr.data-testid]="'customer-order-status-' + order._id"
+                    >
+                      {{ statusLabel(order.status) }}
+                    </ui-badge>
+                  </div>
+                  <div
+                    class="flex w-full flex-col gap-2 border-t border-subtle/30 pt-3 md:flex-row md:flex-wrap md:items-center md:justify-end md:gap-2 md:border-t-0 md:pt-0"
+                  >
+                    <ui-button
+                      type="button"
+                      variant="outline"
+                      (click)="viewRoute(order, $event)"
+                      [className]="
+                        viewRouteButtonClass(order)
+                      "
+                    >
+                      View Route
+                    </ui-button>
+                    @if (canPayOrder(order)) {
+                      <ui-button
+                        type="button"
+                        (click)="goToCheckout(order, $event)"
+                        [className]="
+                          'inline-flex min-h-[48px] w-full justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 md:w-auto'
+                        "
+                        [attr.data-testid]="'pay-order-' + order._id"
+                      >
+                        Pay now
+                      </ui-button>
+                    }
+                    @if (canCancelOrder(order)) {
+                      <ui-button
+                        type="button"
+                        variant="outline"
+                        (click)="cancelOrder(order)"
+                        [disabled]="cancellingId() === order._id"
+                        [className]="
+                          'inline-flex min-h-[44px] w-full justify-center rounded-lg border-primary/30 bg-destructive/30 px-4 py-2.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/40 hover:text-destructive-foreground disabled:opacity-60 md:w-auto'
+                        "
+                      >
+                        {{ cancellingId() === order._id ? 'Cancelling…' : 'Cancel order' }}
+                      </ui-button>
+                    }
+                    <div
+                      class="relative z-0 flex w-full flex-wrap items-center justify-end gap-2 overflow-visible md:flex-1 md:min-w-0 md:flex-nowrap"
+                    >
+                      @if (canChat(order)) {
+                        <!-- Same structure as driver My trips: native button + sibling badge; avoids stretched flex slot clipping -->
+                        <div class="relative inline-flex w-full shrink-0 align-top md:w-auto">
+                          <button
+                            type="button"
+                            [attr.data-testid]="'chat-open-' + order._id"
+                            title="Open chat"
+                            (click)="onOpenChat(order); $event.stopPropagation()"
+                            class="relative z-0 inline-flex min-h-[44px] w-full flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg bg-surface-track px-3 py-2.5 text-sm font-medium text-muted transition hover:bg-surface-track md:flex-none md:w-auto"
+                          >
+                            <span aria-hidden="true">💬</span>
+                            <span>Chat</span>
+                          </button>
+                          @if (chatService.badgeUnreadForOrder(order._id, order.unreadCount) > 0) {
+                            <span
+                              [attr.data-testid]="'chat-unread-badge-' + order._id"
+                              class="pointer-events-none absolute -right-[5px] -top-[5px] z-10 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-foreground ring-2 ring-card"
+                            >
+                              {{
+                                chatService.badgeUnreadForOrder(order._id, order.unreadCount) > 99
+                                  ? '99+'
+                                  : chatService.badgeUnreadForOrder(order._id, order.unreadCount)
+                              }}
+                            </span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex gap-3 pt-3 border-t border-subtle/30">
+                  <div
+                    class="shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-subtle bg-surface-track flex items-center justify-center"
+                  >
+                    @if (order.cargoImageUrl) {
+                      <ui-button
+                        type="button"
+                        (click)="openCargoLightbox(order)"
+                        variant="ghost"
+                        [className]="
+                          'group relative h-full w-full cursor-zoom-in rounded-lg !border-0 !bg-transparent !p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2'
+                        "
+                        title="View full size"
+                        [attr.aria-label]="'View cargo photo full size'"
+                      >
+                        <img
+                          [src]="cargoImageUrl(order)"
+                          alt=""
+                          class="w-full h-full object-cover pointer-events-none"
+                          loading="lazy"
+                        />
+                        <span
+                          class="absolute inset-0 flex items-end justify-center pb-1 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity"
+                          aria-hidden="true"
+                        >
+                          <span class="text-[10px] font-medium text-foreground drop-shadow">View</span>
+                        </span>
+                      </ui-button>
+                    } @else {
+                      <span class="text-[10px] text-subtle text-center px-2 leading-tight">No cargo photo</span>
+                    }
+                  </div>
+                  <div class="min-w-0 flex-1 space-y-1.5">
+                    <p class="text-xs text-muted">
+                      <span class="font-medium text-muted">Submitted</span>
+                      {{ submissionDateIso(order) | date: 'medium' }}
+                    </p>
+                    @if (order.scheduledAt) {
+                      <p class="text-xs text-muted">
+                        <span class="font-medium text-muted">Scheduled</span>
+                        {{ order.scheduledAt | date: 'medium' }}
+                      </p>
+                    }
+                    @if (showDriverLineForCustomer(order)) {
+                      <p
+                        class="text-xs text-muted"
+                        [attr.data-testid]="'customer-order-driver-' + order._id"
+                      >
+                        <span class="font-medium text-muted">Driver:</span>
+                        {{ assignedDriverDisplay(order) }}
+                      </p>
+                    }
+                  </div>
+                </div>
+
+                <div class="mt-3 space-y-1.5 text-sm">
+                  <p class="text-muted">
+                    <span class="font-medium text-muted">From:</span>
+                    {{ order.pickupLocation.address }}
+                  </p>
+                  <p class="text-muted">
+                    <span class="font-medium text-muted">To:</span>
+                    {{ order.dropoffLocation.address }}
+                  </p>
+                  <p class="text-xs text-muted">
+                    <span class="font-medium text-muted">Boxes:</span>
+                    {{ order.smallBoxes ?? 0 }} Small, {{ order.mediumBoxes ?? 0 }} Medium,
+                    {{ order.largeBoxes ?? 0 }} Large
+                  </p>
+                </div>
+
+                @if (canComplete(order)) {
+                  <div class="mt-3 pt-3 border-t border-subtle/30 flex flex-wrap gap-2">
+                    @if (order.status === 'accepted') {
+                      <ui-button
+                        type="button"
+                        (click)="startDelivery(order)"
+                        [disabled]="updatingStatusId() === order._id"
+                        [className]="
+                          'inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-lg px-4 py-3 sm:w-auto'
+                        "
+                      >
+                        {{ updatingStatusId() === order._id ? 'Updating…' : 'Start Delivery' }}
+                      </ui-button>
+                    }
+                    @if (order.status === 'in_progress' || order.status === 'picked_up') {
+                      <ui-button
+                        type="button"
+                        (click)="markAsDelivered(order)"
+                        [disabled]="updatingStatusId() === order._id"
+                        [className]="
+                          'inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-lg px-4 py-3 sm:w-auto'
+                        "
+                      >
+                        {{ updatingStatusId() === order._id ? 'Updating…' : 'Mark as Delivered' }}
+                      </ui-button>
+                    }
+                  </div>
+                }
+              </ui-card>
+            }
+          </div>
+          </section>
+          }
+        }
+
+        @if (activeTab() === 'completed') {
+          @if (completedTabLoading() && completedTabTotal() === null) {
+            <div
+              class="mt-8 flex min-h-[24vh] flex-col items-center justify-center rounded-xl border border-dashed border-subtle bg-surface-card/60 px-4 py-10 text-center"
+              aria-busy="true"
+              aria-label="Loading completed orders"
+            >
+              <p class="text-base font-medium text-muted">Loading completed orders…</p>
+            </div>
+          } @else if (completedTabTotal() !== null && completedTabOrders().length === 0) {
+            <div
+              class="mt-8 flex min-h-[28vh] flex-col items-center justify-center rounded-xl border border-dashed border-subtle bg-surface-card/60 px-4 py-10 text-center"
+            >
+              <p class="text-base font-medium text-muted">No completed orders yet.</p>
+              <p class="mt-1 max-w-sm text-sm text-muted">
+                Finished and cancelled deliveries appear here once they are delivered or cancelled.
+              </p>
+            </div>
+          } @else {
+          <section class="mt-6 mb-2">
+          <div class="flex flex-col gap-4 sm:gap-5 md:gap-4" [@customerOrderListStagger]="completedStaggerKey()">
+            @for (order of completedTabOrders(); track trackByOrderId($index, order)) {
+              <ui-card
+                [attr.tabindex]="0"
+                [className]="orderCardShellClass(order, 'completed')"
+                (click)="onOrderCardOpenRoute(order, $event)"
+                (keydown.enter)="onOrderCardOpenRoute(order, $event)"
+                (keydown.space)="$event.preventDefault(); onOrderCardOpenRoute(order, $event)"
+              >
+                <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate font-mono text-xs font-semibold tracking-wide text-card-title">
+                      #{{ orderShortId(order) }}
+                    </p>
+                    <p class="mt-0.5 text-xs text-muted">
+                      Submitted {{ submissionDateIso(order) | date: 'mediumDate' }}
+                    </p>
+                    <p class="mt-1 text-base font-semibold text-primary tabular-nums md:text-lg">
+                      €{{ order.price | number: '1.2-2' }}
+                    </p>
+                  </div>
+                  <ui-badge
+                    class="shrink-0"
+                    [variant]="orderStatusToBadgeVariant(order.status)"
+                    [className]="'rounded-full font-medium !px-2.5 !py-1'"
+                    [attr.data-testid]="'customer-order-status-' + order._id"
+                  >
+                    {{ statusLabel(order.status) }}
+                  </ui-badge>
+                </div>
+
+                <div class="flex gap-3 pt-3 border-t border-subtle/30">
+                  <div
+                    class="shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-subtle bg-surface-track flex items-center justify-center"
+                  >
+                    @if (order.cargoImageUrl) {
+                      <ui-button
+                        type="button"
+                        (click)="openCargoLightbox(order)"
+                        variant="ghost"
+                        [className]="
+                          'group relative h-full w-full cursor-zoom-in rounded-lg !border-0 !bg-transparent !p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2'
+                        "
+                        title="View full size"
+                        [attr.aria-label]="'View cargo photo full size'"
+                      >
+                        <img
+                          [src]="cargoImageUrl(order)"
+                          alt=""
+                          class="w-full h-full object-cover pointer-events-none"
+                          loading="lazy"
+                        />
+                        <span
+                          class="absolute inset-0 flex items-end justify-center pb-1 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity"
+                          aria-hidden="true"
+                        >
+                          <span class="text-[10px] font-medium text-foreground drop-shadow">View</span>
+                        </span>
+                      </ui-button>
+                    } @else {
+                      <span class="text-[10px] text-subtle text-center px-2 leading-tight">No cargo photo</span>
+                    }
+                  </div>
+                  <div class="min-w-0 flex-1 space-y-1.5">
+                    <p class="text-xs text-muted">
+                      <span class="font-medium text-muted">Submitted</span>
+                      {{ submissionDateIso(order) | date: 'medium' }}
+                    </p>
+                    @if (order.scheduledAt) {
+                      <p class="text-xs text-muted">
+                        <span class="font-medium text-muted">Scheduled</span>
+                        {{ order.scheduledAt | date: 'medium' }}
+                      </p>
+                    }
+                    @if (showDriverLineForCustomer(order)) {
+                      <p
+                        class="text-xs text-muted"
+                        [attr.data-testid]="'customer-order-driver-' + order._id"
+                      >
+                        <span class="font-medium text-muted">Driver:</span>
+                        {{ assignedDriverDisplay(order) }}
+                      </p>
+                    }
+                  </div>
+                </div>
+
+                <div class="mt-3 space-y-1.5 text-sm">
+                  <p class="text-muted">
+                    <span class="font-medium text-muted">From:</span>
+                    {{ order.pickupLocation.address }}
+                  </p>
+                  <p class="text-muted">
+                    <span class="font-medium text-muted">To:</span>
+                    {{ order.dropoffLocation.address }}
+                  </p>
+                  <p class="text-xs text-muted">
+                    <span class="font-medium text-muted">Boxes:</span>
+                    {{ order.smallBoxes ?? 0 }} Small, {{ order.mediumBoxes ?? 0 }} Medium,
+                    {{ order.largeBoxes ?? 0 }} Large
+                  </p>
+                </div>
+
+                @if (canRateCompletedDelivery(order)) {
+                  <div class="mt-3 pt-3 border-t border-subtle/30 flex justify-center sm:justify-start">
+                    <ui-button
+                      type="button"
+                      variant="outline"
+                      (click)="openRateModal(order)"
+                      [attr.data-testid]="'rate-service-' + order._id"
+                      [className]="
+                        'inline-flex min-h-[44px] w-full max-w-xs items-center justify-center rounded-lg border-subtle bg-surface-card px-4 py-2.5 text-xs font-medium text-card-title transition-all hover:bg-surface-hover sm:w-auto sm:max-w-none mx-auto sm:mx-0'
+                      "
+                    >
+                      Rate this delivery
+                    </ui-button>
+                  </div>
+                }
+                @if (order.rating != null) {
+                  <p class="mt-3 pt-3 border-t border-subtle/30 text-sm text-muted">
+                    <span class="text-primary">★</span> Your rating: {{ order.rating }}/5
+                    @if (order.review) {
+                      <span class="block text-muted mt-1">"{{ order.review }}"</span>
+                    }
+                  </p>
+                } @else if (order.hasReview) {
+                  <p class="mt-3 pt-3 border-t border-subtle/30 text-sm text-muted">
+                    Thank you — your review was submitted.
+                  </p>
+                }
+              </ui-card>
+            }
+          </div>
+          @if (loadMoreVisible()) {
+            <div class="mt-6 flex justify-center">
+              <ui-button
+                type="button"
+                variant="outline"
+                (click)="loadMoreOrders()"
+                [disabled]="loadMoreBusy()"
+                [className]="
+                  'inline-flex min-h-[44px] items-center justify-center rounded-lg border-subtle bg-surface-card px-4 py-2.5 text-sm font-medium text-card-title shadow-sm transition hover:bg-surface-hover disabled:opacity-60'
+                "
+              >
+                {{ loadMoreBusy() ? 'Loading…' : 'Load more' }}
+              </ui-button>
+            </div>
+          }
+          </section>
+          }
+        }
+
+        @if (activeTab() === 'active' && loadMoreVisible()) {
+          <div class="mt-6 flex justify-center">
+            <ui-button
+              type="button"
+              variant="outline"
+              (click)="loadMoreOrders()"
+              [disabled]="loadMoreBusy()"
+              [className]="
+                'inline-flex min-h-[44px] items-center justify-center rounded-lg border-subtle bg-surface-card px-4 py-2.5 text-sm font-medium text-card-title shadow-sm transition hover:bg-surface-hover disabled:opacity-60'
+              "
+            >
+              {{ loadMoreBusy() ? 'Loading…' : 'Load more' }}
+            </ui-button>
+          </div>
+        }
+          </section>
+          </div>
+          @if (routePreviewOrder()) {
+            @if (!isRoutePreviewSplitUp()) {
+              <app-order-route-preview-dialog
+                [order]="routePreviewOrderLive()"
+                [embedMode]="false"
+                (closed)="closeRoutePreview()"
+              />
+            }
+            @if (isRoutePreviewSplitUp()) {
+            <div
+              class="route-map-pane relative hidden min-h-0 lg:flex lg:w-1/2 lg:flex-1 lg:flex-col lg:self-stretch lg:border-l lg:border-border/30 lg:bg-muted/35"
+              role="region"
+              aria-label="Route map"
+            >
+              <span id="my-orders-route-panel-title" class="sr-only">Route preview</span>
+              <button
+                type="button"
+                (click)="closeRoutePreview()"
+                class="absolute top-4 right-4 z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-0 bg-surface-card text-xl leading-none text-muted shadow-md outline-none ring-1 ring-black/5 transition hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                aria-label="Close route preview"
+              >
+                <span aria-hidden="true">&times;</span>
+              </button>
+              <div class="route-map-pane__fill relative min-h-0 w-full flex-1 md:min-h-0">
+                <app-order-route-preview-dialog
+                  [embedMode]="true"
+                  [order]="routePreviewOrderLive()"
+                  (closed)="closeRoutePreview()"
+                  style="display: block; height: 100%; width: 100%; min-height: 0"
+                />
+              </div>
+            </div>
+            }
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (cargoLightboxUrl(); as lbUrl) {
+    <app-cargo-photo-lightbox [imageUrl]="lbUrl" (closed)="onCargoDialogClosed()" />
+  }
+
+  @if (orderToRate(); as order) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rate-modal-title"
+      data-testid="review-modal"
+    >
+      <div
+        class="mx-auto w-full max-h-[calc(100dvh-2rem)] min-w-0 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl bg-surface-card p-3 shadow-xl xs:p-4 sm:p-6 md:w-full md:max-w-xl lg:max-w-[min(36rem,55vw)]"
+      >
+        @if (ratingSuccess()) {
+          <p class="text-center text-primary font-medium py-4">Thank you! Your rating has been submitted.</p>
+        } @else {
+          <h2 id="rate-modal-title" class="mb-2 text-lg font-semibold text-card-title sm:text-xl">Rate your delivery</h2>
+          <p class="mb-4 text-xs text-muted sm:text-sm">How was your experience? Your feedback helps our drivers.</p>
+          @if (ratingErrorFromStore()) {
+            <div class="rounded-lg bg-destructive/30 border border-primary/30 text-destructive-foreground text-sm px-3 py-2 mb-3">
+              {{ ratingErrorFromStore() }}
+            </div>
+          }
+          <div class="mb-4 flex flex-wrap justify-center gap-1 xs:justify-start xs:gap-1">
+            @for (star of [1, 2, 3, 4, 5]; track star) {
+              <button
+                type="button"
+                (click)="setStar(star)"
+                class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded p-1 focus:outline-none focus:ring-2 focus:ring-primary"
+                [attr.aria-label]="'Rate ' + star + ' stars'"
+                [attr.data-testid]="'review-star-' + star"
+              >
+                <span
+                  class="text-2xl transition-colors"
+                  [class.text-primary]="star <= ratingStars()"
+                  [class.text-subtle]="star > ratingStars()"
+                  >★</span
+                >
+              </button>
+            }
+          </div>
+          <p class="text-xs text-muted mb-2">Comments (optional)</p>
+          <textarea
+            [ngModel]="reviewText()"
+            (ngModelChange)="reviewText.set($event)"
+            placeholder="Anything you'd like to add?"
+            rows="3"
+            data-testid="review-comment"
+            class="w-full rounded-lg border border-subtle px-3 py-2 text-sm text-card-title placeholder:text-subtle focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none resize-none"
+          ></textarea>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <ui-button
+              type="button"
+              (click)="submitRating()"
+              [disabled]="ratingStars() < 1 || ratingSubmittingOrderId() === order._id"
+              data-testid="review-submit"
+              [className]="
+                'inline-flex min-h-[44px] flex-1 !bg-primary !text-primary-foreground items-center justify-center rounded-lg px-4 font-medium transition hover:!bg-[#16A34A] disabled:pointer-events-none disabled:opacity-60'
+              "
+            >
+              {{ ratingSubmittingOrderId() === order._id ? 'Submitting…' : 'Submit' }}
+            </ui-button>
+            <ui-button
+              type="button"
+              variant="outline"
+              (click)="closeRateModal()"
+              [disabled]="ratingSubmittingOrderId() === order._id"
+              [className]="
+                'inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-lg border-subtle bg-surface-track px-4 font-medium text-muted transition hover:bg-surface-track disabled:opacity-60'
+              "
+            >
+              Cancel
+            </ui-button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (chatOrder(); as order) {
+    <app-chat-side-drawer
+      [order]="order"
+      [currentUserId]="auth.user()?.id ?? ''"
+      (drawerClosed)="closeChat()"
+    />
+  }
+</div>

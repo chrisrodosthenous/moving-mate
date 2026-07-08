@@ -1,0 +1,200 @@
+<section class="logistics-view">
+  <aside class="orders-list border-r border-border/25 bg-secondary/70">
+    <div class="p-4 border-b border-border/25">
+      <p class="text-primary text-xs font-semibold uppercase tracking-wide">Orders in category</p>
+      <p class="text-2xl font-bold text-brand-400 mt-1">{{ filteredOrders().length }}</p>
+      <div class="mt-3 flex gap-2 flex-wrap">
+        <button
+          type="button"
+          (click)="logisticsTabChange.emit(logisticsTabEnum.IN_PROGRESS)"
+          class="tab-btn"
+          [class.tab-btn-active]="selectedLogisticsTab() === logisticsTabEnum.IN_PROGRESS"
+        >
+          In Progress
+        </button>
+        <button
+          type="button"
+          (click)="logisticsTabChange.emit(logisticsTabEnum.COMPLETED)"
+          class="tab-btn"
+          [class.tab-btn-active]="selectedLogisticsTab() === logisticsTabEnum.COMPLETED"
+        >
+          Completed
+        </button>
+        <button
+          type="button"
+          (click)="logisticsTabChange.emit(logisticsTabEnum.CANCELLED)"
+          class="tab-btn"
+          [class.tab-btn-active]="selectedLogisticsTab() === logisticsTabEnum.CANCELLED"
+        >
+          Cancelled
+        </button>
+      </div>
+    </div>
+    <div class="list-scroll p-3">
+      @if (filteredOrders().length === 0) {
+        <app-empty-state
+          tone="admin"
+          title="No orders in this category"
+          hint="Try another tab (In Progress, Completed, Cancelled) or refresh if data just changed."
+        />
+      } @else {
+        @for (o of filteredOrders(); track o._id) {
+          <button
+            type="button"
+            (click)="orderSelect.emit(o)"
+            class="list-item flex gap-2.5 items-start"
+            [class.list-item-active]="selectedOrder()?._id === o._id"
+          >
+            <div
+              class="shrink-0 w-12 h-12 rounded border border-border/40 bg-secondary/75 overflow-hidden flex items-center justify-center"
+              aria-hidden="true"
+            >
+              @if (o.cargoImageUrl) {
+                <img
+                  [src]="licenseBaseUrl() + o.cargoImageUrl"
+                  alt=""
+                  class="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              } @else {
+                <span class="text-[9px] text-muted-foreground px-1 text-center leading-tight">No photo</span>
+              }
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-[10px] text-muted-foreground">{{ submissionDateIso(o) | date: 'medium' }}</p>
+              <p class="text-xs text-foreground truncate mt-0.5">
+                {{ statusLabel(o.status) }} — {{ o.pickupLocation.address }}
+              </p>
+              <p class="text-[11px] text-muted-foreground truncate">to {{ o.dropoffLocation.address }}</p>
+            </div>
+          </button>
+        }
+      }
+    </div>
+  </aside>
+  <section class="map-area">
+    <google-map height="100%" width="100%" [center]="mapCenter()" [zoom]="mapZoom()" [options]="mapOptions">
+      @if (directionsResult(); as result) {
+        <map-directions-renderer [directions]="result"></map-directions-renderer>
+      }
+      @if (selectedOrder()?.driverLocation; as dl) {
+        @if (dl.lat != null && dl.lng != null) {
+          <map-marker [position]="{ lat: dl.lat, lng: dl.lng }" [options]="driverLiveMarkerOptions"></map-marker>
+        }
+      }
+    </google-map>
+  </section>
+  @if (selectedOrder(); as order) {
+    <aside class="order-drawer bg-muted/45 backdrop-blur-md border-l border-border/25 shadow-2xl backdrop-blur-sm">
+      <div class="flex items-center justify-between p-6 border-b border-border/25">
+        <div class="flex items-center gap-3 min-w-0">
+          <h3 class="text-base font-semibold text-foreground truncate">Order Details</h3>
+          <ui-badge
+            [variant]="orderStatusToBadgeVariant(order.status)"
+            [surface]="'dark'"
+            [className]="'!rounded !text-xs !px-2 !py-0.5 font-medium leading-tight'"
+          >
+            {{ statusLabel(order.status) }}
+          </ui-badge>
+        </div>
+        <ui-button
+          type="button"
+          (click)="closeDrawer.emit()"
+          variant="ghost"
+          [className]="'!min-h-11 !min-w-11 !h-11 !w-11 !p-0 text-lg font-light leading-none text-primary hover:text-foreground'"
+        >
+          ×
+        </ui-button>
+      </div>
+      <div class="px-6 pt-4 pb-2 border-b border-border/20/80 flex items-center justify-between gap-4">
+        <span class="text-xs text-primary">Order ID</span>
+        <span class="text-sm font-semibold text-foreground text-right break-all">{{ order._id }}</span>
+      </div>
+      <div class="px-6 pt-3 pb-2 border-b border-border/20/80 flex items-center justify-between gap-4">
+        <span class="text-xs text-primary">Submitted</span>
+        <span class="text-sm text-foreground text-right">{{ submissionDateIso(order) | date: 'medium' }}</span>
+      </div>
+      <div class="order-drawer-body p-6 space-y-4 text-sm">
+        <div>
+          <p class="text-sm font-semibold text-foreground mb-1">Customer Details</p>
+          <p class="text-foreground">{{ customerName(order.customerId) }}</p>
+          <p class="text-foreground text-xs">{{ customerContact(order.customerId) }}</p>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-foreground mb-1">Pickup</p>
+          <p class="text-foreground text-xs">{{ order.pickupLocation.address }}</p>
+          <p class="text-muted-foreground text-[11px]">{{ order.pickupLocation.lat }}, {{ order.pickupLocation.lng }}</p>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-foreground mb-1">Dropoff</p>
+          <p class="text-foreground text-xs">{{ order.dropoffLocation.address }}</p>
+          <p class="text-muted-foreground text-[11px]">{{ order.dropoffLocation.lat }}, {{ order.dropoffLocation.lng }}</p>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-muted-foreground mb-2">Cargo Details</p>
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-primary">Small Boxes</span>
+              <span class="text-sm font-semibold text-foreground">{{ order.smallBoxes || 0 }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-primary">Medium Boxes</span>
+              <span class="text-sm font-semibold text-foreground">{{ order.mediumBoxes || 0 }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-primary">Large Boxes</span>
+              <span class="text-sm font-semibold text-foreground">{{ order.largeBoxes || 0 }}</span>
+            </div>
+            <div class="pt-1 mt-1 border-t border-border/25 flex items-center justify-between">
+              <span class="text-xs text-primary">Total Boxes</span>
+              <span class="text-sm font-bold text-foreground">{{ cargoTotal(order) }}</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-foreground mb-1">Price</p>
+          <p class="text-sm font-semibold text-brand-400">€{{ order.price }}</p>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-muted-foreground mb-2">Cargo image</p>
+          <div class="flex gap-3 items-start">
+            <div
+              class="shrink-0 w-28 h-28 rounded-lg border border-border/40 bg-secondary/75 overflow-hidden flex items-center justify-center"
+            >
+              @if (order.cargoImageUrl) {
+                <ui-button
+                  type="button"
+                  (click)="openImagePreview.emit(order.cargoImageUrl!)"
+                  variant="ghost"
+                  [className]="'h-full w-full cursor-zoom-in !border-0 !bg-transparent !p-0'"
+                  title="View full size"
+                >
+                  <img
+                    [src]="licenseBaseUrl() + order.cargoImageUrl"
+                    alt="Cargo"
+                    class="h-full w-full object-contain"
+                  />
+                </ui-button>
+              } @else {
+                <span class="text-[10px] text-muted-foreground px-2 text-center leading-tight">No cargo photo</span>
+              }
+            </div>
+            <div class="min-w-0 flex-1 space-y-1 text-xs text-primary">
+              <p>Photo submitted with the order (if any).</p>
+              @if (order.cargoImageUrl) {
+                <ui-button
+                  type="button"
+                  (click)="openImagePreview.emit(order.cargoImageUrl!)"
+                  variant="ghost"
+                  [className]="'!h-auto !px-0 !py-0 text-brand-400 hover:text-brand-300 font-medium'"
+                >
+                  Open full image
+                </ui-button>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  }
+</section>

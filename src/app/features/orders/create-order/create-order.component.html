@@ -1,0 +1,149 @@
+<div
+  class="create-order-root relative flex min-h-[100svh] min-w-0 w-full flex-1 flex-col overflow-x-hidden bg-background lg:min-h-0 lg:h-full lg:overflow-hidden"
+>
+  @if (!hideShell()) {
+    <app-sidebar class="app-sidebar-host relative z-[45] border-border md:z-40 md:h-auto" />
+  }
+
+  <div
+    class="create-order-body flex min-h-0 min-w-0 w-full flex-1 flex-col lg:h-full lg:min-h-0 lg:grid lg:grid-cols-2 lg:grid-rows-1 lg:gap-0 lg:overflow-hidden"
+    [class.app-shell-sidebar-offset]="!hideShell()"
+  >
+    <div
+      #orderFormPanel
+      class="create-order-drawer-panel relative z-[25] order-1 flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-card/92 backdrop-blur-md lg:z-[1] lg:order-1 lg:min-h-0 lg:border-r lg:border-border"
+      [class.is-open]="drawerOpen()"
+    role="dialog"
+      aria-modal="false"
+    aria-label="New order form"
+  >
+      <div
+        class="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-2 pb-[max(6rem,calc(1rem+env(safe-area-inset-bottom)))] pt-2 xs:px-3 lg:px-8 lg:pb-8 lg:pt-6 max-lg:pb-[max(6rem,calc(1rem+env(safe-area-inset-bottom)))]"
+      >
+        <form class="flex min-w-0 flex-col gap-2 xs:gap-3 lg:gap-8" (ngSubmit)="confirmOrder()">
+          <app-order-form
+            [logisticsForm]="logisticsForm"
+            [error]="error()"
+            [createErrorFromStore]="createErrorFromStore()"
+            [cyprusPickupDistricts]="cyprusPickupDistricts"
+            [pickupDistrict]="pickupDistrict"
+            (pickupDistrictChange)="pickupDistrict = $event; onPickupDistrictChange($event)"
+            [pickupLocationDisplay]="pickupLocationDisplay()"
+            [dropoffLocationDisplay]="dropoffLocationDisplay()"
+            [pickupLocationSet]="!!pickup()"
+            [dropoffLocationSet]="!!dropoff()"
+            (clearPickupLocation)="clearPickupOnly()"
+            (clearDropoffLocation)="clearDropoffOnly()"
+            [hasRoutePoints]="!!(pickup() || dropoff())"
+            [mapClickMode]="mapClickMode()"
+            [hideMapHint]="mapTouched()"
+            (mapSelectPickupToggle)="toggleMapSelectPickup()"
+            (mapSelectDropoffToggle)="toggleMapSelectDropoff()"
+            [scheduledDate]="scheduledDate"
+            (scheduledDateChange)="scheduledDate = $event"
+            [scheduledTime]="scheduledTime"
+            (scheduledTimeChange)="scheduledTime = $event"
+            [minDate]="minDate"
+            [timeSlots]="timeSlots()"
+            [cargoInventory]="cargoInventory()"
+            [cargoScore]="cargoScore()"
+            [assignedVehicleType]="assignedVehicleType()"
+            [totalCargoItems]="totalCargoItems()"
+            (incrementCargoItem)="incrementCargoItem($event)"
+            (decrementCargoItem)="decrementCargoItem($event)"
+            [cargoFile]="cargoFile"
+            (clearPoints)="clearPoints()"
+            (cargoFileChange)="onCargoFileChange($event)"
+          />
+
+          <div
+            [formGroup]="safetyForm"
+            class="create-order-safety mt-2 min-w-0 rounded-lg border border-primary/20 bg-primary/10 px-2 py-2 shadow-sm xs:px-3 lg:mt-0 lg:px-5 lg:py-4"
+            role="group"
+            aria-labelledby="safety-consent-label"
+          >
+            <label id="safety-consent-label" class="flex cursor-pointer select-none items-start gap-3">
+              <span class="-m-2 inline-flex shrink-0 p-2" aria-hidden="true">
+                <input
+                  type="checkbox"
+                  formControlName="safetyConsent"
+                  class="h-5 w-5 rounded border-border text-primary accent-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-card"
+                />
+              </span>
+              <span class="flex min-w-0 flex-1 items-start gap-2 pb-0.5 leading-snug lg:pb-0">
+                <lucide-icon name="info" [size]="16" class="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
+                <span
+                  class="min-w-0 flex-1 break-words text-[10px] text-muted-foreground transition-colors xs:text-xs lg:text-sm"
+                  [class.text-destructive-foreground]="
+                    safetyForm.controls.safetyConsent.invalid && safetyForm.controls.safetyConsent.touched
+                  "
+                >
+                  I have been informed and I accept that the company bears no responsibility for the safety and
+                  integrity of the products within the boxes. The customer is solely responsible for their proper
+                  packaging.
+                </span>
+              </span>
+          </label>
+            @if (safetyForm.controls.safetyConsent.invalid && safetyForm.controls.safetyConsent.touched) {
+              <p class="mt-2 pl-2 text-xs font-medium text-destructive-foreground sm:pl-14 lg:pl-[3.5rem]" role="alert">
+                Please accept this statement to continue.
+            </p>
+          }
+        </div>
+
+          <app-order-summary
+            [loading]="loading()"
+            [distanceKm]="distanceKm()"
+            [durationText]="durationText()"
+            [pricingBreakdown]="pricingBreakdown()"
+            [createSubmitting]="createSubmitting()"
+            [canConfirm]="canConfirm()"
+            (submitOrder)="confirmOrder()"
+          />
+        </form>
+      </div>
+        </div>
+
+    <div
+      class="create-order-map-wrap relative z-[35] order-2 flex w-full min-w-0 shrink-0 flex-col overflow-hidden max-lg:aspect-[4/3] max-lg:min-h-[13.75rem] max-lg:max-h-[min(18.75rem,55vh)] max-lg:h-[clamp(13.75rem,calc(100dvh-18rem),18.75rem)] lg:min-h-[400px] lg:h-full lg:max-h-none lg:order-2"
+    >
+      <app-order-map-view
+        class="create-order-map-host block h-full min-h-0"
+        [mapsEmbedReady]="mapsEmbedReady()"
+        [center]="center()"
+        [zoom]="zoom()"
+        [mapOptionsWithClick]="mapOptionsWithClick()"
+        [directionsResult]="directionsResult()"
+        [pickup]="pickup()"
+        [dropoff]="dropoff()"
+        [pickupMarkerOptions]="pickupMarkerOptions"
+        [dropoffMarkerOptions]="dropoffMarkerOptions"
+        [drawerOpen]="drawerOpen()"
+        [hideShell]="hideShell()"
+        (mapInitialized)="onMapInitialized($event)"
+        (mapClick)="onMapClick($event)"
+        (openDrawer)="openDrawer()"
+              />
+            </div>
+        </div>
+
+  @if (showBookingSuccess()) {
+    <div
+      class="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 px-3 backdrop-blur-sm"
+      role="status"
+    >
+      <div
+        class="flex w-full max-w-full flex-col items-center gap-5 rounded-2xl border border-border/40 bg-card/85 backdrop-blur-sm px-5 py-8 shadow-2xl xs:px-8 sm:px-12 sm:py-10"
+        @customerBookingSuccess
+      >
+        <div
+          class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 text-3xl font-bold leading-none text-primary"
+        >
+          ✓
+        </div>
+        <p class="text-lg font-semibold text-card-foreground">Order submitted</p>
+        <p class="max-w-xs text-center text-sm text-foreground">We are finding you a driver.</p>
+          </div>
+    </div>
+  }
+</div>

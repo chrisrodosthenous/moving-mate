@@ -1,0 +1,116 @@
+<div
+  class="chat-window flex min-h-0 w-full flex-col overflow-hidden bg-card/92 backdrop-blur-md"
+  [ngClass]="
+    fillParent()
+      ? 'h-full max-h-none flex-1 border-0 shadow-none'
+      : 'mx-auto max-h-[min(60vh,720px)] max-w-5xl rounded-t-xl border border-border/30 shadow-2xl md:rounded-xl'
+  "
+>
+  <div class="flex flex-shrink-0 items-center justify-between gap-2 bg-popover/90 backdrop-blur-sm px-3 py-3 text-popover-foreground sm:px-4">
+    <span class="min-w-0 truncate font-medium">Chat · {{ otherPartyName }}</span>
+    <button
+      type="button"
+      (click)="close()"
+      data-testid="chat-close-button"
+      class="rounded p-1.5 transition hover:bg-secondary/30"
+      aria-label="Close chat"
+    >
+      <span class="text-lg leading-none">×</span>
+    </button>
+  </div>
+
+  <div
+    class="chat-messages-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-muted/35 p-3"
+    data-testid="chat-messages"
+  >
+    @for (msg of messages(); track msg._id) {
+      <div
+        class="mb-2 flex w-full"
+        [class.justify-end]="isMe(msg)"
+        [class.justify-start]="!isMe(msg)"
+        [attr.data-testid]="isMe(msg) ? 'chat-row-sent' : 'chat-row-received'"
+      >
+        <div
+          class="max-w-[85%] px-3 py-2 text-sm shadow-sm"
+          [ngClass]="
+            isMe(msg)
+              ? 'rounded-l-lg rounded-tr-lg bg-primary text-primary-foreground'
+              : 'rounded-r-lg rounded-tl-lg bg-secondary/40 text-foreground'
+          "
+        >
+          <p class="whitespace-pre-wrap break-words">{{ msg.text }}</p>
+          <div class="mt-1 flex items-center justify-end gap-2">
+            <p
+              class="shrink-0 text-xs"
+              [class.text-primary-foreground/80]="isMe(msg)"
+              [class.text-muted-foreground]="!isMe(msg)"
+            >
+              {{ msg.timestamp | date: 'shortTime' }}
+            </p>
+            @if (isMe(msg)) {
+              @if (messageIsRead(msg)) {
+                <span
+                  class="shrink-0 text-xs font-medium text-primary-foreground/80"
+                  [attr.data-testid]="'chat-ticks-double-' + msg._id"
+                  aria-label="Read"
+                  >✓✓</span
+                >
+              } @else {
+                <span
+                  class="shrink-0 text-xs font-medium text-primary-foreground/60"
+                  [attr.data-testid]="'chat-ticks-single-' + msg._id"
+                  aria-label="Sent"
+                  >✓</span
+                >
+              }
+            }
+          </div>
+        </div>
+      </div>
+    }
+    <div #messagesEnd></div>
+  </div>
+
+  @if (error()) {
+    <p class="alert-error flex-shrink-0 rounded-none border-x-0 border-t-0 px-4 py-1">{{ error() }}</p>
+  }
+
+  <form
+    (ngSubmit)="sendMessage()"
+    class="sticky bottom-0 z-10 mt-auto flex flex-shrink-0 gap-2 border-t border-border/30 bg-card/90 backdrop-blur-md p-3 shadow-[0_-4px_14px_rgba(0,0,0,0.06)]"
+  >
+    <input
+      #messageInput
+      type="text"
+      name="newText"
+      data-testid="chat-message-input"
+      uiInput
+      [ngModel]="newText()"
+      (ngModelChange)="newText.set($event)"
+      (focus)="onInputFocus()"
+      (blur)="onInputBlur()"
+      placeholder="Type your message here..."
+      autocomplete="off"
+      autofocus
+      [disabled]="order().status === 'completed' || order().status === 'cancelled'"
+      [className]="'min-w-0 flex-1 rounded-lg border border-border/40 bg-input/70 px-3 py-2.5 text-sm text-foreground disabled:cursor-not-allowed disabled:bg-secondary/30 disabled:opacity-60'"
+    />
+    <ui-button
+      type="submit"
+      data-testid="chat-send-button"
+      [disabled]="
+        order().status === 'completed' || order().status === 'cancelled' || !newText().trim() || sending()
+      "
+      [className]="
+        'inline-flex min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-[#16A34A] disabled:pointer-events-none disabled:opacity-50 sm:px-4'
+      "
+    >
+      @if (!sending()) {
+        <lucide-icon name="send" [size]="18" aria-hidden="true" />
+      } @else {
+        <span aria-hidden="true">…</span>
+      }
+      <span class="hidden xs:inline">{{ sending() ? 'Sending' : 'Send' }}</span>
+    </ui-button>
+  </form>
+</div>

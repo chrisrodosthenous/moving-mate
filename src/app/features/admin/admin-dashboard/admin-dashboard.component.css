@@ -1,0 +1,7 @@
+/* Layout is driven by Tailwind on `.admin-root`. Keep only flex min-height glue for nested admin panels. */
+.admin-root .global-nav,
+.admin-root .global-nav-inner,
+.admin-root .content-shell,
+.admin-root .view-shell {
+  min-height: 0;
+}

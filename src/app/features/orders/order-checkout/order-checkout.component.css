@@ -1,0 +1,89 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+}
+
+.checkout-root {
+  min-height: 100dvh;
+  background: #f6f9fc;
+}
+
+.checkout-test-banner {
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.checkout-header {
+  border-bottom: 1px solid #e6ebf1;
+  background: #ffffff;
+}
+
+.checkout-summary-pane {
+  background: linear-gradient(165deg, #0a2540 0%, #1a365d 48%, #0f172a 100%);
+  color: #f8fafc;
+}
+
+.checkout-form-pane {
+  background: #ffffff;
+}
+
+.checkout-input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  border-radius: 6px;
+  border: 1px solid #e6ebf1;
+  background: #ffffff;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.9375rem;
+  color: #0a2540;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.checkout-input:focus {
+  outline: none;
+  border-color: #635bff;
+  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.15);
+}
+
+.checkout-input:disabled {
+  background: #f6f9fc;
+  color: #64748b;
+}
+
+.checkout-pay-btn {
+  min-height: 48px;
+  width: 100%;
+  border-radius: 6px;
+  border: none;
+  background: #635bff;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.checkout-pay-btn:hover:not(:disabled) {
+  background: #5851ea;
+}
+
+.checkout-pay-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.checkout-pay-btn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.checkout-lock-row {
+  color: #64748b;
+}
+
+.checkout-powered {
+  color: #94a3b8;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

@@ -1,0 +1,99 @@
+<section class="notify-view overflow-y-auto h-full min-h-0 p-4 md:p-6 flex flex-col gap-4">
+  <div>
+    <h2 class="text-lg font-semibold text-foreground">Notifications simulator</h2>
+    <p class="mt-1 text-xs text-primary max-w-2xl">
+      Test FCM deep links and transactional emails. Emails are sent to your account email on file (
+      <span class="text-foreground">{{ userEmail() || '—' }}</span>
+      ).
+    </p>
+  </div>
+
+  <div class="flex flex-wrap gap-2 border-b border-border/25 pb-2">
+    <ui-button
+      type="button"
+      (click)="notifyTabChange.emit('push')"
+      [variant]="notifyTab() === 'push' ? 'default' : 'ghost'"
+      [className]="
+        'rounded-lg px-4 py-2 text-sm font-medium ' +
+        (notifyTab() === 'push' ? '' : '!bg-secondary/55 !backdrop-blur-sm text-foreground hover:!bg-secondary/70')
+      "
+    >
+      Push notifications
+    </ui-button>
+    <ui-button
+      type="button"
+      (click)="notifyTabChange.emit('email')"
+      [variant]="notifyTab() === 'email' ? 'default' : 'ghost'"
+      [className]="
+        'rounded-lg px-4 py-2 text-sm font-medium ' +
+        (notifyTab() === 'email' ? '' : '!bg-secondary/55 !backdrop-blur-sm text-foreground hover:!bg-secondary/70')
+      "
+    >
+      Email system
+    </ui-button>
+  </div>
+
+  @if (notifyTab() === 'push') {
+    <div @notifyPanelEnter class="space-y-6 flex flex-col min-h-0">
+      <ui-card [className]="'rounded-xl border-border/40 bg-secondary/75 p-4 shadow-sm !border'">
+        <p class="text-xs font-bold uppercase tracking-wide text-brand-400">View simulations</p>
+        <p class="mt-1 text-xs text-primary">Open customer or driver shells (admin bypass on those routes).</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <a
+            routerLink="/customer/orders"
+            class="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary"
+          >
+            Customer view
+          </a>
+          <a
+            routerLink="/driver/available"
+            class="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-[#16A34A] transition"
+          >
+            Driver view
+          </a>
+        </div>
+      </ui-card>
+
+      <div class="min-h-0 flex-1">
+        <app-admin-push-deep-link-tester (toast)="pushTesterToast.emit($event)" />
+      </div>
+    </div>
+  } @else {
+    <ui-card
+      @notifyPanelEnter
+      [className]="'space-y-4 rounded-xl border-border/40 bg-secondary/75 p-5 shadow-sm !border'"
+    >
+      <p class="text-xs font-bold uppercase tracking-wide text-brand-400">Email scenarios</p>
+      <p class="text-xs text-primary">
+        Each option sends a <strong class="text-foreground">sample</strong> using production templates via
+        <code class="text-foreground">POST /api/admin/test/send-email</code> to your profile email.
+      </p>
+
+      <label class="block max-w-xl">
+        <span class="block text-xs text-primary mb-1">Scenario</span>
+        <select
+          [ngModel]="selectedEmailScenario()"
+          (ngModelChange)="selectedEmailScenarioChange.emit($event)"
+          class="w-full rounded-lg border border-border/40 bg-muted/90 px-3 py-2 text-sm text-foreground"
+        >
+          @for (s of emailScenarios(); track s.id) {
+            <option [value]="s.id">{{ s.label }} — Trigger: {{ s.trigger }}</option>
+          }
+        </select>
+      </label>
+
+      <ui-button
+        type="button"
+        (click)="sendScenarioEmail.emit()"
+        [disabled]="emailScenarioSending()"
+        [className]="'rounded-lg px-4 py-2.5 !bg-primary !text-primary-foreground hover:!bg-primary disabled:opacity-50'"
+      >
+        {{ emailScenarioSending() ? 'Sending…' : 'Send sample to my email' }}
+      </ui-button>
+
+      @if (emailScenarioResult()) {
+        <p class="text-xs text-foreground border-t border-border/25 pt-3">{{ emailScenarioResult() }}</p>
+      }
+    </ui-card>
+  }
+</section>

@@ -1,0 +1,88 @@
+<section class="space-y-4" aria-labelledby="admin-customers-heading">
+  <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+    <div>
+      <h2 id="admin-customers-heading" class="text-lg font-semibold text-text">Customers</h2>
+      <p class="mt-1 text-sm text-secondary">{{ showingLabel() }}</p>
+    </div>
+    <input
+      type="text"
+      [class]="table.search"
+      placeholder="Search..."
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+      aria-label="Search customers"
+    />
+  </div>
+
+  @if (loading()) {
+    <p class="text-sm text-secondary" aria-live="polite">Loading customers…</p>
+  }
+
+  <div [class]="table.container">
+    <p [class]="table.scrollHint">Swipe horizontally to view all columns</p>
+    <div [class]="table.scrollWrap">
+      <table class="min-w-[720px] w-full border-collapse">
+        <thead [class]="table.thead">
+          <tr>
+            <th [class]="table.th" scope="col">Name</th>
+            <th [class]="table.th" scope="col">Email / Phone</th>
+            <th [class]="table.th" scope="col">District</th>
+            <th [class]="table.th" scope="col">Total Orders</th>
+            <th [class]="table.th" scope="col">Status</th>
+            <th [class]="table.th" scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody [class]="table.tbody">
+          @for (row of displayedRows(); track row.user._id) {
+            <tr [class]="table.tr">
+              <td [class]="table.td + ' font-medium'">{{ row.fullName }}</td>
+              <td [class]="table.td">
+                <div class="text-text">{{ row.email }}</div>
+                <div class="text-xs text-secondary">{{ row.phone }}</div>
+              </td>
+              <td [class]="table.td">{{ row.district }}</td>
+              <td [class]="table.td + ' tabular-nums'">{{ row.totalOrders }}</td>
+              <td [class]="table.td">
+                <span [class]="badgeClass(row.status.tone)">{{ row.status.label }}</span>
+              </td>
+              <td [class]="table.td">
+                <ui-button
+                  type="button"
+                  variant="outline"
+                  [className]="table.actionBtn"
+                  (click)="viewCustomer.emit(row.user)"
+                >
+                  View / Edit
+                </ui-button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td [attr.colspan]="6" class="px-4 py-10 text-center text-sm text-secondary">
+                @if (loading()) {
+                  Loading…
+                } @else if (search()) {
+                  No customers match your search.
+                } @else {
+                  No customers found.
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (hasMore()) {
+      <div class="flex justify-center border-t border-accent/10 px-4 py-4">
+        <ui-button
+          type="button"
+          variant="outline"
+          [className]="'min-w-[10rem] border-accent/30 text-text hover:bg-accent/15'"
+          (click)="loadMore()"
+        >
+          Load more
+        </ui-button>
+      </div>
+    }
+  </div>
+</section>

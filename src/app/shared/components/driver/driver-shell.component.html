@@ -1,0 +1,33 @@
+<div
+  class="flex min-h-dvh min-h-[100svh] w-full min-w-0 flex-col overflow-x-hidden bg-background md:h-[100dvh] md:min-h-0 md:flex-row md:overflow-hidden"
+>
+  <app-sidebar class="app-sidebar-host" />
+  <div
+    class="driver-shell-main app-shell-sidebar-offset flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:h-full md:min-h-[100dvh] md:flex-1 md:overflow-hidden md:self-stretch md:pb-0"
+  >
+    @if (pageTitle(); as title) {
+      <header class="app-shell-header">
+        <h1 class="app-shell-header-title">{{ title }}</h1>
+      </header>
+    }
+
+    <main
+      id="driver-main-content"
+      class="driver-shell-outlet-host relative flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden"
+      [class.overflow-y-auto]="!shellFullBleed()"
+      [class.overflow-hidden]="shellFullBleed()"
+      [@driverShellTab]="tabAnim()"
+    >
+      @if (shellFullBleed()) {
+        <div class="flex min-h-0 min-w-0 flex-1 flex-col">
+          <router-outlet />
+        </div>
+      } @else {
+        <div class="app-shell-main-pad">
+          <router-outlet />
+        </div>
+      }
+    </main>
+  </div>
+  <app-driver-mobile-nav />
+</div>

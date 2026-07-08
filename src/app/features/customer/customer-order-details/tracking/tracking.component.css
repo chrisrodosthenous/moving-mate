@@ -1,0 +1,27 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.tracking-root {
+  min-height: max(40vh, 280px);
+}
+
+@media (min-width: 640px) {
+  .tracking-root {
+    min-height: max(50vh, 360px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .tracking-root {
+    min-height: 500px;
+  }
+}
+
+.tracking-map {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: inherit;
+}

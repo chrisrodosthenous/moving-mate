@@ -1,0 +1,152 @@
+<section class="space-y-4" aria-labelledby="admin-orders-heading">
+  <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+    <div>
+      <h2 id="admin-orders-heading" class="text-lg font-semibold text-white">Orders</h2>
+      <p class="mt-1 text-sm text-[#BDD8E9]/80">{{ showingLabel() }}</p>
+    </div>
+    <input
+      type="text"
+      [class]="table.search"
+      placeholder="Search orders, logistics, addresses…"
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+      aria-label="Search orders"
+    />
+  </div>
+
+  @if (loading()) {
+    <p class="text-sm text-[#BDD8E9]" aria-live="polite">Loading orders…</p>
+  }
+
+  <div [class]="table.container">
+    <p [class]="table.scrollHint">Swipe horizontally to view all columns</p>
+    <div [class]="table.scrollWrap">
+      <table class="min-w-[1280px] w-full border-collapse">
+        <thead [class]="table.thead">
+          <tr>
+            <th [class]="table.th" scope="col">Order ID</th>
+            <th [class]="table.th" scope="col">Customer</th>
+            <th [class]="table.th" scope="col">Driver</th>
+            <th [class]="table.th" scope="col">District / Address</th>
+            <th [class]="table.th" scope="col">Vehicle</th>
+            <th [class]="table.th" scope="col">Logistics / Floors</th>
+            <th [class]="table.th" scope="col">Labor</th>
+            <th [class]="table.th" scope="col">Price</th>
+            <th [class]="table.th" scope="col">Created</th>
+            <th [class]="table.th" scope="col">Status</th>
+            <th [class]="table.th" scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody [class]="table.tbody">
+          @for (order of displayedOrders(); track order._id; let even = $even) {
+            <tr [class]="rowClass(even)">
+              <td [class]="table.td + ' ' + table.tdPrimary + ' font-mono text-xs'">{{ shortId(order._id) }}</td>
+              <td [class]="table.td + ' ' + table.tdBody + ' font-medium'">{{ customerName(order) }}</td>
+              <td [class]="table.td + ' ' + table.tdBody">
+                @if (driverName(order); as driver) {
+                  <span>{{ driver }}</span>
+                } @else {
+                  <span [class]="badgeClass('muted') + ' !border-[#49769F]/30 !bg-[#49769F]/15 !text-[#BDD8E9]/70'"
+                    >Unassigned</span
+                  >
+                }
+              </td>
+              <td [class]="table.td + ' ' + table.tdBody">
+                @if (order.pickupDistrict) {
+                  <div class="font-medium text-white">{{ order.pickupDistrict }}</div>
+                }
+                <div
+                  class="max-w-[200px] truncate text-xs text-[#BDD8E9]/80"
+                  [title]="order.pickupLocation.address"
+                >
+                  {{ order.pickupLocation.address }}
+                </div>
+              </td>
+              <td [class]="table.td">
+                <span [class]="vehicleBadgeClass(order.vehicleType)">
+                  <lucide-icon [name]="vehicleIcon(order.vehicleType)" [size]="14" aria-hidden="true" />
+                  {{ vehicleLabel(order.vehicleType) }}
+                </span>
+              </td>
+              <td [class]="table.td + ' ' + table.tdBody">
+                <p class="text-xs leading-snug">{{ floorsLine(order) }}</p>
+                <div class="mt-1 flex flex-wrap items-center gap-2">
+                  @if (hasElevator(order)) {
+                    <span
+                      class="inline-flex items-center gap-1 text-[10px] font-medium text-[#7BBDE8]"
+                      title="Elevator available"
+                    >
+                      <lucide-icon name="arrow-up-down" [size]="12" aria-hidden="true" />
+                      Elevator
+                    </span>
+                  } @else if (showNoLift(order)) {
+                    <span
+                      class="inline-flex items-center gap-1 rounded border border-amber-500/35 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300"
+                    >
+                      <lucide-icon name="alert-triangle" [size]="11" aria-hidden="true" />
+                      No Lift
+                    </span>
+                  }
+                </div>
+              </td>
+              <td [class]="table.td">
+                <span [class]="laborBadgeClass(order.laborRequired)">{{ laborLabel(order.laborRequired) }}</span>
+              </td>
+              <td [class]="table.td + ' ' + table.tdPrimary + ' whitespace-nowrap font-semibold tabular-nums'">
+                €{{ order.price | number: '1.2-2' }}
+              </td>
+              <td [class]="table.td + ' ' + table.tdBody + ' whitespace-nowrap text-xs'">
+                {{ formatDate(order.createdAt) }}
+              </td>
+              <td [class]="table.td">
+                <span
+                  [class]="
+                    statusClass(order.status) +
+                    ' !border-[#49769F]/30'
+                  "
+                  >{{ statusLabel(order.status) }}</span
+                >
+              </td>
+              <td [class]="table.td">
+                <ui-button
+                  type="button"
+                  variant="outline"
+                  [className]="table.actionBtn"
+                  (click)="viewOrder.emit(order)"
+                >
+                  View
+                </ui-button>
+              </td>
+            </tr>
+          } @empty {
+            <tr class="bg-[#0A4174]/10">
+              <td [attr.colspan]="colCount" class="px-4 py-10 text-center text-sm text-[#BDD8E9]">
+                @if (loading()) {
+                  Loading…
+                } @else if (search()) {
+                  No orders match your search.
+                } @else {
+                  No orders found.
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (hasMore()) {
+      <div [class]="table.loadMoreBar">
+        <ui-button
+          type="button"
+          variant="outline"
+          [className]="
+            'min-w-[10rem] border-[#49769F]/40 bg-[#001224]/60 text-[#BDD8E9] hover:border-[#7BBDE8]/50 hover:bg-[#7BBDE8]/10 hover:text-white'
+          "
+          (click)="loadMore()"
+        >
+          Load more
+        </ui-button>
+      </div>
+    }
+  </div>
+</section>

@@ -1,0 +1,69 @@
+<section class="driver-analytics dark" aria-labelledby="driver-analytics-heading">
+  <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h2 id="driver-analytics-heading" class="text-lg font-semibold text-foreground">
+        Analytics &amp; Earnings
+      </h2>
+      <p class="mt-1 text-sm text-[#a8c4ec]">Last 30 days · €{{ weekEarningsTotal() }} earned</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p class="mb-4 text-sm text-[#a8c4ec]" aria-live="polite">Loading charts…</p>
+  }
+
+  <div class="grid grid-cols-1 gap-4 bg-background p-4 sm:gap-6 sm:p-6 lg:grid-cols-3">
+    <article class="rounded-xl border border-accent/20 bg-accent/5 p-5 lg:col-span-3">
+      <h3 class="text-sm font-semibold text-foreground">My Earnings</h3>
+      <p class="mb-3 text-xs text-[#a8c4ec]">Daily earnings from your completed trips</p>
+      <div class="relative h-64 w-full min-w-0">
+        <canvas
+          baseChart
+          [type]="barChartType"
+          [data]="earningsChartData()"
+          [options]="earningsChartOptions"
+          aria-label="Weekly earnings bar chart"
+        ></canvas>
+      </div>
+    </article>
+
+    <article class="rounded-xl border border-accent/20 bg-accent/5 p-5">
+      <h3 class="text-sm font-semibold text-foreground">Order Statistics</h3>
+      <p class="mb-3 text-xs text-[#a8c4ec]">Completed · Cancelled · Declined</p>
+      <div class="relative mx-auto h-64 w-full max-w-xs">
+        <canvas
+          baseChart
+          [type]="doughnutChartType"
+          [data]="tripStatsChartData()"
+          [options]="tripStatsChartOptions"
+          aria-label="Trip statistics doughnut chart"
+        ></canvas>
+      </div>
+    </article>
+
+    <article class="rounded-xl border border-accent/20 bg-accent/5 p-5 lg:col-span-2">
+      <h3 class="text-sm font-semibold text-foreground">My Rating</h3>
+      <p class="mb-3 text-xs text-[#a8c4ec]">Priority dispatch score</p>
+      <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-stretch sm:gap-8">
+        <div class="relative h-64 w-full max-w-[280px] shrink-0">
+          <canvas
+            baseChart
+            [type]="doughnutChartType"
+            [data]="ratingGaugeData()"
+            [options]="ratingGaugeOptions"
+            aria-label="Driver rating gauge"
+          ></canvas>
+          <div
+            class="pointer-events-none absolute inset-x-0 bottom-6 flex flex-col items-center justify-end text-center"
+          >
+            <span class="text-3xl font-bold tabular-nums text-foreground">{{ ratingDisplay() }}</span>
+            <span class="text-xs font-medium text-[#a8c4ec]">/ 5.0</span>
+          </div>
+        </div>
+        <p class="flex flex-1 items-center text-sm leading-relaxed text-[#a8c4ec]">
+          {{ ratingCaption() }}
+        </p>
+      </div>
+    </article>
+  </div>
+</section>

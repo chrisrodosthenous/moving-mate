@@ -1,0 +1,166 @@
+<div class="checkout-root flex min-h-dvh min-w-0 flex-col overflow-x-hidden">
+  @if (mockPayments) {
+    <div class="checkout-test-banner px-4 py-2 text-center text-xs font-medium sm:text-sm">
+      <span class="inline-flex items-center justify-center gap-2">
+        <span class="rounded bg-amber-200/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950"
+          >Test mode</span
+        >
+        Mock payment provider — no real card will be charged until a driver accepts your job.
+      </span>
+    </div>
+  }
+
+  <header class="checkout-header flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
+    <div class="flex min-w-0 items-center gap-2">
+      <span class="text-lg font-bold tracking-tight text-[#0a2540]">Moving<span class="text-primary">.</span>Mate</span>
+    </div>
+    <div class="checkout-lock-row flex shrink-0 items-center gap-1.5 text-xs sm:text-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+      </svg>
+      Secure checkout
+    </div>
+  </header>
+
+  <div class="flex min-h-0 flex-1 flex-col lg:flex-row">
+    <!-- Order summary (Stripe-style left pane) -->
+    <aside
+      class="checkout-summary-pane order-2 flex w-full shrink-0 flex-col px-5 py-8 sm:px-8 lg:order-1 lg:w-[min(100%,28rem)] lg:min-h-0 lg:flex-1 lg:px-10 lg:py-12 xl:w-[38%]"
+      aria-label="Order summary"
+    >
+      <p class="text-sm text-white/70">Pay Moving Mate</p>
+      <p class="mt-2 text-4xl font-semibold tabular-nums tracking-tight sm:text-5xl">
+        €{{ amount() | number: '1.2-2' }}
+      </p>
+      <p class="mt-1 text-sm text-white/60">{{ currency() }} · One-time move</p>
+
+      <div class="mt-8 space-y-3 rounded-lg border border-white/10 bg-white/5 p-4 text-sm backdrop-blur-sm">
+        <div class="flex items-start justify-between gap-3">
+          <span class="text-white/75">Transport service</span>
+          <span class="shrink-0 tabular-nums text-white">€{{ amount() | number: '1.2-2' }}</span>
+        </div>
+        <div class="border-t border-white/10 pt-3 flex items-center justify-between gap-3 font-semibold">
+          <span>Total due today</span>
+          <span class="tabular-nums">€0.00</span>
+        </div>
+        <p class="text-xs leading-relaxed text-white/55">
+          €0.00 charged now. Full amount is authorized on your card and captured only when a driver accepts.
+        </p>
+      </div>
+
+      @if (orderId()) {
+        <p class="mt-6 font-mono text-xs text-white/45">Order #{{ orderShortId() }}</p>
+      }
+    </aside>
+
+    <!-- Payment form (Stripe-style right pane) -->
+    <main
+      class="checkout-form-pane order-1 flex min-w-0 flex-1 flex-col px-4 py-6 sm:px-8 sm:py-10 lg:order-2 lg:px-12 lg:py-12"
+      data-testid="mock-checkout-panel"
+    >
+      <div class="mx-auto w-full min-w-0 max-w-md flex-1">
+        @if (loading()) {
+          <p class="text-sm text-slate-500">Preparing secure checkout…</p>
+        } @else if (error()) {
+          <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+            {{ error() }}
+          </div>
+        } @else if (authorized()) {
+          <div
+            class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900"
+            role="status"
+          >
+            <p class="font-semibold">Payment authorized</p>
+            <p class="mt-1 text-emerald-800/90">Drivers can now accept your order. Redirecting…</p>
+          </div>
+        } @else {
+          <h1 class="text-xl font-semibold text-[#0a2540]">Payment details</h1>
+          <p class="mt-1 text-sm text-slate-500">Enter your card to authorize the move (mock test card).</p>
+
+          <form class="mt-6 space-y-4" (ngSubmit)="confirmPayment(); $event.preventDefault()">
+            <div>
+              <label for="checkoutEmail" class="mb-1.5 block text-sm font-medium text-[#0a2540]">Email</label>
+              <input
+                id="checkoutEmail"
+                type="email"
+                class="checkout-input"
+                [value]="checkoutEmail()"
+                disabled
+                autocomplete="email"
+              />
+            </div>
+
+            <div>
+              <label for="cardNumber" class="mb-1.5 block text-sm font-medium text-[#0a2540]">Card information</label>
+              <div class="overflow-hidden rounded-md border border-[#e6ebf1] focus-within:border-[#635bff] focus-within:ring-2 focus-within:ring-[#635bff]/15">
+                <input
+                  id="cardNumber"
+                  type="text"
+                  class="checkout-input rounded-none border-0 border-b border-[#e6ebf1] shadow-none focus:shadow-none"
+                  [value]="cardNumber()"
+                  disabled
+                  aria-label="Card number"
+                />
+                <div class="grid grid-cols-2">
+                  <input
+                    id="cardExpiry"
+                    type="text"
+                    class="checkout-input rounded-none border-0 border-r border-[#e6ebf1] shadow-none focus:shadow-none"
+                    [value]="cardExpiry()"
+                    disabled
+                    aria-label="Expiry"
+                  />
+                  <input
+                    id="cardCvc"
+                    type="text"
+                    class="checkout-input rounded-none border-0 shadow-none focus:shadow-none"
+                    [value]="cardCvc()"
+                    disabled
+                    aria-label="CVC"
+                  />
+                </div>
+              </div>
+              <p class="mt-1.5 text-xs text-slate-500">Test card pre-filled for sandbox checkout.</p>
+            </div>
+
+            <div>
+              <label for="cardName" class="mb-1.5 block text-sm font-medium text-[#0a2540]">Name on card</label>
+              <input id="cardName" type="text" class="checkout-input" [value]="cardName()" disabled />
+            </div>
+
+            <div class="rounded-md border border-[#e6ebf1] bg-[#f6f9fc] px-3 py-2.5 text-xs leading-relaxed text-slate-600">
+              By confirming, you authorize Moving Mate to charge
+              <strong class="font-semibold text-[#0a2540]">€{{ amount() | number: '1.2-2' }}</strong>
+              when a driver accepts. You will receive an email when payment is captured.
+            </div>
+
+            <button
+              type="submit"
+              class="checkout-pay-btn inline-flex items-center justify-center gap-2"
+              [disabled]="paying()"
+              data-testid="mock-checkout-pay"
+            >
+              @if (paying()) {
+                <span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                Processing…
+              } @else {
+                Authorize €{{ amount() | number: '1.2-2' }}
+              }
+            </button>
+
+            <p class="checkout-powered text-center">Powered by Mock Payments · Stripe-compatible flow</p>
+          </form>
+        }
+
+        <ui-button
+          type="button"
+          variant="outline"
+          routerLink="/customer/orders"
+          [className]="'mt-6 inline-flex min-h-[44px] w-full items-center justify-center border-slate-200'"
+        >
+          Back to my orders
+        </ui-button>
+      </div>
+    </main>
+  </div>
+</div>

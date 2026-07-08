@@ -1,0 +1,149 @@
+<section class="admin-analytics">
+  <div
+    class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
+    data-testid="admin-platform-ledger"
+  >
+    <article class="rounded-xl border border-[#49769F]/40 bg-[#001224]/60 px-5 py-4 shadow-sm">
+      <p class="text-sm font-medium text-[#BDD8E9]/85">Total Platform Revenue</p>
+      <p class="mt-2 text-2xl font-bold tabular-nums text-[#BDD8E9]">
+        €{{ platformLedger().platformRevenue | number: '1.2-2' }}
+      </p>
+      <p class="mt-1 text-xs text-[#BDD8E9]/60">
+        {{ platformLedger().completedCount }} completed order{{ platformLedger().completedCount === 1 ? '' : 's' }}
+      </p>
+    </article>
+    <article class="rounded-xl border border-[#49769F]/40 bg-[#001224]/60 px-5 py-4 shadow-sm">
+      <p class="text-sm font-medium text-[#BDD8E9]/85">Total Gross Turnover</p>
+      <p class="mt-2 text-2xl font-bold tabular-nums text-[#BDD8E9]">
+        €{{ platformLedger().grossTurnover | number: '1.2-2' }}
+      </p>
+      <p class="mt-1 text-xs text-[#BDD8E9]/60">Gross customer payments (completed)</p>
+    </article>
+  </div>
+
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h2 class="text-lg font-semibold text-foreground">Analytics</h2>
+      <p class="mt-1 text-sm text-primary">Last 30 days · from your existing orders</p>
+    </div>
+    <div class="flex flex-wrap gap-4 text-sm">
+      <div class="rounded-lg border border-border/40 bg-secondary/60 px-4 py-2 shadow-sm">
+        <p class="text-xs uppercase tracking-wide text-foreground">7-day orders</p>
+        <p class="text-xl font-bold tabular-nums text-foreground">{{ trendSummary().orders }}</p>
+      </div>
+      <div class="rounded-lg border border-primary/40 bg-primary/15 px-4 py-2 shadow-[0_0_12px_rgba(34,197,94,0.12)]">
+        <p class="text-xs uppercase tracking-wide text-foreground">30-day revenue</p>
+        <p class="text-xl font-bold tabular-nums text-foreground">€{{ trendSummary().revenue | number: '1.0-0' }}</p>
+      </div>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p class="mb-4 text-sm text-primary" aria-live="polite">Loading analytics…</p>
+  }
+
+  <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
+    <article class="admin-theme-surface md:col-span-2 rounded-xl p-4">
+      <h3 class="mb-1 text-sm font-semibold text-foreground">Orders &amp; revenue trend</h3>
+      <p class="mb-4 text-xs text-foreground">Daily volume and revenue</p>
+      <div class="h-72 w-full min-w-0 sm:h-80">
+        <canvas
+          baseChart
+          [type]="lineChartType"
+          [data]="lineChartData()"
+          [options]="lineChartOptions"
+          aria-label="Orders and revenue line chart"
+        ></canvas>
+      </div>
+    </article>
+
+    <article class="admin-theme-surface rounded-xl p-4">
+      <h3 class="mb-1 text-sm font-semibold text-foreground">District distribution</h3>
+      <p class="mb-4 text-xs text-foreground">Orders by pickup district</p>
+      <div class="mx-auto h-72 w-full max-w-sm sm:h-80">
+        <canvas
+          baseChart
+          [type]="doughnutChartType"
+          [data]="doughnutChartData()"
+          [options]="doughnutChartOptions"
+          aria-label="District distribution doughnut chart"
+        ></canvas>
+      </div>
+    </article>
+
+    <article class="admin-theme-surface rounded-xl p-4">
+      <h3 class="mb-1 text-sm font-semibold text-foreground">Top performing drivers</h3>
+      <p class="mb-4 text-xs text-foreground">By completed trips (top 5)</p>
+      <div class="h-72 w-full min-w-0 sm:h-80">
+        <canvas
+          baseChart
+          [type]="barChartType"
+          [data]="barChartData()"
+          [options]="barChartOptions"
+          aria-label="Top drivers bar chart"
+        ></canvas>
+      </div>
+    </article>
+  </div>
+
+  <section
+    class="mt-6 rounded-xl border border-[#49769F]/40 bg-[#001224]/60 p-4 sm:p-5"
+    data-testid="admin-platform-wallet"
+    aria-labelledby="admin-platform-wallet-heading"
+  >
+    <h3 id="admin-platform-wallet-heading" class="text-sm font-semibold text-[#BDD8E9]">
+      Platform wallet (mock withdrawals)
+    </h3>
+    <p class="mt-1 text-xs text-[#BDD8E9]/70">
+      Available balance from the 20% commission on completed orders. Simulates checkout to your bank without a payment
+      provider.
+    </p>
+    @if (platformWalletLoading()) {
+      <p class="mt-4 text-sm text-[#BDD8E9]/80">Loading wallet…</p>
+    } @else {
+      @if (platformWalletError()) {
+        <p class="mt-4 text-sm text-destructive-foreground" role="alert">{{ platformWalletError() }}</p>
+      }
+      <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div class="rounded-lg border border-[#49769F]/35 px-4 py-3">
+          <p class="text-xs uppercase tracking-wide text-[#BDD8E9]/70">Available</p>
+          <p class="mt-1 text-2xl font-bold tabular-nums text-[#BDD8E9]" data-testid="admin-wallet-available">
+            €{{ platformWalletAvailable() | number: '1.2-2' }}
+          </p>
+        </div>
+        <div class="rounded-lg border border-[#49769F]/35 px-4 py-3">
+          <p class="text-xs uppercase tracking-wide text-[#BDD8E9]/70">Withdrawn</p>
+          <p class="mt-1 text-2xl font-bold tabular-nums text-[#BDD8E9]">
+            €{{ platformWalletWithdrawn() | number: '1.2-2' }}
+          </p>
+        </div>
+      </div>
+      <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div class="min-w-0 flex-1">
+          <label for="platformWithdrawAmount" class="mb-1 block text-xs font-medium text-[#BDD8E9]/85"
+            >Withdraw amount (EUR)</label
+          >
+          <input
+            id="platformWithdrawAmount"
+            type="number"
+            min="0.01"
+            step="0.01"
+            class="w-full min-h-[44px] rounded-lg border border-[#49769F]/40 bg-[#001224] px-3 py-2 text-sm text-[#BDD8E9]"
+            [ngModel]="platformWithdrawAmount()"
+            (ngModelChange)="platformWithdrawAmount.set($event)"
+            data-testid="admin-withdraw-amount"
+          />
+        </div>
+        <ui-button
+          type="button"
+          (click)="submitPlatformWithdraw()"
+          [disabled]="platformWithdrawLoading()"
+          [className]="'inline-flex min-h-[48px] w-full shrink-0 items-center justify-center sm:w-auto'"
+          data-testid="admin-withdraw-submit"
+        >
+          {{ platformWithdrawLoading() ? 'Processing…' : 'Withdraw (mock)' }}
+        </ui-button>
+      </div>
+    }
+  </section>
+</section>

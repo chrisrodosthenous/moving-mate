@@ -1,0 +1,21 @@
+<div
+  class="pointer-events-none fixed bottom-4 right-4 z-50 flex w-[min(100vw-2rem,20rem)] max-w-sm flex-col gap-2"
+>
+  @for (t of toast.items(); track t.id) {
+    <div
+      [@toastMotion]
+      class="pointer-events-auto flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm font-sans antialiased shadow-md"
+      [ngClass]="classForType(t.type)"
+    >
+      <span class="min-w-0 flex-1 leading-snug">{{ t.message }}</span>
+      <button
+        type="button"
+        (click)="toast.dismiss(t.id)"
+        class="shrink-0 rounded p-0.5 text-foreground transition hover:bg-black/5 hover:text-muted-foreground"
+        aria-label="Dismiss"
+      >
+        ×
+      </button>
+    </div>
+  }
+</div>

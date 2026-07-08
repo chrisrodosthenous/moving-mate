@@ -1,0 +1,85 @@
+.order-inventory-row {
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.order-inventory-row:hover {
+  border-color: hsl(var(--primary) / 0.35);
+}
+
+.order-vehicle-banner {
+  animation: fade-in 0.25s ease;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.order-switch-row {  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border) / 0.35);
+  background-color: hsl(var(--input) / 0.7);
+  padding: 0.625rem 0.875rem;
+}
+
+.order-switch {
+  position: relative;
+  display: inline-flex;
+  height: 1.5rem;
+  width: 2.75rem;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+}
+
+.order-switch-input {
+  position: absolute;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.order-switch-track {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 9999px;
+  background-color: hsl(var(--secondary) / 0.55);
+  transition: background-color 0.2s ease;
+}
+
+.order-switch-track::after {
+  content: '';
+  position: absolute;
+  left: 0.125rem;
+  top: 0.125rem;
+  height: 1.25rem;
+  width: 1.25rem;
+  border-radius: 9999px;
+  background-color: hsl(var(--card-foreground));
+  transition: transform 0.2s ease;
+}
+
+.order-switch-input:checked + .order-switch-track {
+  background-color: hsl(var(--primary));
+}
+
+.order-switch-input:checked + .order-switch-track::after {
+  transform: translateX(1.25rem);
+}
+
+.order-switch-input:focus-visible + .order-switch-track {
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.45);
+}

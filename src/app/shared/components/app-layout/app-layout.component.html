@@ -1,0 +1,19 @@
+<div
+  class="flex min-h-dvh min-h-0 flex-col overflow-x-hidden bg-background font-sans text-foreground antialiased md:h-[100dvh] md:flex-row md:overflow-hidden"
+>
+  <app-sidebar class="app-sidebar-host" />
+  <div
+    class="app-shell-sidebar-offset flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden pb-12 md:min-h-0 md:overflow-hidden"
+  >
+    @if (pageTitle(); as title) {
+      <header class="app-shell-header">
+        <h1 class="app-shell-header-title">{{ title }}</h1>
+      </header>
+    }
+    <main class="flex min-h-0 flex-1 min-w-0 overflow-x-hidden overflow-y-auto">
+      <div class="app-shell-main-pad">
+        <ng-content />
+      </div>
+    </main>
+  </div>
+</div>

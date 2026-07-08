@@ -1,0 +1,37 @@
+<dialog
+  #dlg
+  class="cargo-lightbox"
+  (click)="onBackdrop($event)"
+  (close)="onDialogClose()"
+  aria-modal="true"
+  aria-label="Cargo photo preview"
+>
+  <div
+    class="relative inline-flex max-w-full max-h-full flex-col items-center"
+    (click)="$event.stopPropagation()"
+  >
+    <button
+      type="button"
+      (click)="close()"
+      class="absolute -right-1 -top-1 z-10 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-card/90 backdrop-blur-sm text-foreground shadow-lg ring-1 ring-border/50 hover:bg-secondary/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:-right-2 sm:-top-2"
+      aria-label="Close cargo photo"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+    <img
+      [src]="imageUrl()"
+      alt="Cargo photo"
+      class="max-h-[min(85vh,calc(100dvh-6rem))] max-w-[min(96vw,calc(100vw-2rem))] rounded-lg object-contain shadow-2xl"
+    />
+  </div>
+</dialog>

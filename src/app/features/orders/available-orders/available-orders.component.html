@@ -1,0 +1,157 @@
+<div
+  class="flex min-h-dvh min-h-[100svh] w-full min-w-0 flex-col overflow-x-hidden bg-background md:h-[100dvh] md:flex-row md:overflow-hidden"
+>
+  <app-sidebar class="app-sidebar-host" />
+  <div
+    class="app-shell-sidebar-offset flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-x-hidden pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:h-screen md:flex-row md:pb-0"
+  >
+    <div
+      class="flex w-full min-w-0 max-w-full flex-col overflow-hidden border-border/30 bg-muted/35 md:max-w-2xl md:flex-shrink-0 md:border-r"
+    >
+      <div class="border-b border-border/30 bg-card/90 p-3 backdrop-blur-sm xs:p-4">
+        <div class="mb-2 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            (click)="loadOrders()"
+            [disabled]="loading()"
+            class="relative inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-primary transition-[box-shadow,transform] duration-300 hover:bg-primary/15 disabled:opacity-60 bg-primary/10"
+            [class.animate-pulse]="silentRefreshing()"
+            [class.ring-2]="silentRefreshing()"
+            [class.ring-brand-400/60]="silentRefreshing()"
+          >
+            {{ loading() ? 'Loading…' : 'Refresh' }}
+          </button>
+        </div>
+        <h2 class="text-lg font-semibold text-foreground">Available Jobs</h2>
+      </div>
+
+      @if (error()) {
+        <div class="mx-3 mt-4 alert-error px-4 py-3 text-sm xs:mx-4">
+          {{ error() }}
+        </div>
+      }
+
+      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 xs:p-4">
+        @if (loading() && orders().length === 0) {
+          <p class="py-8 text-center text-foreground">Loading orders…</p>
+        } @else if (orders().length === 0) {
+          <app-empty-state
+            title="No orders available"
+            hint="There are no pending jobs in your districts right now. Try refreshing in a few minutes."
+          />
+        } @else {
+          @for (order of orders(); track order._id) {
+            <div
+              class="cursor-pointer rounded-xl border bg-card/85 p-3 shadow-sm backdrop-blur-sm transition xs:p-4"
+              [class.ring-2]="selectedOrder()?._id === order._id"
+              [class.ring-primary]="selectedOrder()?._id === order._id"
+              [class.border-primary/20]="selectedOrder()?._id === order._id"
+              [class.border-border/30]="selectedOrder()?._id !== order._id"
+              (click)="selectOrder(order)"
+            >
+              <div class="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                <div
+                  class="mx-auto flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/30 bg-secondary/20 sm:mx-0"
+                >
+                  @if (order.cargoImageUrl) {
+                    <button
+                      type="button"
+                      (click)="openCargoLightbox(order, $event)"
+                      class="group relative h-full w-full cursor-zoom-in rounded-lg border-0 bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                      title="View full size"
+                      [attr.aria-label]="'View cargo photo full size'"
+                    >
+                      <img
+                        [src]="cargoImageUrl(order)"
+                        alt=""
+                        class="pointer-events-none h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                      <span
+                        class="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/50 to-transparent pb-0.5 text-[9px] font-medium text-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                        aria-hidden="true"
+                        >View</span
+                      >
+                    </button>
+                  } @else {
+                    <span class="px-1 text-center text-[10px] leading-tight text-muted-foreground/60">No photo</span>
+                  }
+                </div>
+                <div class="min-w-0 flex-1 space-y-2">
+                  <p class="truncate text-sm text-muted-foreground" title="{{ order.pickupLocation.address }}">
+                    <span class="font-medium text-foreground">From:</span> {{ order.pickupLocation.address }}
+                  </p>
+                  <p class="truncate text-sm text-muted-foreground" title="{{ order.dropoffLocation.address }}">
+                    <span class="font-medium text-foreground">To:</span> {{ order.dropoffLocation.address }}
+                  </p>
+                  <p class="text-xs text-muted-foreground">
+                    <span class="font-medium text-foreground">Boxes:</span>
+                    {{ order.smallBoxes ?? 0 }} Small, {{ order.mediumBoxes ?? 0 }} Medium,
+                    {{ order.largeBoxes ?? 0 }} Large
+                  </p>
+                </div>
+              </div>
+              @if (order.scheduledAt) {
+                <p class="mt-2 border-t border-border/20 pt-2 text-xs text-foreground">
+                  <span class="font-medium text-foreground">Scheduled:</span>
+                  {{ order.scheduledAt | date: 'medium' }}
+                </p>
+              }
+              <div class="mt-2 text-center sm:text-left">
+                <p class="text-base font-semibold text-primary">€{{ order.price | number: '1.2-2' }}</p>
+              </div>
+              @if (selectedOrder()?._id === order._id && routeInfo(); as info) {
+                <div class="mt-2 rounded-lg border border-primary/20 bg-primary/10/80 px-3 py-2">
+                  <p class="text-xs font-medium text-primary">Route</p>
+                  <p class="text-sm text-primary">{{ info.distanceKm }} km · {{ info.durationMinutes }} min</p>
+                </div>
+              }
+              <div class="mt-4 flex w-full justify-stretch sm:mt-6 sm:justify-center">
+                <button
+                  type="button"
+                  (click)="acceptOrder(order, $event)"
+                  [disabled]="isAccepting(order)"
+                  class="inline-flex min-h-[48px] w-full max-w-full items-center justify-center rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60 sm:w-auto sm:min-w-[12rem]"
+                >
+                  {{ isAccepting(order) ? 'Accepting…' : 'Accept Order' }}
+                </button>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+    <div class="relative hidden min-h-[clamp(14rem,42vh,25rem)] min-w-0 flex-1 md:block md:min-h-0">
+      <google-map
+        width="100%"
+        height="100%"
+        [center]="center()"
+        [zoom]="zoom"
+        [options]="mapOptions"
+        (mapInitialized)="onMapReady($event)"
+      >
+        @if (directionsResult(); as dirs) {
+          <map-directions-renderer [directions]="dirs" [options]="directionsRendererOptions"></map-directions-renderer>
+        }
+        @if (pickupPosition(); as pos) {
+          <map-marker [position]="pos" label="A" title="Pickup"></map-marker>
+        }
+        @if (dropoffPosition(); as pos) {
+          <map-marker [position]="pos" label="B" title="Dropoff"></map-marker>
+        }
+      </google-map>
+      @if (!selectedOrder()) {
+        <div
+          class="pointer-events-none absolute bottom-4 left-1/2 max-w-[min(92vw,20rem)] -translate-x-1/2 rounded-lg bg-card/90 px-4 py-2 shadow"
+        >
+          <p class="text-center text-sm text-muted-foreground">Select an order to view pickup &amp; dropoff on map</p>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (cargoLightboxUrl(); as lbUrl) {
+    <app-cargo-photo-lightbox [imageUrl]="lbUrl" (closed)="onCargoLightboxClosed()" />
+  }
+</div>

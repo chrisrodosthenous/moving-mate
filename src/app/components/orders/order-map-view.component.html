@@ -1,0 +1,42 @@
+<div
+  class="map-root relative map-column flex h-full min-h-0 min-w-0 w-full flex-1 flex-col"
+  [class.app-shell-sidebar-offset]="!hideShell()"
+>
+  <div class="map-shell relative h-full min-h-0 w-full flex-1" data-testid="google-map-shell">
+    @if (mapsEmbedReady()) {
+      <google-map
+        class="map-embed block w-full h-full"
+        width="100%"
+        height="100%"
+        [center]="center()"
+        [zoom]="zoom()"
+        [options]="mapOptionsWithClick()"
+        (mapInitialized)="mapInitialized.emit($event)"
+        (mapClick)="mapClick.emit($event)"
+      >
+        @if (pickup(); as p) {
+          <map-marker [position]="{ lat: p.lat, lng: p.lng }" [options]="pickupMarkerOptions()" title="Pickup (A)"></map-marker>
+        }
+        @if (dropoff(); as d) {
+          <map-marker [position]="{ lat: d.lat, lng: d.lng }" [options]="dropoffMarkerOptions()" title="Destination (B)"></map-marker>
+        }
+        @if (directionsResult(); as dirs) {
+          <map-directions-renderer [directions]="dirs"></map-directions-renderer>
+        }
+      </google-map>
+    }
+  </div>
+
+  <ui-button
+    type="button"
+    variant="default"
+    (click)="openDrawer.emit()"
+    [className]="
+      'fixed bottom-6 right-6 z-[32] hidden items-center rounded-full px-5 py-3 gap-2 font-medium shadow-lg transition-all hover:shadow-xl focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 md:bottom-8 md:flex md:right-8 lg:hidden ' +
+      (drawerOpen() ? ' invisible' : '')
+    "
+  >
+    <span class="text-lg" aria-hidden="true">+</span>
+    <span>Create New Request</span>
+  </ui-button>
+</div>

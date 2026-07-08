@@ -1,0 +1,23 @@
+<div class="tracking-root map-viewport-host relative flex w-full flex-col items-stretch overflow-hidden bg-muted/35">
+  @if (!driverLocation()) {
+    <div
+      class="relative z-[1] flex flex-1 flex-col items-center justify-center gap-3 px-4 py-8 text-center map-viewport"
+      aria-live="polite"
+      role="status"
+    >
+      <div
+        class="h-9 w-9 shrink-0 animate-spin rounded-full border-2 border-primary border-t-transparent"
+        aria-hidden="true"
+      ></div>
+      <p class="max-w-xs text-sm font-medium leading-snug text-muted">Waiting for driver’s GPS…</p>
+    </div>
+  }
+
+  <!-- `#map` stays mounted; visibility follows driver data plus post-init latch (grey-box guard). -->
+  <div
+    #mapRoot
+    id="map"
+    class="tracking-map"
+    [style.visibility]="driverLocation() && mapRevealVisible() ? 'visible' : 'hidden'"
+  ></div>
+</div>

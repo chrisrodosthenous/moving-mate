@@ -1,0 +1,198 @@
+<header
+  class="sidebar-mobile-header sticky top-0 z-[60] min-h-[2.75rem] w-full shrink-0 items-center justify-between border-b border-border/20 bg-popover/94 backdrop-blur-md px-2 pt-[env(safe-area-inset-top)] text-ice md:hidden"
+>
+  <a
+    [routerLink]="homeLink"
+    class="sidebar-brand-link flex shrink-0 items-center py-0.5 pl-2.5 pr-1"
+    (click)="closeMobileNav()"
+    aria-label="MovingMate home"
+  >
+    <app-logo variant="full" size="sidebar" className="sidebar-brand-full" />
+  </a>
+  <button
+    type="button"
+    class="-mr-1 inline-flex rounded-lg p-2 text-brand-100 transition hover:bg-brand-900"
+    (click)="toggleMobileNav()"
+    [attr.aria-expanded]="mobileNavOpen()"
+    aria-controls="sidebar-primary-nav"
+    [attr.aria-label]="mobileNavOpen() ? 'Close menu' : 'Open menu'"
+  >
+    @if (mobileNavOpen()) {
+      <lucide-icon name="x" [size]="22" aria-hidden="true"></lucide-icon>
+    } @else {
+      <lucide-icon name="menu" [size]="22" aria-hidden="true"></lucide-icon>
+    }
+  </button>
+</header>
+
+@if (mobileNavOpen()) {
+  <button
+    type="button"
+    class="fixed inset-x-0 bottom-0 z-[50] top-[calc(2.75rem+env(safe-area-inset-top))] bg-black/40 backdrop-blur-[1px] md:hidden"
+    aria-label="Close menu"
+    tabindex="-1"
+    (click)="closeMobileNav()"
+  ></button>
+}
+
+<nav
+  id="sidebar-primary-nav"
+  data-testid="sidebar"
+  class="sidebar-drawer-nav flex min-h-0 flex-1 flex-col border-border/20 bg-popover/94 backdrop-blur-md text-ice shadow-sm md:h-full md:min-h-0 md:w-full md:flex-none md:shadow-none"
+  [class.sidebar-drawer-open]="mobileNavOpen()"
+>
+  <div
+    class="sidebar-brand-header hidden h-16 shrink-0 items-center justify-between gap-1 border-b border-border/20 bg-popover/94 backdrop-blur-md px-2 md:flex"
+  >
+    <a
+      [routerLink]="homeLink"
+      class="sidebar-brand-link flex w-full shrink-0 items-center pl-2.5 pr-1"
+      (click)="closeMobileNav()"
+      aria-label="MovingMate home"
+    >
+      <app-logo variant="full" size="sidebar" className="sidebar-brand-full" />
+    </a>
+  </div>
+
+  <ul class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2 md:gap-px md:overflow-y-auto md:px-2 md:py-2">
+    @if (adminOnForeignRoute) {
+      <li class="w-full px-3 pb-2 pt-1">
+        <span
+          class="sidebar-admin-badge inline-block rounded-md bg-warning/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-foreground"
+        >
+          Admin preview mode
+        </span>
+      </li>
+      <li>
+        <a
+          routerLink="/admin"
+          [routerLinkActive]="navActiveClass"
+          [class]="navLinkClass"          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="shield-check" [size]="20"></lucide-icon>
+          <span class="sidebar-label">← Back to admin</span>
+        </a>
+      </li>
+    } @else {
+      @if (user?.role === 'customer' || user?.role === 'admin') {
+        <li>
+          <a
+            routerLink="/customer/dashboard"
+            [routerLinkActive]="navActiveClass"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [class]="navLinkClass"            (click)="closeMobileNav()"
+          >
+            <lucide-icon name="home" [size]="20"></lucide-icon>
+            <span class="sidebar-label">Dashboard</span>
+          </a>
+        </li>
+      }
+      @if (user?.role === 'driver') {
+        <li>
+          <a
+            routerLink="/driver/dashboard"
+            [routerLinkActive]="navActiveClass"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [class]="navLinkClass"            (click)="closeMobileNav()"
+          >
+            <lucide-icon name="home" [size]="20"></lucide-icon>
+            <span class="sidebar-label">Dashboard</span>
+          </a>
+        </li>
+      }
+      @if (user?.role === 'driver' || user?.role === 'admin') {
+        <li>
+          <a
+            routerLink="/driver/available"
+            [routerLinkActive]="navActiveClass"
+            [class]="navLinkClass"            (click)="closeMobileNav()"
+          >
+            <lucide-icon name="truck" [size]="20"></lucide-icon>
+            <span class="sidebar-label">Available jobs</span>
+          </a>
+        </li>
+        <li>
+          <a
+            routerLink="/driver/tasks"
+            [routerLinkActive]="navActiveClass"
+            [class]="navLinkClass"            (click)="closeMobileNav()"
+          >
+            <lucide-icon name="circle-check" [size]="20"></lucide-icon>
+            <span class="sidebar-label">My trips</span>
+          </a>
+        </li>
+      }
+      @if (user?.role === 'customer' || user?.role === 'admin') {
+        <li>
+          <a
+            routerLink="/customer/book"
+            [routerLinkActive]="navActiveClass"
+            [class]="navLinkClass"            (click)="closeMobileNav()"
+          >
+            <lucide-icon name="map-plus" [size]="20"></lucide-icon>
+            <span class="sidebar-label">New order</span>
+          </a>
+        </li>
+      }
+      @if (user?.role === 'customer' || user?.role === 'admin') {
+        <li>
+          <a
+            routerLink="/customer/orders"
+            [routerLinkActive]="navActiveClass"
+            [class]="navLinkClass"            (click)="closeMobileNav()"
+          >
+            <lucide-icon name="history" [size]="20"></lucide-icon>
+            <span class="sidebar-label">My orders</span>
+          </a>
+        </li>
+      }
+      <li>
+        <a
+          routerLink="/profile"
+          [routerLinkActive]="navActiveClass"
+          [class]="navLinkClass"          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="user" [size]="20"></lucide-icon>
+          <span class="sidebar-label">Profile</span>
+        </a>
+      </li>
+      @if (user?.role === 'admin') {
+        <li class="sidebar-section-title w-full px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:text-primary">
+          Settings
+        </li>
+        <li>
+          <a
+            routerLink="/admin/settings/notifications"
+            [routerLinkActive]="navActiveClass"
+            [class]="navLinkClass"            (click)="closeMobileNav()"
+          >
+            <lucide-icon name="bell" [size]="20"></lucide-icon>
+            <span class="sidebar-label">Notifications</span>
+          </a>
+        </li>
+        <li>
+          <a
+            routerLink="/admin"
+            [routerLinkActive]="navActiveClass"
+            [routerLinkActiveOptions]="{ exact: false }"
+            [class]="navLinkClass"            (click)="closeMobileNav()"
+          >
+            <lucide-icon name="shield-check" [size]="20"></lucide-icon>
+            <span class="sidebar-label">Admin</span>
+          </a>
+        </li>
+      }
+    }
+  </ul>
+
+  <div class="mt-auto shrink-0 space-y-1 border-t border-border/20 p-2 md:p-2">
+    <button
+      type="button"
+      (click)="auth.logout(); closeMobileNav()"
+      [class]="footerBtnClass"
+    >
+      <lucide-icon name="log-out" [size]="20"></lucide-icon>
+      <span class="sidebar-label">Logout</span>
+    </button>
+  </div>
+</nav>

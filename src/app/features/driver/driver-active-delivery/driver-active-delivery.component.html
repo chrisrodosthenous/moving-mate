@@ -1,0 +1,89 @@
+<div class="flex min-h-0 flex-1 flex-col md:min-h-0">
+  <div class="relative z-[1] shrink-0 px-4 py-3 md:px-0 md:pb-4 md:pt-2">
+    <a
+      routerLink="/driver/tasks"
+      class="inline-flex items-center gap-1 text-sm font-medium text-primary transition hover:text-primary"
+    >
+      ← Back to My trips
+    </a>
+  </div>
+
+  @if (order(); as o) {
+    <div class="relative h-[300px] w-full shrink-0 border-b border-border/30 bg-muted/35 md:h-auto md:min-h-[500px] md:flex-1">
+      <google-map
+        class="absolute inset-0 block h-full w-full"
+        width="100%"
+        height="100%"
+        [center]="center()"
+        [zoom]="zoom"
+        [options]="mapOptions"
+        (mapInitialized)="onMapReady($event)"
+      >
+        @if (directionsResult(); as dirs) {
+          <map-directions-renderer [directions]="dirs" [options]="directionsRendererOptions" />
+        }
+        @if (pickupPosition(); as pp) {
+          <map-marker [position]="pp" label="A" title="Pickup" />
+        }
+        @if (dropoffPosition(); as dp) {
+          <map-marker [position]="dp" label="B" title="Dropoff" />
+        }
+      </google-map>
+    </div>
+
+    <div class="mx-auto w-full max-w-3xl flex-1 space-y-4 overflow-y-auto px-4 py-4 md:space-y-5 md:p-6 min-h-0">
+      <div class="rounded-xl border border-border/30 bg-card/85 backdrop-blur-sm p-5 shadow-sm">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p class="text-sm text-muted">Order #{{ o._id }}</p>
+          </div>
+          @if (canTrack()) {
+            <span
+              class="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary ring-1 ring-primary/20"
+            >
+              <span class="relative flex h-2 w-2">
+                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75"></span>
+                <span class="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
+              </span>
+              Sharing location
+            </span>
+          }
+        </div>
+
+        @if (trackingPermissionMessage(); as tip) {
+          <div class="mb-4 alert-warning px-3 py-2 text-sm" role="alert">
+            {{ tip }}
+          </div>
+        }
+        @if (canTrack()) {
+          <p class="mb-4 text-sm text-muted">
+            Your position is sent to the customer about every 8 seconds while this job is active (throttled). Keep the
+            app open and allow location access.
+          </p>
+        } @else {
+          <p class="alert-warning px-3 py-2 text-sm">
+            Live tracking starts after you mark the trip in progress. Use <strong>My trips</strong> to update the job
+            status when you are ready.
+          </p>
+        }
+
+        <div class="mt-4 space-y-2 border-t border-border/20 pt-4 text-sm text-muted-foreground">
+          <p>
+            <span class="font-medium text-muted">To:</span>
+            {{ o.dropoffLocation.address }}
+          </p>
+          <p class="text-xs text-muted">
+            <span class="font-medium">Price:</span> €{{ o.price | number: '1.2-2' }}
+          </p>
+        </div>
+      </div>
+    </div>
+  } @else if (loading()) {
+    <p class="flex-1 py-12 text-center text-muted">Loading…</p>
+  } @else {
+    <div class="mx-4 rounded-xl border border-border/30 bg-card/85 backdrop-blur-sm p-8 text-center shadow-sm md:mx-auto md:max-w-lg">
+      <p class="mb-2 text-muted">This order was not found in your trips.</p>
+      <a routerLink="/driver/tasks" class="font-medium text-primary hover:text-primary">Return to My trips</a>
+    </div>
+  }
+</div>

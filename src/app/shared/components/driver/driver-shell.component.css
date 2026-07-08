@@ -1,0 +1,12 @@
+.driver-shell-main {
+  min-height: 0;
+}
+
+/* Routed views sit next to `router-outlet`; stretch them so map/list flex layouts get a real height chain. */
+.driver-shell-outlet-host > :not(router-outlet) {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 0%;
+  flex-direction: column;
+}

@@ -1,0 +1,5 @@
+/* App entry: Tailwind v4 + design tokens + Material (legacy; migrate UI gradually). */
+@import "tailwindcss";
+@config "../tailwind.config.js";
+@import "./global.css";
+@import "@angular/material/prebuilt-themes/azure-blue.css";

@@ -1,0 +1,310 @@
+<div class="app-auth-page font-sans">
+  <div class="app-auth-card-wrap">
+    <div class="app-auth-card">
+      <div class="mb-8 text-center">
+        <div class="mb-5 flex justify-center">
+          <app-logo size="lg" />
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-foreground">Create account</h1>
+        <p class="mt-1 text-sm text-ice">Register for MovingMate</p>
+      </div>
+
+      <form (ngSubmit)="onSubmit()" class="space-y-6">
+        @if (error) {
+          <div
+            class="alert-error px-5 py-4"
+            role="alert"
+          >
+            {{ error }}
+          </div>
+        }
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4">
+          <div>
+            <label for="firstName" class="mb-2 block text-sm font-medium text-muted-foreground"
+              >First name</label
+            >
+            <input
+              id="firstName"
+              type="text"
+              name="firstName"
+              uiInput
+              [(ngModel)]="firstName"
+              placeholder="First name"
+              [className]="'w-full px-4 py-3'"
+            />
+          </div>
+          <div>
+            <label for="lastName" class="mb-2 block text-sm font-medium text-muted-foreground"
+              >Last name</label
+            >
+            <input
+              id="lastName"
+              type="text"
+              name="lastName"
+              uiInput
+              [(ngModel)]="lastName"
+              placeholder="Last name"
+              [className]="'w-full px-4 py-3'"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="dateOfBirth" class="mb-2 block text-sm font-medium text-muted-foreground"
+            >Date of birth</label
+          >
+          <input
+            id="dateOfBirth"
+            type="date"
+            name="dateOfBirth"
+            uiInput
+            [(ngModel)]="dateOfBirth"
+            [max]="maxDateOfBirth"
+            [className]="
+              (dateOfBirth && dateOfBirthError
+                ? 'w-full border-primary/30 bg-destructive/30 px-4 py-3'
+                : 'w-full border-border/40 bg-input/70 px-4 py-3') + ''
+            "
+          />
+          @if (dateOfBirth && dateOfBirthError) {
+            <p class="mt-1.5 text-sm text-destructive-foreground">{{ dateOfBirthError }}</p>
+          }
+          <p class="mt-1 text-xs text-muted-foreground">You must be at least 18 years old.</p>
+        </div>
+
+        <div>
+          <label for="email" class="mb-2 block text-sm font-medium text-muted-foreground"
+            >Email</label
+          >
+          <input
+            id="email"
+            type="email"
+            name="email"
+            uiInput
+            [(ngModel)]="email"
+            placeholder="you@example.com"
+            [className]="
+              (emailTouched && emailError
+                ? 'w-full border-primary/30 bg-destructive/30 px-4 py-3'
+                : 'w-full border-border/40 bg-input/70 px-4 py-3') + ''
+            "
+            autocomplete="email"
+          />
+          @if (emailTouched && emailError) {
+            <p class="mt-1.5 text-sm text-destructive-foreground">{{ emailError }}</p>
+          }
+        </div>
+
+        <div>
+          <label for="phoneDigits" class="mb-2 block text-sm font-medium text-muted-foreground"
+            >Phone number</label
+          >
+          <div
+            class="flex overflow-hidden rounded-lg border bg-input/70 shadow-sm focus-within:ring-2 focus-within:ring-primary/20"
+            [class.border-border]="!phoneError"
+            [class.border-primary/30]="phoneDigitsOnly.length > 0 && phoneError"
+          >
+            <span
+              class="flex items-center border-r border-border/40 bg-secondary/30 px-4 py-3 text-sm font-medium text-muted-foreground"
+              >+357</span
+            >
+            <input
+              id="phoneDigits"
+              type="tel"
+              name="phoneDigits"
+              uiInput
+              [ngModel]="phoneDigits"
+              (ngModelChange)="onPhoneChange($event)"
+              placeholder="99123456"
+              maxlength="8"
+              inputmode="numeric"
+              [className]="'min-w-0 flex-1 rounded-none border-0 bg-input/70 px-4 py-3 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0'"
+            />
+          </div>
+          @if (phoneDigitsOnly.length > 0 && phoneError) {
+            <p class="mt-1.5 text-sm text-destructive-foreground">{{ phoneError }}</p>
+          }
+          <p class="mt-1 text-xs text-muted-foreground">Enter exactly 8 digits (e.g. 99123456)</p>
+        </div>
+
+        <div>
+          <label for="password" class="mb-2 block text-sm font-medium text-muted-foreground"
+            >Password</label
+          >
+          <input
+            id="password"
+            type="password"
+            name="password"
+            uiInput
+            [(ngModel)]="password"
+            placeholder="••••••••"
+            [className]="
+              (password.length > 0 && passwordErrors.length > 0
+                ? 'w-full border-primary/30 bg-destructive/30 px-4 py-3'
+                : 'w-full border-border/40 bg-input/70 px-4 py-3') + ''
+            "
+            autocomplete="new-password"
+          />
+          @if (password.length > 0 && passwordErrors.length > 0) {
+            <ul
+              class="mt-1.5 list-inside list-disc space-y-0.5 text-sm text-destructive-foreground"
+            >
+              @for (msg of passwordErrors; track msg) {
+                <li>{{ msg }}</li>
+              }
+            </ul>
+          }
+          @if (password.length > 0 && passwordValid) {
+            <p class="mt-1.5 text-sm text-primary">Password meets requirements</p>
+          }
+        </div>
+
+        <div>
+          <span class="mb-2 block text-sm font-medium text-muted-foreground">I am a</span>
+          <div class="flex flex-wrap gap-4 sm:gap-6">
+            <label class="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                name="role"
+                [(ngModel)]="role"
+                value="customer"
+                class="h-4 w-4 border-border text-primary focus:ring-primary"
+              />
+              <span class="text-foreground">Customer</span>
+            </label>
+            <label class="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                name="role"
+                [(ngModel)]="role"
+                value="driver"
+                class="h-4 w-4 border-border text-primary focus:ring-primary"
+              />
+              <span class="text-foreground">Driver</span>
+            </label>
+          </div>
+        </div>
+
+        @if (role === 'driver') {
+          <div
+            class="driver-signup-block space-y-6 rounded-xl border border-[#49769F]/35 bg-[#001D39]/40 p-5 shadow-[0_4px_20px_rgba(0,18,36,0.25)]"
+          >
+            <div>
+              <h2 class="text-base font-semibold text-[#BDD8E9]">Vehicle details</h2>
+              <p class="mt-1 text-xs text-[#BDD8E9]/70">
+                Select your category and upload a photo for verification.
+              </p>
+            </div>
+
+            <div [formGroup]="driverVehicleForm">
+              <label for="vehicleType" class="mb-2 block text-sm font-medium text-[#BDD8E9]">
+                Vehicle type <span class="text-[#7BBDE8]" aria-hidden="true">*</span>
+              </label>
+              <select
+                id="vehicleType"
+                formControlName="vehicleType"
+                class="w-full rounded-lg border border-[#49769F]/45 bg-[#0A4174]/60 px-4 py-3 text-sm text-[#BDD8E9] shadow-sm outline-none transition focus:border-[#7BBDE8]/60 focus:ring-2 focus:ring-[#7BBDE8]/25"
+                [class.border-[#7BBDE8]/50]="driverVehicleTypeError"
+              >
+                <option value="" disabled selected hidden>Select vehicle type…</option>
+                @for (opt of driverVehicleOptions; track opt.value) {
+                  <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+              @if (driverVehicleTypeError) {
+                <p class="mt-1.5 text-sm text-destructive-foreground">{{ driverVehicleTypeError }}</p>
+              }
+            </div>
+
+            <div [formGroup]="driverVehicleForm">
+              <span class="mb-2 block text-sm font-medium text-[#BDD8E9]">
+                Vehicle photo (for verification)
+                <span class="text-[#7BBDE8]" aria-hidden="true">*</span>
+              </span>
+              <label
+                for="vehiclePhoto"
+                class="block cursor-pointer border-dashed border-2 border-border/60 rounded-lg p-4 bg-background/50 text-center transition hover:border-[#7BBDE8]/50 hover:bg-[#0A4174]/30"
+              >
+                <input
+                  id="vehiclePhoto"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  class="sr-only"
+                  (change)="onVehiclePhotoSelected($event)"
+                />
+                @if (vehiclePhotoPreviewUrl) {
+                  <img
+                    [src]="vehiclePhotoPreviewUrl"
+                    alt="Vehicle photo preview"
+                    class="mx-auto mb-3 max-h-40 rounded-lg object-contain shadow-sm"
+                  />
+                  <p class="text-sm text-[#BDD8E9]">Tap to change photo</p>
+                } @else {
+                  <p class="text-sm text-muted-foreground">Drag or choose an image (JPG/PNG, max 5MB)</p>
+                }
+              </label>
+              @if (vehiclePhotoError) {
+                <p class="mt-1.5 text-sm text-destructive-foreground">{{ vehiclePhotoError }}</p>
+              } @else if (
+                driverVehicleForm.controls.vehiclePhoto.touched &&
+                driverVehicleForm.controls.vehiclePhoto.hasError('required')
+              ) {
+                <p class="mt-1.5 text-sm text-destructive-foreground">Vehicle photo is required.</p>
+              }
+            </div>
+          </div>
+
+          <div>
+            <span class="mb-2 block text-sm font-medium text-muted-foreground">
+              Districts <span class="text-primary" aria-hidden="true">*</span>
+            </span>
+            <p class="mb-3 text-xs text-muted-foreground">Select all provinces where you want to see jobs (at least one).</p>
+            <div
+              class="space-y-3 rounded-lg border px-5 py-4"
+              [class.border-border]="!driverDistrictsError"
+              [class.border-primary/30]="driverDistrictsError"
+              [class.bg-input]="!driverDistrictsError"
+              [class.bg-destructive/30]="driverDistrictsError"
+              role="group"
+              aria-label="Cyprus districts"
+            >
+              @for (d of driverDistrictOptions; track d) {
+                <label class="flex cursor-pointer items-center gap-2.5 text-foreground">
+                  <input
+                    type="checkbox"
+                    [name]="'district-' + d"
+                    [checked]="isDistrictSelected(d)"
+                    (change)="toggleDistrict(d, $any($event.target).checked)"
+                    class="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                  />
+                  <span>{{ d }}</span>
+                </label>
+              }
+            </div>
+            @if (driverDistrictsError) {
+              <p class="mt-1.5 text-sm text-destructive-foreground">{{ driverDistrictsError }}</p>
+            }
+          </div>
+        }
+
+        <ui-button
+          type="submit"
+          [disabled]="loading || !formValid"
+          [className]="'w-full justify-center py-3 rounded-lg'"
+        >
+          {{ loading ? 'Creating account…' : 'Create account' }}
+        </ui-button>
+      </form>
+
+      <p class="mt-6 text-center text-sm text-muted-foreground">
+        Already have an account?
+        <a
+          routerLink="/login"
+          class="font-medium text-primary transition hover:text-primary/90 hover:underline"
+          >Sign in</a
+        >
+      </p>
+    </div>
+  </div>
+</div>

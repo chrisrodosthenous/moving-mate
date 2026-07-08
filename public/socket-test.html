@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Moving Mate — Socket.io test</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 52rem;
+        margin: 1.5rem auto;
+        padding: 0 1rem;
+        line-height: 1.45;
+      }
+      h1 {
+        font-size: 1.35rem;
+      }
+      label {
+        display: block;
+        margin-top: 0.75rem;
+        font-weight: 600;
+      }
+      input[type='text'] {
+        width: 100%;
+        max-width: 40rem;
+        padding: 0.35rem 0.5rem;
+      }
+      button {
+        margin: 0.35rem 0.35rem 0.35rem 0;
+        padding: 0.4rem 0.75rem;
+        cursor: pointer;
+      }
+      pre#log {
+        background: #111;
+        color: #cfc;
+        padding: 0.75rem;
+        min-height: 8rem;
+        overflow: auto;
+        font-size: 0.8rem;
+        border-radius: 6px;
+      }
+      .muted {
+        color: #555;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Socket.io test dashboard</h1>
+    <p class="muted">
+      Served from project <code>public/</code>. Socket.io client is loaded from the same origin as this page (default
+      <code>/socket.io</code> path).
+    </p>
+
+    <label for="token">JWT (paste from login / register response)</label>
+    <input id="token" type="text" autocomplete="off" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+
+    <div>
+      <button type="button" id="connect">Connect</button>
+      <button type="button" id="disconnect">Disconnect</button>
+    </div>
+
+    <label for="userId">User ID (for <code>account_verified</code> trigger — usually same as JWT <code>userId</code>)</label>
+    <input id="userId" type="text" placeholder="Will auto-fill from JWT payload when possible" />
+
+    <h2>Fire server events</h2>
+    <p class="muted">Calls <code>GET /api/test/trigger-socket</code> (dev or <code>ENABLE_TEST_ROUTES=true</code>).</p>
+    <div>
+      <button type="button" id="trigger-order">Trigger <code>new_order_available</code> (Larnaca)</button>
+      <button type="button" id="trigger-verify">Trigger <code>account_verified</code></button>
+      <button type="button" id="trigger-all">Trigger all</button>
+    </div>
+
+    <label>Log</label>
+    <pre id="log"></pre>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/socket-test.js"></script>
+  </body>
+</html>

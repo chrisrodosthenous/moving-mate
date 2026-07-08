@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment captured</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f8fafc;font-family:Arial,sans-serif;color:#0a2540;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="max-width:640px;width:100%;background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
+            <tr>
+              <td style="background:#0a2540;padding:20px 24px;color:#ffffff;font-size:20px;font-weight:700;">Moving Mate</td>
+            </tr>
+            <tr>
+              <td style="padding:24px;">
+                <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;">Payment captured</h1>
+                <p style="margin:0 0 12px;font-size:14px;line-height:1.6;">Hello {{firstName}}, a driver has accepted your move and your payment has been processed.</p>
+
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:16px 0;">
+                  <tr><td style="padding:12px 14px;background:#f8fafc;font-size:12px;color:#475569;">Order</td><td style="padding:12px 14px;text-align:right;font-size:13px;font-weight:700;">{{orderId}}</td></tr>
+                  <tr><td style="padding:12px 14px;background:#f8fafc;font-size:12px;color:#475569;">Amount charged</td><td style="padding:12px 14px;text-align:right;font-size:13px;font-weight:700;">EUR {{amount}}</td></tr>
+                  <tr><td style="padding:12px 14px;background:#f8fafc;font-size:12px;color:#475569;">Driver</td><td style="padding:12px 14px;text-align:right;font-size:13px;">{{driverName}}</td></tr>
+                </table>
+
+                <p style="margin:0 0 16px;font-size:14px;line-height:1.6;">Track your delivery in the app.</p>
+                <a href="{{ordersUrl}}" style="display:inline-block;background:#22c55e;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:6px;font-size:14px;font-weight:600;">View my orders</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

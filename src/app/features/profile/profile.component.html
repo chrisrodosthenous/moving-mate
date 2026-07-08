@@ -1,0 +1,573 @@
+<div
+  class="flex min-h-dvh flex-col overflow-x-hidden bg-background font-sans md:flex-row md:h-[100dvh] md:overflow-hidden"
+>
+  <app-sidebar class="app-sidebar-host" />
+  <main
+    class="app-shell-sidebar-offset flex flex-1 min-h-0 min-w-0 flex-col overflow-x-hidden md:flex-1 md:overflow-hidden"
+    [ngClass]="showMobileBottomNav() ? 'pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-12' : 'pb-10 md:pb-12'"
+  >
+    <header class="app-shell-header">
+      <h1 class="app-shell-header-title">{{ pageHeading() }}</h1>
+    </header>
+    <div class="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
+      <div class="app-shell-main-pad">
+        <div class="app-page-container space-y-4 overflow-x-hidden sm:space-y-6">
+          <div
+            [ngClass]="
+          user()?.role === 'customer' || user()?.role === 'driver'
+            ? 'grid grid-cols-1 gap-6 lg:grid-cols-2'
+            : 'grid grid-cols-1 gap-6'
+        "
+          >
+        <!-- Personal information -->
+        <section>
+          <ui-card [className]="'rounded-xl shadow-sm'">
+            <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-8'">
+          <h2 class="text-lg font-semibold text-card-title">Personal information</h2>
+          <p class="mt-0.5 text-sm text-muted">Update your name and contact details</p>
+          <div
+            class="mb-6 mt-6 flex border-b border-brand-slate/30 pb-6"
+          >
+            <div
+              class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/15 text-lg font-semibold text-primary"
+              aria-hidden="true"
+            >
+              {{ userInitials }}
+            </div>
+            <div class="ml-4 min-w-0">
+              <p class="truncate text-sm font-medium text-card-title">
+                {{ firstName || '—' }} {{ lastName || '' }}
+              </p>
+              <p class="text-xs text-muted">Account avatar (initials)</p>
+            </div>
+          </div>
+
+          <form (ngSubmit)="onSubmit()" class="space-y-6">
+            @if (error()) {
+              <div
+                class="alert-error px-5 py-4 text-sm"
+                role="alert"
+              >
+                {{ error() }}
+              </div>
+            }
+            @if (success()) {
+              <div
+                class="rounded-lg border border-primary/20/60 bg-primary/10 px-5 py-4 text-sm text-primary"
+                role="status"
+              >
+                Profile updated successfully
+              </div>
+            }
+
+            <div>
+              <label
+                for="firstName"
+                class="mb-2 block text-sm font-medium text-muted"
+                >First name</label
+              >
+              <input
+                id="firstName"
+                name="firstName"
+                type="text"
+                uiInput
+                [(ngModel)]="firstName"
+                placeholder="First name"
+                [className]="'w-full px-4 py-3'"
+                autocomplete="given-name"
+              />
+            </div>
+            <div>
+              <label
+                for="lastName"
+                class="mb-2 block text-sm font-medium text-muted"
+                >Last name</label
+              >
+              <input
+                id="lastName"
+                name="lastName"
+                type="text"
+                uiInput
+                [(ngModel)]="lastName"
+                placeholder="Last name"
+                [className]="'w-full px-4 py-3'"
+                autocomplete="family-name"
+              />
+            </div>
+            <div>
+              <label
+                for="emailAddress"
+                class="mb-2 block text-sm font-medium text-muted"
+                >Email address</label
+              >
+              <input
+                id="emailAddress"
+                name="emailAddress"
+                type="email"
+                uiInput
+                [ngModel]="user()?.email ?? ''"
+                [disabled]="true"
+                [className]="'w-full cursor-not-allowed px-4 py-3 opacity-80'"
+                autocomplete="email"
+              />
+            </div>
+            <div>
+              <label
+                for="phoneDigits"
+                class="mb-2 block text-sm font-medium text-muted"
+                >Phone number</label
+              >
+              <div
+                class="flex overflow-hidden rounded-lg border border-brand-slate/45 bg-brand-nav/50 shadow-sm"
+              >
+                <span
+                  class="flex shrink-0 items-center border-r border-brand-slate/45 bg-brand-slate/30 px-3 py-3 text-sm text-muted"
+                  >+357</span
+                >
+                <input
+                  id="phoneDigits"
+                  name="phoneDigits"
+                  type="tel"
+                  uiInput
+                  [(ngModel)]="phoneDigits"
+                  placeholder="99123456"
+                  maxlength="8"
+                  inputmode="numeric"
+                  [className]="'min-w-0 flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3'"
+                />
+              </div>
+              <p class="mt-1 text-xs text-muted">Exactly 8 digits.</p>
+            </div>
+
+            <ui-button
+              type="submit"
+              [disabled]="loading()"
+              [className]="'w-full justify-center py-3 rounded-lg'"
+            >
+              {{ loading() ? 'Saving…' : 'Save changes' }}
+            </ui-button>
+          </form>
+            </ui-card-content>
+          </ui-card>
+        </section>
+
+        <!-- Security: password (customer + driver) -->
+        @if (user()?.role === 'customer' || user()?.role === 'driver') {
+          <section>
+            <ui-card [className]="'rounded-xl shadow-sm'">
+              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-8'">
+            <h2 class="text-lg font-semibold text-card-title">Security</h2>
+            <p class="mt-0.5 text-sm text-muted">Change the password for your account</p>
+            <div class="mb-2 mt-6 border-b border-brand-slate/30" aria-hidden="true"></div>
+            <form
+              (ngSubmit)="onPasswordSubmit()"
+              class="mt-6 space-y-6"
+            >
+              @if (passwordChangeError()) {
+                <div
+                  class="alert-error px-5 py-4 text-sm"
+                  role="alert"
+                >
+                  {{ passwordChangeError() }}
+                </div>
+              }
+              @if (passwordChangeSuccess()) {
+                <div
+                  class="rounded-lg border border-primary/20/60 bg-primary/10 px-5 py-4 text-sm text-primary"
+                  role="status"
+                >
+                  Password updated successfully
+                </div>
+              }
+
+              <div>
+                <label
+                  for="currentPassword"
+                  class="mb-2 block text-sm font-medium text-muted"
+                  >Current password</label
+                >
+                <input
+                  id="currentPassword"
+                  name="currentPassword"
+                  type="password"
+                  uiInput
+                  [(ngModel)]="currentPassword"
+                  [disabled]="passwordChangeLoading()"
+                  autocomplete="current-password"
+                  [className]="'w-full px-4 py-3'"
+                />
+              </div>
+              <div>
+                <label
+                  for="newPassword"
+                  class="mb-2 block text-sm font-medium text-muted"
+                  >New password</label
+                >
+                <input
+                  id="newPassword"
+                  name="newPassword"
+                  type="password"
+                  uiInput
+                  [(ngModel)]="newPassword"
+                  [disabled]="passwordChangeLoading()"
+                  autocomplete="new-password"
+                  [className]="'w-full px-4 py-3'"
+                />
+                @if (newPassword.length > 0 && newPasswordErrors.length > 0) {
+                  <ul
+                    class="mt-1.5 list-inside list-disc space-y-0.5 text-xs text-foreground"
+                  >
+                    @for (msg of newPasswordErrors; track msg) {
+                      <li>{{ msg }}</li>
+                    }
+                  </ul>
+                }
+              </div>
+              <div>
+                <label
+                  for="confirmPassword"
+                  class="mb-2 block text-sm font-medium text-muted"
+                  >Confirm new password</label
+                >
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  uiInput
+                  [(ngModel)]="confirmNewPassword"
+                  [disabled]="passwordChangeLoading()"
+                  autocomplete="new-password"
+                  [className]="'w-full px-4 py-3'"
+                />
+                @if (passwordsMismatch) {
+                  <p class="mt-1.5 text-sm text-destructive-foreground" role="alert">Passwords do not match</p>
+                }
+              </div>
+
+              <ui-button
+                type="submit"
+                [disabled]="passwordChangeLoading() || (confirmNewPassword.length > 0 && newPassword !== confirmNewPassword)"
+                variant="default"
+                [className]="'w-full justify-center py-3 rounded-lg'"
+              >
+                {{ passwordChangeLoading() ? 'Updating password…' : 'Update password' }}
+              </ui-button>
+            </form>
+              </ui-card-content>
+            </ui-card>
+          </section>
+        }
+      </div>
+
+      <!-- Driver-only: below the main grid -->
+      @if (user()?.role === 'driver') {
+        <div
+          class="mt-8 space-y-6 border-t border-brand-slate/30 pt-8"
+        >
+          <section>
+            <ui-card [className]="'rounded-xl shadow-sm'">
+              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-8'">
+            <h2 class="text-lg font-semibold text-card-title">Earnings &amp; withdrawals</h2>
+            <p class="mt-0.5 text-sm text-muted">
+              Available balance from completed deliveries (80% net). Mock bank withdrawal for testing.
+            </p>
+            <div class="mb-6 mt-6 border-b border-brand-slate/30" aria-hidden="true"></div>
+
+            @if (walletLoading()) {
+              <p class="text-sm text-muted">Loading wallet…</p>
+            } @else {
+              @if (walletError()) {
+                <div class="mb-4 alert-error px-4 py-3 text-sm" role="alert">{{ walletError() }}</div>
+              }
+              @if (withdrawSuccess()) {
+                <div
+                  class="mb-4 rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary"
+                  role="status"
+                >
+                  Withdrawal recorded successfully.
+                </div>
+              }
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div class="rounded-lg border border-primary/25 bg-primary/10 px-4 py-3">
+                  <p class="text-xs font-medium uppercase tracking-wide text-muted">Available</p>
+                  <p class="mt-1 text-2xl font-bold tabular-nums text-primary" data-testid="driver-wallet-available">
+                    €{{ walletAvailable() | number: '1.2-2' }}
+                  </p>
+                </div>
+                <div class="rounded-lg border border-border/30 bg-card/60 px-4 py-3">
+                  <p class="text-xs font-medium uppercase tracking-wide text-muted">Total withdrawn</p>
+                  <p class="mt-1 text-2xl font-bold tabular-nums text-card-title">
+                    €{{ walletWithdrawn() | number: '1.2-2' }}
+                  </p>
+                </div>
+              </div>
+              <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div class="min-w-0 flex-1">
+                  <label for="withdrawAmount" class="mb-2 block text-sm font-medium text-muted"
+                    >Withdraw amount ({{ walletCurrency() }})</label
+                  >
+                  <input
+                    id="withdrawAmount"
+                    name="withdrawAmount"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    uiInput
+                    [ngModel]="withdrawAmount()"
+                    (ngModelChange)="withdrawAmount.set($event)"
+                    placeholder="0.00"
+                    [className]="'w-full px-4 py-3'"
+                    data-testid="driver-withdraw-amount"
+                  />
+                </div>
+                <ui-button
+                  type="button"
+                  (click)="submitWithdrawal()"
+                  [disabled]="withdrawLoading()"
+                  [className]="'inline-flex min-h-[48px] w-full shrink-0 items-center justify-center px-6 sm:w-auto'"
+                  data-testid="driver-withdraw-submit"
+                >
+                  {{ withdrawLoading() ? 'Processing…' : 'Withdraw (mock)' }}
+                </ui-button>
+              </div>
+            }
+              </ui-card-content>
+            </ui-card>
+          </section>
+
+          <section>
+            <ui-card [className]="'rounded-xl shadow-sm'">
+              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-8'">
+            <h2 class="text-lg font-semibold text-card-title">Vehicle details</h2>
+            <p class="mt-0.5 text-sm text-muted">Registered vehicle category and verification photo</p>
+            <div
+              class="mb-6 mt-6 border-b border-brand-slate/30"
+              aria-hidden="true"
+            ></div>
+
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="text-sm font-medium text-muted">Vehicle type</span>
+              @if (user()?.vehicleType) {
+                <ui-badge variant="primary" [className]="'text-xs'">
+                  {{ vehicleTypeLabel() }}
+                </ui-badge>
+              } @else {
+                <span class="text-sm text-muted">Not set</span>
+              }
+            </div>
+
+            @if (showVehiclePendingBadge()) {
+              <div class="mt-4">
+                <ui-badge variant="warning" [className]="'text-xs'">
+                  ⚠️ Pending verification
+                </ui-badge>
+              </div>
+            }
+
+            @if (vehiclePhotoUrl()) {
+              <div class="mt-6">
+                <p class="mb-2 text-sm font-medium text-muted">Vehicle photo</p>
+                <a
+                  [href]="vehiclePhotoUrl()"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-block overflow-hidden rounded-lg border border-brand-slate/45 shadow-sm transition hover:border-primary/40"
+                >
+                  <img
+                    [src]="vehiclePhotoUrl()"
+                    alt="Vehicle verification photo"
+                    class="h-28 w-auto max-w-full object-cover sm:h-32"
+                  />
+                </a>
+              </div>
+            } @else {
+              <p class="mt-4 text-sm text-muted">No vehicle photo on file.</p>
+            }
+              </ui-card-content>
+            </ui-card>
+          </section>
+
+          <section>
+            <ui-card [className]="'rounded-xl shadow-sm'">
+              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-8'">
+            <h2 class="text-lg font-semibold text-card-title">Working districts</h2>
+            <p class="mt-0.5 text-sm text-muted">
+              Choose where you want to receive available orders. At least one district
+              is required.
+            </p>
+            <div
+              class="mb-6 mt-6 border-b border-brand-slate/30"
+              aria-hidden="true"
+            ></div>
+            @if (districtsError()) {
+              <div
+                class="mb-4 alert-error px-5 py-4 text-sm"
+                role="alert"
+              >
+                {{ districtsError() }}
+              </div>
+            }
+            <ul class="mb-4 space-y-3">
+              @for (d of DRIVER_WORKING_DISTRICTS; track d) {
+                <li>
+                  <label
+                    class="flex cursor-pointer select-none items-center gap-4 text-ice"
+                  >
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4 rounded border-brand-slate/55 text-primary focus:ring-primary"
+                      [checked]="isWorkingDistrictChecked(d)"
+                      (change)="onWorkingDistrictToggle(d, $event)"
+                    />
+                    <span>{{ d }}</span>
+                  </label>
+                </li>
+              }
+            </ul>
+            @if (driverDistrictsDraft().length === 0 && districtsDirty()) {
+              <p class="mb-3 text-sm text-foreground">Select at least one district to save.</p>
+            }
+            <ui-button
+              type="button"
+              (click)="saveWorkingDistricts()"
+              [disabled]="!canSaveWorkingDistricts()"
+              [className]="'w-full justify-center py-3 rounded-lg gap-2 flex flex-row items-center'"
+            >
+              @if (districtsSaving()) {
+                <lucide-icon
+                  name="loader-2"
+                  class="h-5 w-5 shrink-0 animate-spin"
+                  aria-hidden="true"
+                />
+                <span>Saving…</span>
+              } @else {
+                <span>Save changes</span>
+              }
+            </ui-button>
+              </ui-card-content>
+            </ui-card>
+          </section>
+
+          <section>
+            <ui-card [className]="'rounded-xl shadow-sm'">
+              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-8'">
+            <h2 class="text-lg font-semibold text-card-title">Account verification</h2>
+            <div
+              class="mb-4 mt-6 border-b border-brand-slate/30"
+              aria-hidden="true"
+            ></div>
+            @if (user()?.isVerified === true) {
+              <div class="mb-4 flex items-center gap-4">
+                <span
+                  class="inline-flex items-center rounded-md bg-primary/15 px-2.5 py-1 text-sm font-medium text-primary"
+                  >Verified ✅</span
+                >
+              </div>
+              @if (verificationMessage() === 'verified') {
+                <div
+                  class="mb-4 rounded-lg border border-primary/20/60 bg-primary/10 px-5 py-4 text-sm text-primary"
+                >
+                  Congratulations! You are now verified.
+                </div>
+              }
+            } @else if (user()?.verificationStatus === 'pending' && !user()?.isVerified) {
+              <div
+                class="mb-4 flex flex-wrap items-center gap-4"
+                data-testid="driver-profile-verification-pending"
+              >
+                <span class="text-sm text-muted">Your documents are under review.</span>
+                <ui-button
+                  type="button"
+                  (click)="onCheckVerificationStatus()"
+                  [disabled]="checkStatusLoading()"
+                  variant="outline"
+                  [className]="'py-2 px-3 rounded-lg text-sm'"
+                >
+                  {{ checkStatusLoading() ? 'Checking…' : 'Check verification status' }}
+                </ui-button>
+              </div>
+              @if (verificationMessage() === 'verified') {
+                <div
+                  class="mb-4 rounded-lg border border-primary/20/60 bg-primary/10 px-5 py-4 text-sm text-primary"
+                >
+                  Congratulations! You are now verified.
+                </div>
+              }
+            } @else if (user()?.verificationStatus === 'rejected' || verificationMessage() === 'rejected') {
+              <div
+                class="mb-4 alert-error px-5 py-4 text-sm"
+                data-testid="driver-license-rejected-alert"
+              >
+                Your documents were rejected. Please upload a clear photo of your license.
+                @if (user()?.rejectionReason) {
+                  <p class="mt-2 font-medium" data-testid="driver-rejection-reason-text">
+                    {{ user()?.rejectionReason }}
+                  </p>
+                }
+              </div>
+            }
+
+            @if (
+              user()?.verificationStatus === 'none' ||
+              user()?.verificationStatus === 'rejected' ||
+              user()?.verificationStatus === undefined ||
+              (user()?.verificationStatus === 'pending' && !licenseUrl())
+            ) {
+              <div data-testid="driver-license-upload-form">
+              @if (uploadLicenseError()) {
+                <div
+                  class="mb-4 alert-error px-5 py-4 text-sm"
+                  data-testid="driver-license-file-error"
+                >
+                  {{ uploadLicenseError() }}
+                </div>
+              }
+              @if (uploadLicenseSuccess()) {
+                <div
+                  class="mb-4 rounded-lg border border-primary/20/60 bg-primary/10 px-5 py-4 text-sm text-primary"
+                >
+                  File uploaded successfully!
+                </div>
+              }
+              <div class="flex flex-wrap items-center gap-4">
+                <input
+                  #licenseInput
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/jpg,image/png"
+                  class="hidden"
+                  data-testid="driver-license-file-input"
+                  (change)="onLicenseFileChange($event)"
+                />
+                <ui-button
+                  type="button"
+                  (click)="licenseInput.click()"
+                  [disabled]="uploadLicenseLoading()"
+                  variant="outline"
+                  [className]="'py-2.5 px-4 rounded-lg'"
+                  data-testid="driver-license-upload-submit"
+                >
+                  {{ uploadLicenseLoading() ? 'Uploading…' : 'Upload document' }}
+                </ui-button>
+                @if (licenseUrl()) {
+                  <span class="text-sm text-muted">Stored: {{ licenseUrl() }}</span>
+                }
+              </div>
+              <p class="mt-2 text-xs text-muted">PDF, JPG or PNG. Max 5MB.</p>
+              </div>
+            }
+              </ui-card-content>
+            </ui-card>
+          </section>
+        </div>
+      }
+      </div>
+      </div>
+    </div>
+  </main>
+  @if (user()?.role === 'customer') {
+    <app-customer-mobile-nav />
+  }
+  @if (user()?.role === 'driver') {
+    <app-driver-mobile-nav />
+  }
+</div>
