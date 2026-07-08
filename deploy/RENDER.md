@@ -39,7 +39,7 @@ git commit -m "Initial commit for Render deploy"
 
 # Create a new empty repo on GitHub (github.com → New repository → moving-mate)
 # Then:
-git remote add origin https://github.com/YOUR_GITHUB_USERNAME/moving-mate.git
+git remote add origin https://github.com/chrisrodosthenous/moving-mate.git
 git branch -M main
 git push -u origin main
 ```

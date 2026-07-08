@@ -1,0 +1,3 @@
+# Pin Node on Render (matches local dev); optional — Render defaults to latest otherwise.
+# https://render.com/docs/node-version
+20
