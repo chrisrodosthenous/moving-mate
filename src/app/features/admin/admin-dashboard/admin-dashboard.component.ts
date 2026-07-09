@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, EMPTY, finalize, interval } from 'rxjs';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import {
@@ -37,8 +37,12 @@ import { AdminDriversComponent } from '../admin-drivers/admin-drivers.component'
 import { AdminOrdersComponent } from '../admin-orders/admin-orders.component';
 import { UiButtonComponent } from '@/components/ui/button';
 import { UiDialogBackdropComponent, UiDialogPanelComponent } from '@/components/ui/dialog';
-import { AppLogoComponent } from '../../../shared/components/app-logo/app-logo.component';
 import { LucideAngularModule } from 'lucide-angular';
+import {
+  adminSectionQuery,
+  parseAdminNavFromUrl,
+  type AdminSection,
+} from '../../../shared/utils/admin-section-nav';
 import {
   ADMIN_FLEET_TAB,
   ADMIN_LOGISTICS_TAB,
@@ -56,7 +60,6 @@ const ADMIN_OVERVIEW_POLL_MS = 30_000;
   selector: 'app-admin-dashboard',
   standalone: true,
   imports: [
-    RouterLink,
     MatDialogModule,
     AdminFleetComponent,
     AdminLogisticsComponent,
@@ -68,7 +71,6 @@ const ADMIN_OVERVIEW_POLL_MS = 30_000;
     UiButtonComponent,
     UiDialogBackdropComponent,
     UiDialogPanelComponent,
-    AppLogoComponent,
     LucideAngularModule,
   ],
   templateUrl: './admin-dashboard.component.html',
@@ -84,6 +86,8 @@ export class AdminDashboardComponent implements OnInit {
 
   private adminService = inject(AdminService);
   readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private http = inject(HttpClient);
   private dialog = inject(MatDialog);
   private toast = inject(ToastService);
@@ -102,25 +106,7 @@ export class AdminDashboardComponent implements OnInit {
 
   /** Logistics Control: in_progress → API `picked_up`, completed → API `delivered`. */
   selectedLogisticsTab = signal<AdminLogisticsTabId>(ADMIN_LOGISTICS_TAB.IN_PROGRESS);
-  section = signal<
-    'analytics' | 'customers' | 'driversTable' | 'ordersTable' | 'drivers' | 'orders' | 'notify'
-  >('analytics');
-
-  readonly sidebarOpen = signal(false);
-
-  readonly sectionTitle = computed(() => {
-    if (this.section() === 'analytics') return 'Dashboard · Analytics';
-    if (this.section() === 'customers') return 'Management · Customers';
-    if (this.section() === 'driversTable') return 'Management · Drivers';
-    if (this.section() === 'ordersTable') return 'Management · Orders';
-    if (this.section() === 'orders') return 'Dashboard · Order management';
-    if (this.section() === 'notify') return 'Developer tools';
-    const tab = this.driverTab();
-    if (tab === ADMIN_FLEET_TAB.VERIFIED) return 'User management';
-    if (tab === ADMIN_FLEET_TAB.PENDING) return 'Driver approvals';
-    if (tab === ADMIN_FLEET_TAB.NOT_VERIFIED) return 'Driver onboarding';
-    return 'Fleet management';
-  });
+  section = signal<AdminSection>('analytics');
 
   /** Notify subsection: push vs email */
   notifyTab = signal<'push' | 'email'>('push');
@@ -166,6 +152,11 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.syncSectionFromRoute(this.router.url);
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.syncSectionFromRoute(this.router.url);
+    });
+
     this.loadOverview();
     interval(ADMIN_OVERVIEW_POLL_MS)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -175,6 +166,25 @@ export class AdminDashboardComponent implements OnInit {
       this.loadOverview({ silent: true });
     });
     this.destroyRef.onDestroy(() => unsubVerification());
+  }
+
+  private syncSectionFromRoute(url: string): void {
+    const nav = parseAdminNavFromUrl(url);
+    this.section.set(nav.section);
+    if (nav.section === 'drivers' && nav.fleetTab) {
+      this.driverTab.set(nav.fleetTab);
+    }
+    if (nav.section === 'orders' || nav.section === 'drivers') {
+      this.logisticsResizeSoon();
+    }
+  }
+
+  private navigateSection(section: AdminSection, fleetTab?: AdminFleetTabId): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: adminSectionQuery(section, fleetTab),
+      replaceUrl: true,
+    });
   }
 
   /**
@@ -210,18 +220,8 @@ export class AdminDashboardComponent implements OnInit {
       });
   }
 
-  setSection(
-    s: 'analytics' | 'customers' | 'driversTable' | 'ordersTable' | 'drivers' | 'orders' | 'notify',
-  ): void {
-    this.section.set(s);
-  }
-
-  toggleSidebar(): void {
-    this.sidebarOpen.update((v) => !v);
-  }
-
-  closeSidebar(): void {
-    this.sidebarOpen.set(false);
+  private setSection(s: AdminSection, fleetTab?: AdminFleetTabId): void {
+    this.navigateSection(s, fleetTab ?? (s === 'drivers' ? this.driverTab() : undefined));
   }
 
   /** Mobile drawer: restores map layout after programmatic panel changes. */
@@ -229,35 +229,13 @@ export class AdminDashboardComponent implements OnInit {
     setTimeout(() => this.logisticsView?.mapResize(), 40);
   }
 
-  openDashboard(): void {
-    this.setSection('analytics');
-    this.closeSidebar();
-  }
-
-  openCustomersTable(): void {
-    this.setSection('customers');
-    this.closeSidebar();
-  }
-
-  openDriversTable(): void {
-    this.setSection('driversTable');
-    this.closeSidebar();
-  }
-
-  openOrdersTable(): void {
-    this.setSection('ordersTable');
-    this.closeSidebar();
-  }
-
   onViewCustomer(user: AdminUser): void {
     this.toast.show(`Customer: ${[user.firstName, user.lastName].filter(Boolean).join(' ') || user.email}`, 'success');
   }
 
   onViewDriver(user: AdminUser): void {
-    this.setSection('drivers');
-    this.setDriverTab(ADMIN_FLEET_TAB.VERIFIED);
+    this.setSection('drivers', ADMIN_FLEET_TAB.VERIFIED);
     this.selectedDriver.set(user);
-    this.closeSidebar();
   }
 
   onViewOrderFromTable(order: AdminOrder): void {
@@ -271,69 +249,7 @@ export class AdminDashboardComponent implements OnInit {
     this.setSection('orders');
     this.selectedLogisticsTab.set(tab);
     this.selectOrder(order);
-    this.closeSidebar();
     this.logisticsResizeSoon();
-  }
-
-  openOrderManagement(): void {
-    this.setSection('orders');
-    this.focusedOrderId.set(null);
-    this.selectedOrder.set(null);
-    this.selectedLogisticsTab.set(ADMIN_LOGISTICS_TAB.IN_PROGRESS);
-    this.closeSidebar();
-    this.logisticsResizeSoon();
-  }
-
-  openUserManagement(): void {
-    this.setSection('drivers');
-    this.setDriverTab(ADMIN_FLEET_TAB.VERIFIED);
-    this.closeSidebar();
-  }
-
-  openDriverApprovals(): void {
-    this.setSection('drivers');
-    this.setDriverTab(ADMIN_FLEET_TAB.PENDING);
-    this.closeSidebar();
-  }
-
-  openNotifyTools(): void {
-    this.setSection('notify');
-    this.closeSidebar();
-  }
-
-  navBtnActive(
-    section:
-      | 'analytics'
-      | 'customers'
-      | 'driversTable'
-      | 'ordersTable'
-      | 'drivers'
-      | 'orders'
-      | 'notify',
-    fleetTab?: AdminFleetTabId,
-  ): boolean {
-    if (this.section() !== section) return false;
-    if (section !== 'drivers') return true;
-    if (fleetTab == null) return true;
-    return this.driverTab() === fleetTab;
-  }
-
-  navBtnClass(
-    section:
-      | 'analytics'
-      | 'customers'
-      | 'driversTable'
-      | 'ordersTable'
-      | 'drivers'
-      | 'orders'
-      | 'notify',
-    fleetTab?: AdminFleetTabId,
-  ): string {
-    const active = this.navBtnActive(section, fleetTab);
-    return (
-      'admin-nav-btn w-full min-h-[44px] justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ' +
-      (active ? '' : 'admin-nav-link-idle')
-    );
   }
 
   onPushTesterToast(e: { message: string; variant: 'success' | 'error' }): void {
@@ -386,6 +302,7 @@ export class AdminDashboardComponent implements OnInit {
   setDriverTab(tab: AdminFleetTabId): void {
     this.driverTab.set(tab);
     this.selectedDriver.set(null);
+    this.navigateSection('drivers', tab);
   }
 
   selectDriver(driver: AdminUser | PendingVerificationUser): void {
@@ -504,9 +421,5 @@ export class AdminDashboardComponent implements OnInit {
           error: () => {},
         });
     });
-  }
-
-  logout(): void {
-    this.auth.logout();
   }
 }

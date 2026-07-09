@@ -67,10 +67,159 @@
         <a
           routerLink="/admin"
           [routerLinkActive]="navActiveClass"
-          [class]="navLinkClass"          (click)="closeMobileNav()"
+          [class]="navLinkClass"
+          (click)="closeMobileNav()"
         >
           <lucide-icon name="shield-check" [size]="20"></lucide-icon>
           <span class="sidebar-label">← Back to admin</span>
+        </a>
+      </li>
+    } @else if (adminOnAdminRoute) {
+      <li>
+        <a
+          routerLink="/admin"
+          [queryParams]="adminNavQuery('analytics')"
+          [class]="navLinkClass"
+          [class.bg-primary/20]="isAdminNavActive('analytics')"
+          [class.text-primary]="isAdminNavActive('analytics')"
+          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="home" [size]="20"></lucide-icon>
+          <span class="sidebar-label">Dashboard</span>
+        </a>
+      </li>
+      <li class="sidebar-section-title w-full px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:text-primary">
+        Management
+      </li>
+      <li>
+        <a
+          routerLink="/admin"
+          [queryParams]="adminNavQuery('customers')"
+          [class]="navLinkClass"
+          [class.bg-primary/20]="isAdminNavActive('customers')"
+          [class.text-primary]="isAdminNavActive('customers')"
+          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="users" [size]="20"></lucide-icon>
+          <span class="sidebar-label">Customers</span>
+        </a>
+      </li>
+      <li>
+        <a
+          routerLink="/admin"
+          [queryParams]="adminNavQuery('driversTable')"
+          [class]="navLinkClass"
+          [class.bg-primary/20]="isAdminNavActive('driversTable')"
+          [class.text-primary]="isAdminNavActive('driversTable')"
+          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="user" [size]="20"></lucide-icon>
+          <span class="sidebar-label">Drivers</span>
+        </a>
+      </li>
+      <li>
+        <a
+          routerLink="/admin"
+          [queryParams]="adminNavQuery('ordersTable')"
+          [class]="navLinkClass"
+          [class.bg-primary/20]="isAdminNavActive('ordersTable')"
+          [class.text-primary]="isAdminNavActive('ordersTable')"
+          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="history" [size]="20"></lucide-icon>
+          <span class="sidebar-label">Orders</span>
+        </a>
+      </li>
+      <li class="sidebar-section-title w-full px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:text-primary">
+        Operations
+      </li>
+      <li>
+        <a
+          routerLink="/admin"
+          [queryParams]="adminNavQuery('drivers', fleetTab.VERIFIED)"
+          [class]="navLinkClass"
+          [class.bg-primary/20]="isAdminNavActive('drivers', fleetTab.VERIFIED)"
+          [class.text-primary]="isAdminNavActive('drivers', fleetTab.VERIFIED)"
+          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="shield-check" [size]="20"></lucide-icon>
+          <span class="sidebar-label">User management</span>
+        </a>
+      </li>
+      <li>
+        <a
+          routerLink="/admin"
+          [queryParams]="adminNavQuery('orders')"
+          [class]="navLinkClass"
+          [class.bg-primary/20]="isAdminNavActive('orders')"
+          [class.text-primary]="isAdminNavActive('orders')"
+          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="truck" [size]="20"></lucide-icon>
+          <span class="sidebar-label">Order management</span>
+        </a>
+      </li>
+      <li>
+        <a
+          routerLink="/admin"
+          [queryParams]="adminNavQuery('drivers', fleetTab.PENDING)"
+          [class]="navLinkClass"
+          [class.bg-primary/20]="isAdminNavActive('drivers', fleetTab.PENDING)"
+          [class.text-primary]="isAdminNavActive('drivers', fleetTab.PENDING)"
+          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="shield-check" [size]="20"></lucide-icon>
+          <span class="sidebar-label">Driver approvals</span>
+        </a>
+      </li>
+      <li>
+        <a
+          routerLink="/admin"
+          [queryParams]="adminNavQuery('notify')"
+          [class]="navLinkClass"
+          [class.bg-primary/20]="isAdminNavActive('notify')"
+          [class.text-primary]="isAdminNavActive('notify')"
+          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="settings-2" [size]="20"></lucide-icon>
+          <span class="sidebar-label">Developer tools</span>
+        </a>
+      </li>
+      <li class="sidebar-section-title w-full px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:text-primary">
+        Settings
+      </li>
+      <li>
+        <a
+          routerLink="/admin/settings/notifications"
+          routerLinkActive="bg-primary/20 text-primary"
+          [class]="navLinkClass"
+          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="bell" [size]="20"></lucide-icon>
+          <span class="sidebar-label">Notifications</span>
+        </a>
+      </li>
+      <li class="sidebar-section-title w-full px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:text-primary">
+        Preview
+      </li>
+      <li>
+        <a
+          routerLink="/customer/dashboard"
+          [class]="navLinkClass"
+          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="map-plus" [size]="20"></lucide-icon>
+          <span class="sidebar-label">Customer view</span>
+        </a>
+      </li>
+      <li>
+        <a
+          routerLink="/driver/dashboard"
+          [class]="navLinkClass"
+          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="truck" [size]="20"></lucide-icon>
+          <span class="sidebar-label">Driver view</span>
         </a>
       </li>
     } @else {
@@ -158,27 +307,18 @@
       </li>
       @if (user?.role === 'admin') {
         <li class="sidebar-section-title w-full px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:text-primary">
-          Settings
-        </li>
-        <li>
-          <a
-            routerLink="/admin/settings/notifications"
-            [routerLinkActive]="navActiveClass"
-            [class]="navLinkClass"            (click)="closeMobileNav()"
-          >
-            <lucide-icon name="bell" [size]="20"></lucide-icon>
-            <span class="sidebar-label">Notifications</span>
-          </a>
+          Admin
         </li>
         <li>
           <a
             routerLink="/admin"
             [routerLinkActive]="navActiveClass"
             [routerLinkActiveOptions]="{ exact: false }"
-            [class]="navLinkClass"            (click)="closeMobileNav()"
+            [class]="navLinkClass"
+            (click)="closeMobileNav()"
           >
             <lucide-icon name="shield-check" [size]="20"></lucide-icon>
-            <span class="sidebar-label">Admin</span>
+            <span class="sidebar-label">Admin panel</span>
           </a>
         </li>
       }

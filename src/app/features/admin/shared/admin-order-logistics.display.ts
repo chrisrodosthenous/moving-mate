@@ -27,9 +27,9 @@ export function adminOrderVehicleIcon(vehicleType: AdminOrder['vehicleType']): '
 export function adminOrderVehicleBadgeClass(vehicleType: AdminOrder['vehicleType']): string {
   const base = 'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap';
   if (isLargeTierOrderVehicle(vehicleType)) {
-    return `${base} border-[#7BBDE8]/20 bg-[#7BBDE8]/10 text-[#7BBDE8]`;
+    return `${base} border-primary/20 bg-primary/10 text-primary`;
   }
-  return `${base} border-[#49769F]/30 bg-[#49769F]/10 text-[#BDD8E9]`;
+  return `${base} border-border/30 bg-secondary/30 text-foreground`;
 }
 
 export function adminOrderLaborLabel(labor: AdminOrder['laborRequired']): string {
@@ -47,11 +47,11 @@ export function adminOrderLaborBadgeClass(labor: AdminOrder['laborRequired']): s
   const base = 'inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap';
   switch (labor) {
     case 'driver':
-      return `${base} border border-[#7BBDE8]/25 bg-[#7BBDE8]/10 text-[#7BBDE8]`;
+      return `${base} border border-primary/25 bg-primary/10 text-primary`;
     case 'driver_plus_helper':
-      return `${base} border-2 border-[#7BBDE8]/50 bg-[#7BBDE8]/15 text-[#7BBDE8] shadow-[0_0_8px_rgba(123,189,232,0.2)]`;
+      return `${base} border-2 border-primary/40 bg-primary/15 text-primary shadow-[0_0_8px_rgba(34,197,94,0.15)]`;
     default:
-      return `${base} text-[#BDD8E9]/55`;
+      return `${base} text-muted-foreground`;
   }
 }
 

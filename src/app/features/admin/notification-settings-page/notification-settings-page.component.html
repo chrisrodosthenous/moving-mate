@@ -1,288 +1,268 @@
-<div
-  class="admin-theme-root flex min-h-dvh min-h-[100svh] flex-col overflow-x-hidden font-sans md:h-[100dvh] md:flex-row md:overflow-hidden"
->
-  <app-sidebar class="app-sidebar-host" />
-
-  <main class="app-shell-sidebar-offset flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pb-10 md:pb-12">
-    <header class="app-shell-header">
-      <h1 class="app-shell-header-title">{{ pageHeading() }}</h1>
-    </header>
-
-    <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-      @if (vm$ | async; as vm) {
-        <div class="notification-settings-inner mx-auto w-full max-w-5xl space-y-6 p-4 pb-8 sm:space-y-8 sm:p-6 sm:pb-10 lg:p-8 lg:pb-12">
-          <div class="flex flex-wrap items-start justify-between gap-4 border-b border-border/20 pb-6">
-            <div class="max-w-xl">
-              <p class="text-xs font-semibold uppercase tracking-wide text-primary">Settings</p>
-              <p class="mt-2 text-sm leading-relaxed text-primary">
-                Control which emails and push notifications are sent. Live status is green only when the channel is
-                configured and this event is enabled.
-              </p>
-              <a
-                routerLink="/admin"
-                class="mt-3 inline-flex text-sm font-medium text-primary transition hover:text-foreground"
-              >
-                ← Back to admin dashboard
-              </a>
-            </div>
-            <button
-              type="button"
-              (click)="refresh()"
-              [disabled]="vm.loading"
-              class="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border/30 bg-secondary/50 backdrop-blur-sm px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-secondary/25 disabled:opacity-60"
-            >
-              <lucide-icon
-                name="rotate-ccw"
-                class="h-4 w-4"
-                [class.animate-spin]="vm.loading"
-                aria-hidden="true"
-              />
-              Refresh list
-            </button>
-          </div>
-
-          @if (vm.toast) {
-            <div
-              role="status"
-              class="fixed bottom-6 left-1/2 z-50 max-w-[min(100vw-2rem,28rem)] -translate-x-1/2 rounded-full border px-5 py-2.5 text-sm font-medium shadow-lg"
-              [class.border-primary/30]="vm.toast.variant === 'error'"
-              [class.bg-destructive/15]="vm.toast.variant === 'error'"
-              [class.text-destructive-foreground]="vm.toast.variant === 'error'"
-              [class.border-primary/20]="vm.toast.variant === 'success'"
-              [class.bg-primary/10]="vm.toast.variant === 'success'"
-              [class.text-foreground]="vm.toast.variant === 'success'"
-            >
-              {{ vm.toast.message }}
-            </div>
-          }
-
-          @if (vm.error) {
-            <div class="rounded-xl border border-primary/30 bg-destructive/15 px-4 py-3 text-sm text-destructive-foreground">
-              {{ vm.error }}
-            </div>
-          }
-
-          @if (vm.loading) {
-            <div class="flex items-center gap-2 text-primary">
-              <lucide-icon name="loader-2" class="h-5 w-5 animate-spin shrink-0" aria-hidden="true" />
-              Loading notification settings…
-            </div>
-          } @else {
-            <div class="space-y-10" [@notificationSettingsSections]>
-              <section class="settings-section admin-theme-surface rounded-2xl shadow-surface">
-                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border/20 px-5 py-4">
-                  <div class="flex items-center gap-2">
-                    <lucide-icon name="mail" class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-                    <h2 class="text-lg font-semibold text-foreground">Email notifications</h2>
-                  </div>
-                  <div class="flex items-center gap-2 text-sm">
-                    <span class="text-muted-foreground">Service:</span>
-                    <span class="inline-flex items-center gap-2">
-                      <span
-                        class="h-2.5 w-2.5 shrink-0 rounded-full"
-                        [class.bg-primary]="vm.emailBlock.serviceHealthy"
-                        [class.bg-destructive/50]="!vm.emailBlock.serviceHealthy"
-                        aria-hidden="true"
-                      ></span>
-                      <span class="text-primary">{{ vm.emailBlock.serviceHealthy ? 'Live' : 'Unavailable' }}</span>
-                    </span>
-                  </div>
-                </div>
-                <div class="overflow-x-auto">
-                  <table class="min-w-full text-left text-sm">
-                    <thead>
-                      <tr class="border-b border-border/20 bg-muted/80 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        <th class="px-5 py-3">Event</th>
-                        <th class="px-5 py-3">Description</th>
-                        <th class="px-5 py-3">Live status</th>
-                        <th class="px-5 py-3">Enabled</th>
-                        <th class="min-w-[16rem] px-5 py-3">Test actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (row of vm.emailBlock.items; track row._id) {
-                        <tr class="border-b border-border/20 last:border-0">
-                          <td class="px-5 py-3 font-medium text-foreground">{{ row.label || row.eventName }}</td>
-                          <td class="px-5 py-3 text-primary">{{ row.description }}</td>
-                          <td class="px-5 py-3">
-                            <span class="inline-flex items-center gap-2">
-                              <span
-                                class="h-2.5 w-2.5 shrink-0 rounded-full"
-                                [class.bg-primary]="vm.emailBlock.serviceHealthy && row.isEnabled"
-                                [class.bg-destructive/50]="!(vm.emailBlock.serviceHealthy && row.isEnabled)"
-                                aria-hidden="true"
-                              ></span>
-                              <span class="text-primary">{{
-                                vm.emailBlock.serviceHealthy && row.isEnabled ? 'Live' : 'Unavailable'
-                              }}</span>
-                            </span>
-                          </td>
-                          <td class="px-5 py-3">
-                            <button
-                              type="button"
-                              (click)="onToggle(row)"
-                              [disabled]="vm.savingId === row._id"
-                              class="inline-flex items-center gap-2 rounded-lg border border-border/30 bg-secondary/50 backdrop-blur-sm px-3 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-secondary/25 disabled:opacity-60"
-                              [attr.aria-pressed]="row.isEnabled"
-                            >
-                              @if (vm.savingId === row._id) {
-                                <lucide-icon
-                                  name="loader-2"
-                                  class="h-4 w-4 shrink-0 animate-spin text-primary"
-                                  aria-hidden="true"
-                                />
-                              } @else if (row.isEnabled) {
-                                <lucide-icon name="toggle-right" class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-                              } @else {
-                                <lucide-icon name="toggle-left" class="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                              }
-                              {{ row.isEnabled ? 'On' : 'Off' }}
-                            </button>
-                          </td>
-                          <td class="min-w-0 px-5 py-2 align-middle">
-                            <div class="flex min-w-0 flex-nowrap items-center gap-2">
-                              <label class="sr-only" [attr.for]="'test-email-' + row._id"
-                                >Test email for {{ row.label || row.eventName }}</label
-                              >
-                              <input
-                                [id]="'test-email-' + row._id"
-                                type="email"
-                                autocomplete="email"
-                                placeholder="test@example.com"
-                                [value]="vm.testEmails[row._id] || ''"
-                                (input)="onTestEmailChange(row._id, $any($event.target).value)"
-                                class="min-w-0 flex-1 rounded-md border border-border/30 bg-secondary/45 p-1.5 text-xs leading-tight text-foreground shadow-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                              />
-                              <button
-                                type="button"
-                                (click)="onClearTestRow(row._id)"
-                                title="Clear"
-                                aria-label="Clear test email"
-                                class="inline-flex shrink-0 items-center justify-center rounded-md border border-border/30 bg-secondary/45 p-1.5 text-primary shadow-sm transition hover:bg-secondary/25"
-                              >
-                                <lucide-icon name="rotate-ccw" class="h-3.5 w-3.5" aria-hidden="true" />
-                              </button>
-                              <button
-                                type="button"
-                                (click)="onSendEmailTest(row, vm.testEmails)"
-                                [disabled]="!!vm.sendingTestId"
-                                [attr.aria-busy]="vm.sendingTestId === row._id"
-                                title="Send test email"
-                                class="inline-flex shrink-0 items-center justify-center gap-1 rounded-md border border-primary/20 bg-primary p-1.5 text-xs font-medium text-primary-foreground shadow-sm transition hover:bg-[#16A34A] disabled:cursor-not-allowed disabled:opacity-70"
-                              >
-                                @if (vm.sendingTestId === row._id) {
-                                  <lucide-icon name="loader-2" class="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
-                                } @else {
-                                  <lucide-icon name="send" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                                }
-                                <span>Send test</span>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      } @empty {
-                        <tr>
-                          <td colspan="5" class="px-5 py-8 align-top">
-                            <app-empty-state
-                              title="No email notification events"
-                              hint="The API returned no rows. Verify server notification settings or try Refresh list."
-                            />
-                          </td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-
-              <section class="settings-section admin-theme-surface rounded-2xl shadow-surface">
-                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border/20 px-5 py-4">
-                  <div class="flex items-center gap-2">
-                    <lucide-icon name="bell" class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-                    <h2 class="text-lg font-semibold text-foreground">Push notifications</h2>
-                  </div>
-                  <div class="flex items-center gap-2 text-sm">
-                    <span class="text-muted-foreground">Service:</span>
-                    <span class="inline-flex items-center gap-2">
-                      <span
-                        class="h-2.5 w-2.5 shrink-0 rounded-full"
-                        [class.bg-primary]="vm.pushBlock.serviceHealthy"
-                        [class.bg-destructive/50]="!vm.pushBlock.serviceHealthy"
-                        aria-hidden="true"
-                      ></span>
-                      <span class="text-primary">{{ vm.pushBlock.serviceHealthy ? 'Live' : 'Unavailable' }}</span>
-                    </span>
-                  </div>
-                </div>
-                <div class="overflow-x-auto">
-                  <table class="min-w-full text-left text-sm">
-                    <thead>
-                      <tr class="border-b border-border/20 bg-muted/80 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        <th class="px-5 py-3">Event</th>
-                        <th class="px-5 py-3">Description</th>
-                        <th class="px-5 py-3">Live status</th>
-                        <th class="px-5 py-3">Enabled</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (row of vm.pushBlock.items; track row._id) {
-                        <tr class="border-b border-border/20 last:border-0">
-                          <td class="px-5 py-3 font-medium text-foreground">{{ row.label || row.eventName }}</td>
-                          <td class="px-5 py-3 text-primary">{{ row.description }}</td>
-                          <td class="px-5 py-3">
-                            <span class="inline-flex items-center gap-2">
-                              <span
-                                class="h-2.5 w-2.5 shrink-0 rounded-full"
-                                [class.bg-primary]="vm.pushBlock.serviceHealthy && row.isEnabled"
-                                [class.bg-destructive/50]="!(vm.pushBlock.serviceHealthy && row.isEnabled)"
-                                aria-hidden="true"
-                              ></span>
-                              <span class="text-primary">{{
-                                vm.pushBlock.serviceHealthy && row.isEnabled ? 'Live' : 'Unavailable'
-                              }}</span>
-                            </span>
-                          </td>
-                          <td class="px-5 py-3">
-                            <button
-                              type="button"
-                              (click)="onToggle(row)"
-                              [disabled]="vm.savingId === row._id"
-                              class="inline-flex items-center gap-2 rounded-lg border border-border/30 bg-secondary/50 backdrop-blur-sm px-3 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-secondary/25 disabled:opacity-60"
-                              [attr.aria-pressed]="row.isEnabled"
-                            >
-                              @if (vm.savingId === row._id) {
-                                <lucide-icon
-                                  name="loader-2"
-                                  class="h-4 w-4 shrink-0 animate-spin text-primary"
-                                  aria-hidden="true"
-                                />
-                              } @else if (row.isEnabled) {
-                                <lucide-icon name="toggle-right" class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-                              } @else {
-                                <lucide-icon name="toggle-left" class="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                              }
-                              {{ row.isEnabled ? 'On' : 'Off' }}
-                            </button>
-                          </td>
-                        </tr>
-                      } @empty {
-                        <tr>
-                          <td colspan="4" class="px-5 py-8 align-top">
-                            <app-empty-state
-                              title="No push notification events"
-                              hint="The API returned no rows. Verify server notification settings or try Refresh list."
-                            />
-                          </td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            </div>
-          }
-        </div>
-      }
+@if (vm$ | async; as vm) {
+  <div class="notification-settings-inner app-page-container mx-auto w-full max-w-5xl space-y-6 sm:space-y-8">
+    <div class="flex flex-wrap items-start justify-between gap-4 border-b border-border/20 pb-6">
+      <div class="max-w-xl">
+        <p class="text-xs font-semibold uppercase tracking-wide text-primary">Settings</p>
+        <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+          Control which emails and push notifications are sent. Live status is green only when the channel is
+          configured and this event is enabled.
+        </p>
+      </div>
+      <button
+        type="button"
+        (click)="refresh()"
+        [disabled]="vm.loading"
+        class="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border/30 bg-secondary/50 backdrop-blur-sm px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-secondary/25 disabled:opacity-60"
+      >
+        <lucide-icon
+          name="rotate-ccw"
+          class="h-4 w-4"
+          [class.animate-spin]="vm.loading"
+          aria-hidden="true"
+        />
+        Refresh list
+      </button>
     </div>
-  </main>
-</div>
+
+    @if (vm.toast) {
+      <div
+        role="status"
+        class="fixed bottom-6 left-1/2 z-50 max-w-[min(100vw-2rem,28rem)] -translate-x-1/2 rounded-full border px-5 py-2.5 text-sm font-medium shadow-lg"
+        [class.border-primary/30]="vm.toast.variant === 'error'"
+        [class.bg-destructive/15]="vm.toast.variant === 'error'"
+        [class.text-destructive-foreground]="vm.toast.variant === 'error'"
+        [class.border-primary/20]="vm.toast.variant === 'success'"
+        [class.bg-primary/10]="vm.toast.variant === 'success'"
+        [class.text-foreground]="vm.toast.variant === 'success'"
+      >
+        {{ vm.toast.message }}
+      </div>
+    }
+
+    @if (vm.error) {
+      <div class="rounded-xl border border-primary/30 bg-destructive/15 px-4 py-3 text-sm text-destructive-foreground">
+        {{ vm.error }}
+      </div>
+    }
+
+    @if (vm.loading) {
+      <div class="flex items-center gap-2 text-primary">
+        <lucide-icon name="loader-2" class="h-5 w-5 shrink-0 animate-spin" aria-hidden="true" />
+        Loading notification settings…
+      </div>
+    } @else {
+      <div class="space-y-10" [@notificationSettingsSections]>
+        <section class="settings-section admin-theme-surface rounded-2xl shadow-surface">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border/20 px-5 py-4">
+            <div class="flex items-center gap-2">
+              <lucide-icon name="mail" class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              <h2 class="text-lg font-semibold text-foreground">Email notifications</h2>
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-muted-foreground">Service:</span>
+              <span class="inline-flex items-center gap-2">
+                <span
+                  class="h-2.5 w-2.5 shrink-0 rounded-full"
+                  [class.bg-primary]="vm.emailBlock.serviceHealthy"
+                  [class.bg-destructive/50]="!vm.emailBlock.serviceHealthy"
+                  aria-hidden="true"
+                ></span>
+                <span class="text-primary">{{ vm.emailBlock.serviceHealthy ? 'Live' : 'Unavailable' }}</span>
+              </span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-left text-sm">
+              <thead>
+                <tr class="border-b border-border/20 bg-muted/80 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <th class="px-5 py-3">Event</th>
+                  <th class="px-5 py-3">Description</th>
+                  <th class="px-5 py-3">Live status</th>
+                  <th class="px-5 py-3">Enabled</th>
+                  <th class="min-w-[16rem] px-5 py-3">Test actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of vm.emailBlock.items; track row._id) {
+                  <tr class="border-b border-border/20 last:border-0">
+                    <td class="px-5 py-3 font-medium text-foreground">{{ row.label || row.eventName }}</td>
+                    <td class="px-5 py-3 text-muted-foreground">{{ row.description }}</td>
+                    <td class="px-5 py-3">
+                      <span class="inline-flex items-center gap-2">
+                        <span
+                          class="h-2.5 w-2.5 shrink-0 rounded-full"
+                          [class.bg-primary]="vm.emailBlock.serviceHealthy && row.isEnabled"
+                          [class.bg-destructive/50]="!(vm.emailBlock.serviceHealthy && row.isEnabled)"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="text-primary">{{
+                          vm.emailBlock.serviceHealthy && row.isEnabled ? 'Live' : 'Unavailable'
+                        }}</span>
+                      </span>
+                    </td>
+                    <td class="px-5 py-3">
+                      <button
+                        type="button"
+                        (click)="onToggle(row)"
+                        [disabled]="vm.savingId === row._id"
+                        class="inline-flex items-center gap-2 rounded-lg border border-border/30 bg-secondary/50 backdrop-blur-sm px-3 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-secondary/25 disabled:opacity-60"
+                        [attr.aria-pressed]="row.isEnabled"
+                      >
+                        @if (vm.savingId === row._id) {
+                          <lucide-icon
+                            name="loader-2"
+                            class="h-4 w-4 shrink-0 animate-spin text-primary"
+                            aria-hidden="true"
+                          />
+                        } @else if (row.isEnabled) {
+                          <lucide-icon name="toggle-right" class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                        } @else {
+                          <lucide-icon name="toggle-left" class="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        }
+                        {{ row.isEnabled ? 'On' : 'Off' }}
+                      </button>
+                    </td>
+                    <td class="min-w-0 px-5 py-2 align-middle">
+                      <div class="flex min-w-0 flex-nowrap items-center gap-2">
+                        <label class="sr-only" [attr.for]="'test-email-' + row._id"
+                          >Test email for {{ row.label || row.eventName }}</label
+                        >
+                        <input
+                          [id]="'test-email-' + row._id"
+                          type="email"
+                          autocomplete="email"
+                          placeholder="test@example.com"
+                          [value]="vm.testEmails[row._id] || ''"
+                          (input)="onTestEmailChange(row._id, $any($event.target).value)"
+                          class="min-w-0 flex-1 rounded-md border border-border/30 bg-secondary/45 p-1.5 text-xs leading-tight text-foreground shadow-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        <button
+                          type="button"
+                          (click)="onClearTestRow(row._id)"
+                          title="Clear"
+                          aria-label="Clear test email"
+                          class="inline-flex shrink-0 items-center justify-center rounded-md border border-border/30 bg-secondary/45 p-1.5 text-primary shadow-sm transition hover:bg-secondary/25"
+                        >
+                          <lucide-icon name="rotate-ccw" class="h-3.5 w-3.5" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          (click)="onSendEmailTest(row, vm.testEmails)"
+                          [disabled]="!!vm.sendingTestId"
+                          [attr.aria-busy]="vm.sendingTestId === row._id"
+                          title="Send test email"
+                          class="inline-flex shrink-0 items-center justify-center gap-1 rounded-md border border-primary/20 bg-primary p-1.5 text-xs font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                        >
+                          @if (vm.sendingTestId === row._id) {
+                            <lucide-icon name="loader-2" class="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
+                          } @else {
+                            <lucide-icon name="send" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          }
+                          <span>Send test</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5" class="px-5 py-8 align-top">
+                      <app-empty-state
+                        title="No email notification events"
+                        hint="The API returned no rows. Verify server notification settings or try Refresh list."
+                      />
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="settings-section admin-theme-surface rounded-2xl shadow-surface">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border/20 px-5 py-4">
+            <div class="flex items-center gap-2">
+              <lucide-icon name="bell" class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              <h2 class="text-lg font-semibold text-foreground">Push notifications</h2>
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-muted-foreground">Service:</span>
+              <span class="inline-flex items-center gap-2">
+                <span
+                  class="h-2.5 w-2.5 shrink-0 rounded-full"
+                  [class.bg-primary]="vm.pushBlock.serviceHealthy"
+                  [class.bg-destructive/50]="!vm.pushBlock.serviceHealthy"
+                  aria-hidden="true"
+                ></span>
+                <span class="text-primary">{{ vm.pushBlock.serviceHealthy ? 'Live' : 'Unavailable' }}</span>
+              </span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-left text-sm">
+              <thead>
+                <tr class="border-b border-border/20 bg-muted/80 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <th class="px-5 py-3">Event</th>
+                  <th class="px-5 py-3">Description</th>
+                  <th class="px-5 py-3">Live status</th>
+                  <th class="px-5 py-3">Enabled</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of vm.pushBlock.items; track row._id) {
+                  <tr class="border-b border-border/20 last:border-0">
+                    <td class="px-5 py-3 font-medium text-foreground">{{ row.label || row.eventName }}</td>
+                    <td class="px-5 py-3 text-muted-foreground">{{ row.description }}</td>
+                    <td class="px-5 py-3">
+                      <span class="inline-flex items-center gap-2">
+                        <span
+                          class="h-2.5 w-2.5 shrink-0 rounded-full"
+                          [class.bg-primary]="vm.pushBlock.serviceHealthy && row.isEnabled"
+                          [class.bg-destructive/50]="!(vm.pushBlock.serviceHealthy && row.isEnabled)"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="text-primary">{{
+                          vm.pushBlock.serviceHealthy && row.isEnabled ? 'Live' : 'Unavailable'
+                        }}</span>
+                      </span>
+                    </td>
+                    <td class="px-5 py-3">
+                      <button
+                        type="button"
+                        (click)="onToggle(row)"
+                        [disabled]="vm.savingId === row._id"
+                        class="inline-flex items-center gap-2 rounded-lg border border-border/30 bg-secondary/50 backdrop-blur-sm px-3 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-secondary/25 disabled:opacity-60"
+                        [attr.aria-pressed]="row.isEnabled"
+                      >
+                        @if (vm.savingId === row._id) {
+                          <lucide-icon
+                            name="loader-2"
+                            class="h-4 w-4 shrink-0 animate-spin text-primary"
+                            aria-hidden="true"
+                          />
+                        } @else if (row.isEnabled) {
+                          <lucide-icon name="toggle-right" class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                        } @else {
+                          <lucide-icon name="toggle-left" class="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        }
+                        {{ row.isEnabled ? 'On' : 'Off' }}
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" class="px-5 py-8 align-top">
+                      <app-empty-state
+                        title="No push notification events"
+                        hint="The API returned no rows. Verify server notification settings or try Refresh list."
+                      />
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    }
+  </div>
+}

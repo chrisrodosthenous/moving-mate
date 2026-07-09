@@ -150,20 +150,29 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
-    data: { pageTitle: 'Admin dashboard' },
-    loadComponent: () => import('./features/admin/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent),
+    loadComponent: () =>
+      import('./shared/components/admin/admin-shell.component').then((m) => m.AdminShellComponent),
     canActivate: [authGuard, adminGuard],
+    children: [
+      {
+        path: '',
+        data: { pageTitle: 'Admin dashboard' },
+        loadComponent: () =>
+          import('./features/admin/admin-dashboard/admin-dashboard.component').then(
+            (m) => m.AdminDashboardComponent,
+          ),
+      },
+      {
+        path: 'settings/notifications',
+        data: { pageTitle: 'Notification settings' },
+        loadComponent: () =>
+          import('./features/admin/notification-settings-page/notification-settings-page.component').then(
+            (m) => m.NotificationSettingsPageComponent,
+          ),
+      },
+    ],
   },
   { path: 'admin/dashboard', redirectTo: 'admin', pathMatch: 'full' },
-  {
-    path: 'admin/settings/notifications',
-    data: { pageTitle: 'Notification settings' },
-    loadComponent: () =>
-      import('./features/admin/notification-settings-page/notification-settings-page.component').then(
-        m => m.NotificationSettingsPageComponent,
-      ),
-    canActivate: [authGuard, adminGuard],
-  },
   {
     path: 'rate-driver/:orderId',
     loadComponent: () => import('./features/orders/rate-driver-page/rate-driver-page.component').then(m => m.RateDriverPageComponent),

@@ -1,8 +1,8 @@
 <section class="space-y-4" aria-labelledby="admin-orders-heading">
   <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
     <div>
-      <h2 id="admin-orders-heading" class="text-lg font-semibold text-white">Orders</h2>
-      <p class="mt-1 text-sm text-[#BDD8E9]/80">{{ showingLabel() }}</p>
+      <h2 id="admin-orders-heading" class="text-lg font-semibold text-foreground">Orders</h2>
+      <p class="mt-1 text-sm text-muted-foreground">{{ showingLabel() }}</p>
     </div>
     <input
       type="text"
@@ -15,7 +15,7 @@
   </div>
 
   @if (loading()) {
-    <p class="text-sm text-[#BDD8E9]" aria-live="polite">Loading orders…</p>
+    <p class="text-sm text-muted-foreground" aria-live="polite">Loading orders…</p>
   }
 
   <div [class]="table.container">
@@ -46,17 +46,15 @@
                 @if (driverName(order); as driver) {
                   <span>{{ driver }}</span>
                 } @else {
-                  <span [class]="badgeClass('muted') + ' !border-[#49769F]/30 !bg-[#49769F]/15 !text-[#BDD8E9]/70'"
-                    >Unassigned</span
-                  >
+                  <span [class]="badgeClass('muted')">Unassigned</span>
                 }
               </td>
               <td [class]="table.td + ' ' + table.tdBody">
                 @if (order.pickupDistrict) {
-                  <div class="font-medium text-white">{{ order.pickupDistrict }}</div>
+                  <div class="font-medium text-foreground">{{ order.pickupDistrict }}</div>
                 }
                 <div
-                  class="max-w-[200px] truncate text-xs text-[#BDD8E9]/80"
+                  class="max-w-[200px] truncate text-xs text-muted-foreground"
                   [title]="order.pickupLocation.address"
                 >
                   {{ order.pickupLocation.address }}
@@ -73,7 +71,7 @@
                 <div class="mt-1 flex flex-wrap items-center gap-2">
                   @if (hasElevator(order)) {
                     <span
-                      class="inline-flex items-center gap-1 text-[10px] font-medium text-[#7BBDE8]"
+                      class="inline-flex items-center gap-1 text-[10px] font-medium text-primary"
                       title="Elevator available"
                     >
                       <lucide-icon name="arrow-up-down" [size]="12" aria-hidden="true" />
@@ -99,13 +97,7 @@
                 {{ formatDate(order.createdAt) }}
               </td>
               <td [class]="table.td">
-                <span
-                  [class]="
-                    statusClass(order.status) +
-                    ' !border-[#49769F]/30'
-                  "
-                  >{{ statusLabel(order.status) }}</span
-                >
+                <span [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
               </td>
               <td [class]="table.td">
                 <ui-button
@@ -119,8 +111,8 @@
               </td>
             </tr>
           } @empty {
-            <tr class="bg-[#0A4174]/10">
-              <td [attr.colspan]="colCount" class="px-4 py-10 text-center text-sm text-[#BDD8E9]">
+            <tr class="bg-card/20">
+              <td [attr.colspan]="colCount" class="px-4 py-10 text-center text-sm text-muted-foreground">
                 @if (loading()) {
                   Loading…
                 } @else if (search()) {
@@ -139,9 +131,7 @@
         <ui-button
           type="button"
           variant="outline"
-          [className]="
-            'min-w-[10rem] border-[#49769F]/40 bg-[#001224]/60 text-[#BDD8E9] hover:border-[#7BBDE8]/50 hover:bg-[#7BBDE8]/10 hover:text-white'
-          "
+          [className]="'min-w-[10rem] ' + table.actionBtn"
           (click)="loadMore()"
         >
           Load more

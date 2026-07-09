@@ -1,0 +1,10 @@
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100dvh;
+}
+
+.admin-shell-main,
+#admin-main-content {
+  min-height: 0;
+}

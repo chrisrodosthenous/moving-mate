@@ -9,10 +9,10 @@ import {
 } from '../../core/models/driver.model';
 
 const DRIVER_VERIFY_BTN =
-  'min-h-11 shrink-0 rounded-lg px-4 text-sm font-bold bg-[#7BBDE8] text-[#001D39] hover:bg-[#6EA2B3] disabled:pointer-events-none disabled:opacity-60';
+  'min-h-11 shrink-0 rounded-lg px-4 text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-60';
 
 const DRIVER_VEHICLE_BADGE =
-  'inline-flex items-center rounded-md border border-[#7BBDE8]/55 bg-[#0A4174] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7BBDE8] shadow-[0_0_10px_rgba(123,189,232,0.15)]';
+  'inline-flex items-center rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary';
 
 @Component({
   selector: 'app-admin-fleet',

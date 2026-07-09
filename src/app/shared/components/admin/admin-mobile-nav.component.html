@@ -1,0 +1,42 @@
+<nav
+  class="fixed inset-x-0 bottom-0 z-[58] flex min-w-0 overflow-x-hidden border-t border-border/20 bg-popover/94 backdrop-blur-md pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.45)] md:hidden"
+  aria-label="Admin shortcuts"
+>
+  <div class="mx-auto flex w-full min-w-0 max-w-7xl px-1 xs:px-2">
+    <a
+      routerLink="/admin"
+      [queryParams]="{ section: null, fleetTab: null }"
+      [class.text-primary]="isActive('analytics')"
+      class="flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[9px] font-medium leading-tight text-foreground transition hover:text-primary xs:px-2 xs:text-[10px] sm:text-xs"
+    >
+      <lucide-icon name="home" [size]="20" aria-hidden="true"></lucide-icon>
+      <span class="truncate">Home</span>
+    </a>
+    <a
+      routerLink="/admin"
+      [queryParams]="{ section: 'ordersTable', fleetTab: null }"
+      [class.text-primary]="isActive('ordersTable')"
+      class="flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[9px] font-medium leading-tight text-foreground transition hover:text-primary xs:px-2 xs:text-[10px] sm:text-xs"
+    >
+      <lucide-icon name="history" [size]="20" aria-hidden="true"></lucide-icon>
+      <span class="truncate">Orders</span>
+    </a>
+    <a
+      routerLink="/admin"
+      [queryParams]="{ section: 'drivers', fleetTab: 'pending' }"
+      [class.text-primary]="isActive('drivers', 'pending')"
+      class="flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[9px] font-medium leading-tight text-foreground transition hover:text-primary xs:px-2 xs:text-[10px] sm:text-xs"
+    >
+      <lucide-icon name="shield-check" [size]="20" aria-hidden="true"></lucide-icon>
+      <span class="truncate text-center leading-tight">Approvals</span>
+    </a>
+    <a
+      routerLink="/admin/settings/notifications"
+      routerLinkActive="text-primary"
+      class="flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[9px] font-medium leading-tight text-foreground transition hover:text-primary xs:px-2 xs:text-[10px] sm:text-xs"
+    >
+      <lucide-icon name="bell" [size]="20" aria-hidden="true"></lucide-icon>
+      <span class="truncate">Settings</span>
+    </a>
+  </div>
+</nav>

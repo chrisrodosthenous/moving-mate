@@ -1,321 +1,161 @@
-<div class="admin-root admin-theme-root flex min-h-dvh min-h-[100svh] w-full flex-col overflow-hidden md:h-[100dvh] md:flex-row">
-  <!-- Mobile admin header -->
-  <header
-    class="admin-theme-header sticky top-0 z-[60] flex min-h-[2.75rem] shrink-0 items-center justify-between border-b px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-sm md:hidden"
-  >
-    <div class="min-w-0">
-      <p class="admin-theme-label truncate">Admin</p>
-      <p class="truncate text-sm font-bold text-foreground">{{ sectionTitle() }}</p>
-    </div>
-      <button
-        type="button"
-      class="-mr-1 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg p-2 text-ice transition hover:bg-secondary/30"
-      [attr.aria-expanded]="sidebarOpen()"
-      aria-controls="admin-primary-nav"
-      [attr.aria-label]="sidebarOpen() ? 'Close admin menu' : 'Open admin menu'"
-      (click)="toggleSidebar()"
-    >
-      @if (sidebarOpen()) {
-        <span class="text-2xl font-light leading-none" aria-hidden="true">×</span>
-      } @else {
-        <span class="text-xl" aria-hidden="true">☰</span>
-        }
-      </button>
-  </header>
-
-  @if (sidebarOpen()) {
-      <button
-        type="button"
-      class="fixed inset-0 z-[50] bg-black/50 backdrop-blur-[1px] md:hidden"
-      aria-label="Close menu"
-      tabindex="-1"
-      (click)="closeSidebar()"
-    ></button>
-  }
-
-  <!-- Admin sidebar -->
-  <aside
-    id="admin-primary-nav"
-    class="admin-theme-nav admin-sidebar-host global-nav flex h-[100dvh] min-h-0 w-64 max-w-[min(100vw,16rem)] flex-shrink-0 flex-col overflow-y-auto border-r shadow-xl transition-[width,max-width,transform] duration-200 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[55] md:relative md:inset-auto md:h-full md:max-h-none md:w-[var(--admin-sidebar-width)] md:max-w-[var(--admin-sidebar-width)] md:translate-x-0 md:shadow-none"
-    [class.max-md:-translate-x-full]="!sidebarOpen()"
-    [class.max-md:translate-x-0]="sidebarOpen()"
-  >
-    <div class="global-nav-inner flex min-h-0 flex-1 flex-col border-b border-border/20 md:border-0 md:p-0">
-      <div class="admin-brand-header hidden h-16 shrink-0 items-center border-b border-border/20 px-3 md:flex">
-        <div class="flex min-w-0 items-center gap-2">
-          <app-logo variant="full" size="sidebar-compact" />
-          <span class="admin-theme-label shrink-0">Admin</span>
-        </div>
-      </div>
-      <nav class="flex flex-1 flex-col gap-1 p-3" aria-label="Admin sections">
-        <p class="admin-theme-label px-3 pb-1 pt-1">Navigation</p>
-        <ui-button
-          type="button"
-          (click)="openDashboard()"
-          [variant]="navBtnActive('analytics') ? 'default' : 'ghost'"
-          [className]="navBtnClass('analytics')"
-        >
-          <lucide-icon name="home" [size]="20" class="shrink-0" aria-hidden="true"></lucide-icon>
-          <span class="admin-sidebar-label">Dashboard</span>
-        </ui-button>
-        <p class="admin-theme-label px-3 pb-1 pt-3">Management</p>
-        <ui-button
-          type="button"
-          (click)="openCustomersTable()"
-          [variant]="navBtnActive('customers') ? 'default' : 'ghost'"
-          [className]="navBtnClass('customers')"
-        >
-          <lucide-icon name="user" [size]="20" class="shrink-0" aria-hidden="true"></lucide-icon>
-          <span class="admin-sidebar-label">Customers</span>
-        </ui-button>
-        <ui-button
-          type="button"
-          (click)="openDriversTable()"
-          [variant]="navBtnActive('driversTable') ? 'default' : 'ghost'"
-          [className]="navBtnClass('driversTable')"
-        >
-          <lucide-icon name="user" [size]="20" class="shrink-0" aria-hidden="true"></lucide-icon>
-          <span class="admin-sidebar-label">Drivers</span>
-        </ui-button>
-        <ui-button
-          type="button"
-          (click)="openOrdersTable()"
-          [variant]="navBtnActive('ordersTable') ? 'default' : 'ghost'"
-          [className]="navBtnClass('ordersTable')"
-        >
-          <lucide-icon name="history" [size]="20" class="shrink-0" aria-hidden="true"></lucide-icon>
-          <span class="admin-sidebar-label">Orders</span>
-        </ui-button>
-        <p class="admin-theme-label px-3 pb-1 pt-3">Operations</p>
-        <ui-button
-          type="button"
-          (click)="openUserManagement()"
-          [variant]="navBtnActive('drivers', fleetTab.VERIFIED) ? 'default' : 'ghost'"
-          [className]="navBtnClass('drivers', fleetTab.VERIFIED)"
-        >
-          <lucide-icon name="shield-check" [size]="20" class="shrink-0" aria-hidden="true"></lucide-icon>
-          <span class="admin-sidebar-label">User management</span>
-        </ui-button>
-        <ui-button
-          type="button"
-          (click)="openOrderManagement()"
-          [variant]="navBtnActive('orders') ? 'default' : 'ghost'"
-          [className]="navBtnClass('orders')"
-        >
-          <lucide-icon name="truck" [size]="20" class="shrink-0" aria-hidden="true"></lucide-icon>
-          <span class="admin-sidebar-label">Order management</span>
-        </ui-button>
-        <ui-button
-          type="button"
-          (click)="openDriverApprovals()"
-          [variant]="navBtnActive('drivers', fleetTab.PENDING) ? 'default' : 'ghost'"
-          [className]="navBtnClass('drivers', fleetTab.PENDING)"
-        >
-          <lucide-icon name="shield-check" [size]="20" class="shrink-0" aria-hidden="true"></lucide-icon>
-          <span class="admin-sidebar-label">Driver approvals</span>
-        </ui-button>
-        <ui-button
-          type="button"
-          (click)="openNotifyTools()"
-          [variant]="navBtnActive('notify') ? 'default' : 'ghost'"
-          [className]="navBtnClass('notify')"
-        >
-          <lucide-icon name="settings-2" [size]="20" class="shrink-0" aria-hidden="true"></lucide-icon>
-          <span class="admin-sidebar-label">Developer tools</span>
-        </ui-button>
-        <p class="admin-theme-label px-3 pb-1 pt-3">Settings</p>
-        <a
-          routerLink="/admin/settings/notifications"
-          class="admin-settings-link admin-nav-btn"
-          (click)="closeSidebar()"
-        >
-          <lucide-icon name="bell" [size]="20" class="shrink-0" aria-hidden="true"></lucide-icon>
-          <span class="admin-sidebar-label">Notification settings</span>
-        </a>
-      </nav>
-      <div class="mt-auto shrink-0 space-y-1 border-t border-border/20 p-3">
-        <a
-          routerLink="/dashboard"
-          class="admin-footer-btn flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-primary transition hover:bg-secondary/20 hover:text-foreground"
-          (click)="closeSidebar()"
-        >
-          <lucide-icon name="home" [size]="20" class="shrink-0" aria-hidden="true"></lucide-icon>
-          <span class="admin-sidebar-label">Back to dashboard</span>
-        </a>
-        <ui-button
-          type="button"
-          (click)="logout()"
-          variant="outline"
-          [className]="'admin-footer-btn admin-nav-btn w-full min-h-[44px] justify-start'"
-        >
-          <lucide-icon name="log-out" [size]="20" class="shrink-0" aria-hidden="true"></lucide-icon>
-          <span class="admin-sidebar-label">Logout</span>
-        </ui-button>
-      </div>
-    </div>
-  </aside>
-
-  <div class="content-shell flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:min-h-[100dvh]">
-    <header
-      class="admin-theme-header content-header hidden h-16 shrink-0 items-center justify-between gap-4 border-b px-6 md:flex"
-    >
-      <div class="min-w-0">
-        <h1 class="truncate text-xl font-semibold text-foreground">{{ sectionTitle() }}</h1>
-      </div>
-      @if (error()) {
-        <div class="max-w-md alert-error px-3 py-2 text-xs">
-          {{ error() }}
-        </div>
-      }
-    </header>
-
-    <main class="view-shell relative min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-      @if (error()) {
-        <div class="mb-4 alert-error px-3 py-2 text-xs md:hidden">
-          {{ error() }}
-            </div>
-      }
-      @if (section() === 'analytics') {
-        <app-admin-analytics [orders]="orders()" [loading]="loading()" />
-      } @else if (section() === 'customers') {
-        <app-admin-customers
-          [users]="users()"
-          [orders]="orders()"
-          [loading]="loading()"
-          (viewCustomer)="onViewCustomer($event)"
-        />
-      } @else if (section() === 'driversTable') {
-        <app-admin-drivers
-          [users]="users()"
-          [orders]="orders()"
-          [loading]="loading()"
-          (viewDriver)="onViewDriver($event)"
-        />
-      } @else if (section() === 'ordersTable') {
-        <app-admin-orders
-          [orders]="orders()"
-          [loading]="loading()"
-          (viewOrder)="onViewOrderFromTable($event)"
-        />
-      } @else if (section() === 'drivers') {
-        <app-admin-fleet
-          [totalDriversCount]="totalDriversCount"
-          [driverTab]="driverTab()"
-          [notVerifiedDrivers]="notVerifiedDrivers()"
-          [pendingDrivers]="pendingDrivers()"
-          [verifiedDrivers]="verifiedDrivers()"
-          [selectedDriver]="selectedDriver()"
-          [licenseBaseUrl]="licenseBaseUrl"
-          [verifyingId]="verifyingId()"
-          (driverTabChange)="setDriverTab($event)"
-          (selectDriver)="selectDriver($event)"
-          (openLicensePreview)="openLicensePreview($event)"
-          (openVehiclePhotoPreview)="openVehiclePhotoPreview($event)"
-          (approveDriver)="approveDriver($event)"
-          (rejectDriver)="rejectVerification($event)"
-        />
-      } @else if (section() === 'orders') {
-        <app-admin-logistics
-          [filteredOrders]="filteredOrders()"
-          [mapOrders]="mapOrders()"
-          [selectedLogisticsTab]="selectedLogisticsTab()"
-          [selectedOrder]="selectedOrder()"
-          [licenseBaseUrl]="licenseBaseUrl"
-          (logisticsTabChange)="setLogisticsTab($event)"
-          (orderSelect)="selectOrder($event)"
-          (closeDrawer)="closeOrderDrawer()"
-          (openImagePreview)="openLicensePreview($event)"
-        />
-      } @else if (section() === 'notify') {
-        <app-admin-notify
-          [userEmail]="auth.user()?.email ?? ''"
-          [notifyTab]="notifyTab()"
-          [emailScenarios]="emailScenarios"
-          [selectedEmailScenario]="selectedEmailScenario()"
-          [emailScenarioSending]="emailScenarioSending()"
-          [emailScenarioResult]="emailScenarioResult()"
-          (notifyTabChange)="notifyTab.set($event)"
-          (selectedEmailScenarioChange)="selectedEmailScenario.set($event)"
-          (sendScenarioEmail)="sendScenarioEmail()"
-          (pushTesterToast)="onPushTesterToast($event)"
-        />
-      }
-    </main>
-  </div>
-
-  @if (licensePreviewUrl(); as preview) {
-    <div
-      class="fixed inset-0 z-[9999] flex items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-6"
-      (click)="closeLicensePreview()"
-      role="presentation"
-      tabindex="-1"
-    >
-      <div class="absolute inset-0" aria-hidden="true">
-        <ui-dialog-backdrop />
-      </div>
-      <ui-dialog-panel
-        class="relative z-[1] !max-w-[min(96vw,min(920px,calc(100vw-2rem)))] !p-0"
-        role="dialog"
-        aria-modal="true"
-        aria-label="License document preview"
-        (click)="$event.stopPropagation()"
-      >
-        <div class="max-h-[min(85vh,820px)] min-h-0 overflow-auto bg-muted/40 p-2 sm:p-4">
-          <img
-            [src]="preview"
-            alt="License document"
-            class="mx-auto max-h-[min(75vh,760px)] w-auto max-w-[min(96vw,calc(100vw-2rem))] object-contain"
-          />
-        </div>
-        <ui-button
-          type="button"
-          (click)="closeLicensePreview()"
-          variant="ghost"
-          [className]="'absolute right-2 top-2 h-11 w-11 rounded-full !bg-secondary/55 !backdrop-blur-sm !p-0 text-xl font-light text-ice transition hover:!bg-secondary/70'"
-        >
-          ×
-        </ui-button>
-      </ui-dialog-panel>
+<div class="flex min-h-0 w-full min-w-0 flex-1 flex-col" [class.h-full]="section() === 'orders' || section() === 'drivers'">
+  @if (error()) {
+    <div class="mb-4 alert-error px-3 py-2 text-xs">
+      {{ error() }}
     </div>
   }
 
-  @if (vehiclePhotoPreviewUrl(); as preview) {
-    <div
-      class="fixed inset-0 z-[9999] flex items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-6"
-      (click)="closeVehiclePhotoPreview()"
-      role="presentation"
-      tabindex="-1"
-    >
-      <div class="absolute inset-0" aria-hidden="true">
-        <ui-dialog-backdrop />
-      </div>
-      <ui-dialog-panel
-        class="relative z-[1] !max-w-[min(96vw,min(920px,calc(100vw-2rem)))] !p-0"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Vehicle photo preview"
-        (click)="$event.stopPropagation()"
-      >
-        <div class="border-b border-[#49769F]/35 bg-[#001D39]/80 px-4 py-3">
-          <h2 class="text-sm font-semibold text-[#7BBDE8]">Vehicle verification photo</h2>
-          <p class="text-xs text-[#BDD8E9]/70">Review vehicle condition before approving the driver.</p>
-        </div>
-        <div class="max-h-[min(85vh,820px)] min-h-0 overflow-auto bg-muted/40 p-2 sm:p-4">
-          <img
-            [src]="preview"
-            alt="Vehicle verification photo full size"
-            class="mx-auto max-h-[min(75vh,760px)] w-auto max-w-[min(96vw,calc(100vw-2rem))] object-contain"
-          />
-        </div>
-        <ui-button
-          type="button"
-          (click)="closeVehiclePhotoPreview()"
-          variant="ghost"
-          [className]="'absolute right-2 top-2 h-11 w-11 rounded-full !bg-secondary/55 !backdrop-blur-sm !p-0 text-xl font-light text-ice transition hover:!bg-secondary/70'"
-        >
-          ×
-        </ui-button>
-      </ui-dialog-panel>
+  @if (section() === 'analytics') {
+    <div class="app-page-container mx-auto w-full max-w-7xl">
+      <app-admin-analytics [orders]="orders()" [loading]="loading()" />
+    </div>
+  } @else if (section() === 'customers') {
+    <div class="app-page-container mx-auto w-full max-w-7xl">
+      <app-admin-customers
+        [users]="users()"
+        [orders]="orders()"
+        [loading]="loading()"
+        (viewCustomer)="onViewCustomer($event)"
+      />
+    </div>
+  } @else if (section() === 'driversTable') {
+    <div class="app-page-container mx-auto w-full max-w-7xl">
+      <app-admin-drivers
+        [users]="users()"
+        [orders]="orders()"
+        [loading]="loading()"
+        (viewDriver)="onViewDriver($event)"
+      />
+    </div>
+  } @else if (section() === 'ordersTable') {
+    <div class="app-page-container mx-auto w-full max-w-7xl">
+      <app-admin-orders
+        [orders]="orders()"
+        [loading]="loading()"
+        (viewOrder)="onViewOrderFromTable($event)"
+      />
+    </div>
+  } @else if (section() === 'drivers') {
+    <app-admin-fleet
+      class="flex min-h-0 flex-1 flex-col"
+      [totalDriversCount]="totalDriversCount"
+      [driverTab]="driverTab()"
+      [notVerifiedDrivers]="notVerifiedDrivers()"
+      [pendingDrivers]="pendingDrivers()"
+      [verifiedDrivers]="verifiedDrivers()"
+      [selectedDriver]="selectedDriver()"
+      [licenseBaseUrl]="licenseBaseUrl"
+      [verifyingId]="verifyingId()"
+      (driverTabChange)="setDriverTab($event)"
+      (selectDriver)="selectDriver($event)"
+      (openLicensePreview)="openLicensePreview($event)"
+      (openVehiclePhotoPreview)="openVehiclePhotoPreview($event)"
+      (approveDriver)="approveDriver($event)"
+      (rejectDriver)="rejectVerification($event)"
+    />
+  } @else if (section() === 'orders') {
+    <app-admin-logistics
+      class="flex min-h-0 flex-1 flex-col"
+      [filteredOrders]="filteredOrders()"
+      [mapOrders]="mapOrders()"
+      [selectedLogisticsTab]="selectedLogisticsTab()"
+      [selectedOrder]="selectedOrder()"
+      [licenseBaseUrl]="licenseBaseUrl"
+      (logisticsTabChange)="setLogisticsTab($event)"
+      (orderSelect)="selectOrder($event)"
+      (closeDrawer)="closeOrderDrawer()"
+      (openImagePreview)="openLicensePreview($event)"
+    />
+  } @else if (section() === 'notify') {
+    <div class="app-page-container mx-auto w-full max-w-7xl">
+      <app-admin-notify
+        [userEmail]="auth.user()?.email ?? ''"
+        [notifyTab]="notifyTab()"
+        [emailScenarios]="emailScenarios"
+        [selectedEmailScenario]="selectedEmailScenario()"
+        [emailScenarioSending]="emailScenarioSending()"
+        [emailScenarioResult]="emailScenarioResult()"
+        (notifyTabChange)="notifyTab.set($event)"
+        (selectedEmailScenarioChange)="selectedEmailScenario.set($event)"
+        (sendScenarioEmail)="sendScenarioEmail()"
+        (pushTesterToast)="onPushTesterToast($event)"
+      />
     </div>
   }
 </div>
+
+@if (licensePreviewUrl(); as preview) {
+  <div
+    class="fixed inset-0 z-[9999] flex items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-6"
+    (click)="closeLicensePreview()"
+    role="presentation"
+    tabindex="-1"
+  >
+    <div class="absolute inset-0" aria-hidden="true">
+      <ui-dialog-backdrop />
+    </div>
+    <ui-dialog-panel
+      class="relative z-[1] !max-w-[min(96vw,min(920px,calc(100vw-2rem)))] !p-0"
+      role="dialog"
+      aria-modal="true"
+      aria-label="License document preview"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="max-h-[min(85vh,820px)] min-h-0 overflow-auto bg-muted/40 p-2 sm:p-4">
+        <img
+          [src]="preview"
+          alt="License document"
+          class="mx-auto max-h-[min(75vh,760px)] w-auto max-w-[min(96vw,calc(100vw-2rem))] object-contain"
+        />
+      </div>
+      <ui-button
+        type="button"
+        (click)="closeLicensePreview()"
+        variant="ghost"
+        [className]="'absolute right-2 top-2 h-11 w-11 rounded-full !bg-secondary/55 !backdrop-blur-sm !p-0 text-xl font-light text-ice transition hover:!bg-secondary/70'"
+      >
+        ×
+      </ui-button>
+    </ui-dialog-panel>
+  </div>
+}
+
+@if (vehiclePhotoPreviewUrl(); as preview) {
+  <div
+    class="fixed inset-0 z-[9999] flex items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-6"
+    (click)="closeVehiclePhotoPreview()"
+    role="presentation"
+    tabindex="-1"
+  >
+    <div class="absolute inset-0" aria-hidden="true">
+      <ui-dialog-backdrop />
+    </div>
+    <ui-dialog-panel
+      class="relative z-[1] !max-w-[min(96vw,min(920px,calc(100vw-2rem)))] !p-0"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Vehicle photo preview"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="border-b border-border/30 bg-card/90 px-4 py-3">
+        <h2 class="text-sm font-semibold text-foreground">Vehicle verification photo</h2>
+        <p class="text-xs text-muted-foreground">Review vehicle condition before approving the driver.</p>
+      </div>
+      <div class="max-h-[min(85vh,820px)] min-h-0 overflow-auto bg-muted/40 p-2 sm:p-4">
+        <img
+          [src]="preview"
+          alt="Vehicle verification photo full size"
+          class="mx-auto max-h-[min(75vh,760px)] w-auto max-w-[min(96vw,calc(100vw-2rem))] object-contain"
+        />
+      </div>
+      <ui-button
+        type="button"
+        (click)="closeVehiclePhotoPreview()"
+        variant="ghost"
+        [className]="'absolute right-2 top-2 h-11 w-11 rounded-full !bg-secondary/55 !backdrop-blur-sm !p-0 text-xl font-light text-ice transition hover:!bg-secondary/70'"
+      >
+        ×
+      </ui-button>
+    </ui-dialog-panel>
+  </div>
+}
