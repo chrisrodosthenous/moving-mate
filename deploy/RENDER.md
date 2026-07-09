@@ -218,7 +218,8 @@ For beta testing, **`0.0.0.0/0` + strong password is OK**.
 | Build fails (other) | Check Render logs; run `npm run build:prod` locally |
 | `SMTP configuration missing` | Add all SMTP_* env vars in Render |
 | `Geocoding API key is missing` | Add `GOOGLE_MAPS_API_KEY` |
-| CORS errors | Add `EXTRA_ALLOWED_ORIGINS` with your domain |
+| Black screen (no login UI) | Usually CORS blocking JS chunks — ensure `EXTRA_ALLOWED_ORIGINS` includes `https://moving-mate.onrender.com` until custom domain works; redeploy after the CORS fix in `server/config/cors.js` |
+| CORS errors | Add `EXTRA_ALLOWED_ORIGINS` with your domain and Render URL (`https://your-app.onrender.com`) |
 | Domain not verified | Double-check GoDaddy DNS; wait up to 48h |
 | Cold start slow | Upgrade to Starter or accept free tier delay |
 

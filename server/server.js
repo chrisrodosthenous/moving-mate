@@ -89,18 +89,17 @@ io.on('connection', (socket) => {
 });
 
 // ── Security & parsing middleware ─────────────────────────────────────────────
-// CORS must come before every route so preflight OPTIONS requests are answered
-// and all other responses carry the correct Access-Control-* headers.
 app.use(helmet());
-app.use(
-  cors({
-    origin: ALLOWED_ORIGINS,       // dev: echo any origin; prod: allow-list
-    credentials: true,             // required for Authorization header + cookies
-    methods: ALLOWED_METHODS,      // GET POST PUT PATCH DELETE OPTIONS
-    allowedHeaders: ALLOWED_HEADERS, // Content-Type, Authorization, x-fb-token, …
-    optionsSuccessStatus: 204,     // IE 11 compat
-  })
-);
+// CORS only on /api — global CORS rejects ES module chunk requests (Origin header)
+// for static JS when the prod allow-list omits the live site URL (black screen).
+const apiCors = cors({
+  origin: ALLOWED_ORIGINS, // dev: echo any origin; prod: allow-list
+  credentials: true,
+  methods: ALLOWED_METHODS,
+  allowedHeaders: ALLOWED_HEADERS,
+  optionsSuccessStatus: 204,
+});
+app.use('/api', apiCors);
 app.use('/api', globalApiLimiter);
 app.use(hpp());
 app.use(express.json({ limit: '1mb' }));

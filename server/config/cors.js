@@ -11,9 +11,10 @@
  *
  * Static allow-list (production):
  *  - localhost / 127.0.0.1 dev ports
+ *  - CLIENT_URL, RENDER_EXTERNAL_URL, EXTRA_ALLOWED_ORIGINS
  *  - LAN IPs  (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
  *  - ngrok tunnels (*.ngrok-free.app, *.ngrok.io, *.ngrok.app, *.ngrok.dev)
- *  - comma-separated extras via EXTRA_ALLOWED_ORIGINS env var
+ *  - Render default hostnames (*.onrender.com)
  */
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
@@ -29,16 +30,44 @@ const ENV_EXTRA = (process.env.EXTRA_ALLOWED_ORIGINS || '')
   .map((s) => s.trim())
   .filter(Boolean);
 
-const STATIC = [...new Set([...STATIC_ORIGINS, ...ENV_EXTRA])];
+/** Normalize env URL to origin form (scheme + host, no path). */
+function normalizeOrigin(url) {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  try {
+    const u = new URL(trimmed);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return trimmed.replace(/\/$/, '');
+  }
+}
+
+function envOrigins() {
+  const fromEnv = [
+    ...ENV_EXTRA.map(normalizeOrigin),
+    normalizeOrigin(process.env.CLIENT_URL || ''),
+    normalizeOrigin(process.env.RENDER_EXTERNAL_URL || ''),
+  ].filter(Boolean);
+  return [...new Set(fromEnv)];
+}
+
+function staticOrigins() {
+  return [...new Set([...STATIC_ORIGINS, ...envOrigins()])];
+}
 
 /** Returns true for any origin that should be permitted (production rules). */
 function isAllowedOrigin(origin) {
   if (!origin) return false;
-  if (STATIC.includes(origin)) return true;
+  if (staticOrigins().includes(origin)) return true;
   // LAN (192.168.x.x or 10.x.x.x or 172.16-31.x.x) on any port
   if (/^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)\d+\.\d+(:\d+)?$/.test(origin)) return true;
   // ngrok tunnels
-  if (/^https:\/\/[a-z0-9-]+\.(ngrok-free\.app|ngrok\.io|ngrok\.app|ngrok\.dev)(:\d+)?$/.test(origin)) return true;
+  if (/^https:\/\/[a-z0-9-]+\.(ngrok-free\.app|ngrok\.io|ngrok\.app|ngrok\.dev)(:\d+)?$/i.test(origin)) {
+    return true;
+  }
+  // Render default service URLs (before custom domain is wired)
+  if (/^https:\/\/[a-z0-9-]+\.onrender\.com(:\d+)?$/i.test(origin)) return true;
   return false;
 }
 
@@ -49,8 +78,8 @@ function isAllowedOrigin(origin) {
  *  - Prod: allow only origins matched by isAllowedOrigin().
  */
 function corsOrigin(origin, cb) {
-  if (IS_DEV) return cb(null, true);        // echo origin — safe for dev, works with credentials
-  if (!origin) return cb(null, true);       // same-origin / server-to-server / Postman
+  if (IS_DEV) return cb(null, true); // echo origin — safe for dev, works with credentials
+  if (!origin) return cb(null, true); // same-origin / server-to-server / Postman
   if (isAllowedOrigin(origin)) return cb(null, true);
   cb(new Error('Not allowed by CORS'));
 }
