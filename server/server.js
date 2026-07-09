@@ -470,27 +470,38 @@ app.use((err, req, res, next) => {
   res.status(status).json({ message });
 });
 
-Promise.all([
-  NotificationService.initNotificationService(),
-  Promise.resolve(PushNotificationService.initPushNotificationService()),
-]).then(async () => {
+async function bootstrap() {
+  try {
+    await mongoose.connection.asPromise();
+
     try {
-      await mongoose.connection.asPromise();
       const notificationSettingsService = require('./services/notificationSettingsService');
       await notificationSettingsService.ensureDefaultSettings();
       console.log('[Server] Notification settings defaults ensured (MongoDB).');
-      await PushNotificationService.dedupeFcmTokensOnStartup();
     } catch (e) {
       console.warn('[Server] ensureDefaultSettings skipped or failed:', e.message);
     }
+
     SchedulerService.initSchedulerService();
+
     server.listen(PORT, () => {
       const port = Number(PORT) || 3000;
       console.log(`Server running on http://127.0.0.1:${port} (PORT=${process.env.PORT ?? 'unset'}; default 3000)`);
       console.log(`[Server] Payments provider: ${getPaymentsProvider()}${isMockPayments() ? ' (mock — no real charges)' : ''}`);
     });
-  })
-  .catch((err) => {
-    console.error('[Server] Service initialization failed:', err.message);
+
+    void NotificationService.initNotificationService().catch((err) => {
+      console.warn('[Notifications] Background SMTP init failed:', err.message);
+    });
+    void Promise.resolve(PushNotificationService.initPushNotificationService())
+      .then(() => PushNotificationService.dedupeFcmTokensOnStartup())
+      .catch((err) => {
+        console.warn('[Notifications] Push init skipped:', err.message);
+      });
+  } catch (err) {
+    console.error('[Server] Bootstrap failed:', err.message);
     process.exit(1);
-  });
+  }
+}
+
+void bootstrap();

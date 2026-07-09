@@ -101,6 +101,9 @@ async function createTransporter() {
         user: smtpUser,
         pass: smtpPass,
       },
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 15_000,
     });
   } catch (err) {
     console.error('[NotificationService] createTransporter failed:', err.message);
@@ -124,9 +127,15 @@ async function getTransporter() {
 }
 
 async function initNotificationService() {
+  const verifyTimeoutMs = Number(process.env.SMTP_VERIFY_TIMEOUT_MS || 10_000);
   try {
     const transport = await getTransporter();
-    await transport.verify();
+    await Promise.race([
+      transport.verify(),
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`SMTP verify timed out after ${verifyTimeoutMs}ms`)), verifyTimeoutMs);
+      }),
+    ]);
     console.log('[NotificationService] SMTP transporter initialized successfully.');
   } catch (err) {
     console.error('[NotificationService] Initialization failed:', err.message);
