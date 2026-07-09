@@ -9,6 +9,11 @@ import { AuthStore } from '../../../store/auth.store';
 import { getPasswordPolicyErrors, validatePassword } from '../../../shared/utils/password-policy';
 import { AppLogoComponent } from '../../../shared/components/app-logo/app-logo.component';
 import {
+  isAtLeastAge,
+  maxDateOfBirthYearsAgo,
+  parseDateOfBirthInput,
+} from '../../../shared/utils/date-only';
+import {
   DRIVER_VEHICLE_OPTIONS,
   type DriverVehicleType,
 } from '../../../core/models/driver.model';
@@ -114,19 +119,17 @@ export class RegisterComponent implements OnDestroy {
 
   /** Max date for date-of-birth input: 18 years ago from today (YYYY-MM-DD). */
   get maxDateOfBirth(): string {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 18);
-    return d.toISOString().slice(0, 10);
+    return maxDateOfBirthYearsAgo(18);
+  }
+
+  private get parsedDateOfBirth(): Date | null {
+    return parseDateOfBirthInput(this.dateOfBirth);
   }
 
   get dateOfBirthValid(): boolean {
-    if (!this.dateOfBirth) return false;
-    const birth = new Date(this.dateOfBirth);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
-    return age >= 18;
+    const birth = this.parsedDateOfBirth;
+    if (!birth) return false;
+    return isAtLeastAge(birth, 18);
   }
 
   get dateOfBirthError(): string {

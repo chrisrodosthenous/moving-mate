@@ -42,15 +42,15 @@ function parseDistrictsInputMaybe(districtsRaw) {
 function parseDateOfBirthInput(raw) {
   if (!raw) return null;
   const s = String(raw).trim();
-  // Preferred HTML date input format.
   const isoDate = /^(\d{4})-(\d{2})-(\d{2})$/;
   const m = s.match(isoDate);
-  if (m) {
-    const d = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00.000Z`);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-  const fallback = new Date(s);
-  return Number.isNaN(fallback.getTime()) ? null : fallback;
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const day = Number(m[3]);
+  const d = new Date(y, mo, day);
+  if (d.getFullYear() !== y || d.getMonth() !== mo || d.getDate() !== day) return null;
+  return d;
 }
 
 function normalizePhoneNumber(input) {
