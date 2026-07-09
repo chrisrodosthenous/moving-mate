@@ -130,7 +130,9 @@ async function initNotificationService() {
     console.log('[NotificationService] SMTP transporter initialized successfully.');
   } catch (err) {
     console.error('[NotificationService] Initialization failed:', err.message);
-    throw err;
+    console.warn(
+      '[NotificationService] Server will continue without verified SMTP; fix SMTP_* env vars to enable email.',
+    );
   }
 }
 
