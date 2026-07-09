@@ -50,7 +50,11 @@ Ensure `server/.env` is **not** committed (it's in `.gitignore`).
 
 ## Part 3 — SendGrid (SMTP, ~10 minutes)
 
-Production requires SMTP. SendGrid is easier than buying GoDaddy email.
+Production requires SMTP credentials **or** SendGrid API key. SendGrid is easier than buying GoDaddy email.
+
+> **Render free tier:** Outbound SMTP ports **25, 465, and 587 are blocked**.  
+> The app auto-uses **SendGrid HTTP API** in production when `SMTP_PASS` is your SendGrid API key (`SG.*`).  
+> Alternatively upgrade to **Starter** ($7/mo) to use SMTP directly, or set `EMAIL_TRANSPORT=smtp` on paid plans.
 
 1. Sign up at [sendgrid.com](https://sendgrid.com)
 2. **Settings → API Keys → Create API Key** (Full Access or Restricted with Mail Send)

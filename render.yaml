@@ -33,6 +33,8 @@ services:
         value: apikey
       - key: SMTP_PASS
         sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
       - key: EMAIL_FROM
         value: Moving Mate <noreply@moving-mate.com>
       # Upload firebase-service-account.json to server/config/ at build time,

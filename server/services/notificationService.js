@@ -11,6 +11,71 @@ const { isNotificationEnabled } = require('./notificationSettingsService');
 const templatesDir = path.join(__dirname, '..', 'templates', 'emails');
 const defaultFrom = process.env.EMAIL_FROM || 'Moving Mate <noreply@movingmate.com>';
 
+/**
+ * SendGrid API key from SENDGRID_API_KEY or SMTP_PASS when using SendGrid (user=apikey).
+ * Render free tier blocks outbound SMTP ports 25/465/587 — HTTP API (443) still works.
+ */
+function resolveSendGridApiKey() {
+  const explicit = String(process.env.SENDGRID_API_KEY || '').trim();
+  if (explicit) return explicit;
+  const pass = String(process.env.SMTP_PASS || process.env.EMAIL_PASS || '').trim();
+  const user = String(process.env.SMTP_USER || process.env.EMAIL_USER || '').trim();
+  const host = String(process.env.SMTP_HOST || process.env.EMAIL_HOST || '').toLowerCase();
+  if (pass.startsWith('SG.') && (user === 'apikey' || host.includes('sendgrid'))) {
+    return pass;
+  }
+  return '';
+}
+
+/** Production defaults to SendGrid HTTP API when a key is present (Render SMTP port block). */
+function shouldUseSendGridApi() {
+  const transport = String(process.env.EMAIL_TRANSPORT || '').trim().toLowerCase();
+  if (transport === 'smtp') return false;
+  if (transport === 'sendgrid_api') return Boolean(resolveSendGridApiKey());
+  return process.env.NODE_ENV === 'production' && Boolean(resolveSendGridApiKey());
+}
+
+function parseEmailFrom(raw) {
+  const s = String(raw || defaultFrom).trim();
+  const m = /^(.+?)\s*<([^>]+)>$/.exec(s);
+  if (m) return { name: m[1].trim(), email: m[2].trim() };
+  return { email: s, name: '' };
+}
+
+async function sendViaSendGridApi({ to, subject, html, text }) {
+  const apiKey = resolveSendGridApiKey();
+  if (!apiKey) throw new Error('SendGrid API key missing (SENDGRID_API_KEY or SMTP_PASS).');
+
+  const from = parseEmailFrom(defaultFrom);
+  const content = [];
+  if (text) content.push({ type: 'text/plain', value: text });
+  content.push({ type: 'text/html', value: html });
+
+  const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: String(to).trim() }] }],
+      from: from.name ? { email: from.email, name: from.name } : { email: from.email },
+      subject,
+      content,
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw new Error(`SendGrid API ${res.status}: ${errBody.slice(0, 400)}`);
+  }
+
+  return {
+    messageId: res.headers.get('x-message-id') || 'sendgrid',
+    accepted: [String(to).trim()],
+  };
+}
+
 /** Base URL for email links (no trailing slash). Defaults to Angular dev server port. */
 function clientBaseUrl() {
   const raw = (process.env.CLIENT_URL || 'http://localhost:4200').trim();
@@ -127,6 +192,13 @@ async function getTransporter() {
 }
 
 async function initNotificationService() {
+  if (shouldUseSendGridApi()) {
+    console.log(
+      '[NotificationService] SendGrid HTTP API transport ready (used on Render free tier; SMTP ports 25/465/587 are blocked).',
+    );
+    return;
+  }
+
   const verifyTimeoutMs = Number(process.env.SMTP_VERIFY_TIMEOUT_MS || 10_000);
   try {
     const transport = await getTransporter();
@@ -139,13 +211,20 @@ async function initNotificationService() {
     console.log('[NotificationService] SMTP transporter initialized successfully.');
   } catch (err) {
     console.error('[NotificationService] Initialization failed:', err.message);
-    console.warn(
-      '[NotificationService] Server will continue without verified SMTP; fix SMTP_* env vars to enable email.',
-    );
+    if (resolveSendGridApiKey()) {
+      console.warn(
+        '[NotificationService] SMTP verify failed but SENDGRID_API_KEY/SMTP_PASS is set — set EMAIL_TRANSPORT=sendgrid_api or deploy on production to use HTTP API instead.',
+      );
+    } else {
+      console.warn(
+        '[NotificationService] Server will continue without verified SMTP; fix SMTP_* env vars to enable email.',
+      );
+    }
   }
 }
 
 async function verifySmtpHealthy() {
+  if (shouldUseSendGridApi()) return Boolean(resolveSendGridApiKey());
   try {
     const transport = await getTransporter();
     await transport.verify();
@@ -181,14 +260,24 @@ async function sendTemplateEmail({ to, subject, template, data, text, notificati
   }
 
   try {
-    const transport = await getTransporter();
-    const info = await transport.sendMail({
-      from: defaultFrom,
-      to: String(to).trim(),
-      subject,
-      text: text || '',
-      html,
-    });
+    let info;
+    if (shouldUseSendGridApi()) {
+      info = await sendViaSendGridApi({
+        to: String(to).trim(),
+        subject,
+        html,
+        text: text || '',
+      });
+    } else {
+      const transport = await getTransporter();
+      info = await transport.sendMail({
+        from: defaultFrom,
+        to: String(to).trim(),
+        subject,
+        text: text || '',
+        html,
+      });
+    }
 
     if (process.env.NODE_ENV === 'development') {
       const previewUrl = nodemailer.getTestMessageUrl(info);
@@ -199,7 +288,7 @@ async function sendTemplateEmail({ to, subject, template, data, text, notificati
 
     return info;
   } catch (err) {
-    console.error('[NotificationService] SMTP send failed:', err.message);
+    console.error('[NotificationService] Email send failed:', err.message);
     throw new Error(`Failed to send email: ${err.message}`);
   }
 }
