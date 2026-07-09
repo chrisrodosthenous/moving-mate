@@ -7,7 +7,7 @@ services:
     runtime: node
     region: frankfurt
     plan: free
-    buildCommand: npm ci && npm ci --prefix server && npm run build:prod
+    buildCommand: npm ci --include=dev && npm ci --prefix server && npm run build:prod
     startCommand: npm start --prefix server
     healthCheckPath: /api/health
     envVars:

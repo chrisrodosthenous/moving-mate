@@ -104,11 +104,13 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 | **Region** | Frankfurt (EU) |
 | **Branch** | `main` |
 | **Runtime** | Node |
-| **Build Command** | `npm ci && npm ci --prefix server && npm run build:prod` |
+| **Build Command** | `npm ci --include=dev && npm ci --prefix server && npm run build:prod` |
 | **Start Command** | `npm start --prefix server` |
 | **Instance type** | Free (testing) or Starter $7/mo (always on) |
 
 5. **Environment Variables** → Add:
+
+> **Note:** With `NODE_ENV=production`, plain `npm ci` skips devDependencies — but `@angular/cli` is needed to build. Use the build command below with `--include=dev`.
 
 | Key | Value |
 |-----|--------|
@@ -212,7 +214,8 @@ For beta testing, **`0.0.0.0/0` + strong password is OK**.
 
 | Problem | Fix |
 |---------|-----|
-| Build fails | Check Render logs; run `npm run build:prod` locally |
+| Build fails / `ng: not found` | Build command must be `npm ci --include=dev && npm ci --prefix server && npm run build:prod` |
+| Build fails (other) | Check Render logs; run `npm run build:prod` locally |
 | `SMTP configuration missing` | Add all SMTP_* env vars in Render |
 | `Geocoding API key is missing` | Add `GOOGLE_MAPS_API_KEY` |
 | CORS errors | Add `EXTRA_ALLOWED_ORIGINS` with your domain |
