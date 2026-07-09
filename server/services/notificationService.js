@@ -19,8 +19,11 @@ function resolveSendGridApiKey() {
   const explicit = String(process.env.SENDGRID_API_KEY || '').trim();
   if (explicit) return explicit;
   const pass = String(process.env.SMTP_PASS || process.env.EMAIL_PASS || '').trim();
+  if (!pass) return '';
+  const transport = String(process.env.EMAIL_TRANSPORT || '').trim().toLowerCase();
   const user = String(process.env.SMTP_USER || process.env.EMAIL_USER || '').trim();
   const host = String(process.env.SMTP_HOST || process.env.EMAIL_HOST || '').toLowerCase();
+  if (transport === 'sendgrid_api') return pass;
   if (pass.startsWith('SG.') && (user === 'apikey' || host.includes('sendgrid'))) {
     return pass;
   }
@@ -193,8 +196,14 @@ async function getTransporter() {
 
 async function initNotificationService() {
   if (shouldUseSendGridApi()) {
+    if (!resolveSendGridApiKey()) {
+      console.error(
+        '[NotificationService] EMAIL_TRANSPORT=sendgrid_api but no API key — set SENDGRID_API_KEY or SMTP_PASS in Render.',
+      );
+      return;
+    }
     console.log(
-      '[NotificationService] SendGrid HTTP API transport ready (used on Render free tier; SMTP ports 25/465/587 are blocked).',
+      '[NotificationService] SendGrid HTTP API transport ready (Render-compatible; SMTP ports 25/465/587 not used).',
     );
     return;
   }

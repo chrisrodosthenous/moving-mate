@@ -33,6 +33,8 @@ services:
         value: apikey
       - key: SMTP_PASS
         sync: false
+      - key: EMAIL_TRANSPORT
+        value: sendgrid_api
       - key: SENDGRID_API_KEY
         sync: false
       - key: EMAIL_FROM
