@@ -15,6 +15,14 @@ const defaultFrom = process.env.EMAIL_FROM || 'Moving Mate <noreply@movingmate.c
  * SendGrid API key from SENDGRID_API_KEY or SMTP_PASS when using SendGrid (user=apikey).
  * Render free tier blocks outbound SMTP ports 25/465/587 — HTTP API (443) still works.
  */
+function isRenderRuntime() {
+  return Boolean(
+    process.env.RENDER ||
+    process.env.RENDER_EXTERNAL_URL ||
+    process.env.RENDER_SERVICE_ID,
+  );
+}
+
 function resolveSendGridApiKey() {
   const explicit = String(process.env.SENDGRID_API_KEY || '').trim();
   if (explicit) return explicit;
@@ -24,18 +32,20 @@ function resolveSendGridApiKey() {
   const user = String(process.env.SMTP_USER || process.env.EMAIL_USER || '').trim();
   const host = String(process.env.SMTP_HOST || process.env.EMAIL_HOST || '').toLowerCase();
   if (transport === 'sendgrid_api') return pass;
-  if (pass.startsWith('SG.') && (user === 'apikey' || host.includes('sendgrid'))) {
-    return pass;
-  }
+  if (pass.startsWith('SG.')) return pass;
+  if (user === 'apikey' || host.includes('sendgrid')) return pass;
   return '';
 }
 
-/** Production defaults to SendGrid HTTP API when a key is present (Render SMTP port block). */
+/** Use SendGrid HTTP API when a key is available (required on Render free tier). */
 function shouldUseSendGridApi() {
   const transport = String(process.env.EMAIL_TRANSPORT || '').trim().toLowerCase();
   if (transport === 'smtp') return false;
-  if (transport === 'sendgrid_api') return Boolean(resolveSendGridApiKey());
-  return process.env.NODE_ENV === 'production' && Boolean(resolveSendGridApiKey());
+  const key = resolveSendGridApiKey();
+  if (!key) return false;
+  if (transport === 'sendgrid_api') return true;
+  if (process.env.NODE_ENV === 'production') return true;
+  return isRenderRuntime();
 }
 
 function parseEmailFrom(raw) {
@@ -195,15 +205,19 @@ async function getTransporter() {
 }
 
 async function initNotificationService() {
+  const apiKey = resolveSendGridApiKey();
+  const onRender = isRenderRuntime();
+
   if (shouldUseSendGridApi()) {
-    if (!resolveSendGridApiKey()) {
-      console.error(
-        '[NotificationService] EMAIL_TRANSPORT=sendgrid_api but no API key — set SENDGRID_API_KEY or SMTP_PASS in Render.',
-      );
-      return;
-    }
     console.log(
-      '[NotificationService] SendGrid HTTP API transport ready (Render-compatible; SMTP ports 25/465/587 not used).',
+      '[NotificationService] SendGrid HTTP API transport ready (SMTP verify skipped; uses HTTPS port 443).',
+    );
+    return;
+  }
+
+  if (onRender && process.env.NODE_ENV === 'production') {
+    console.error(
+      '[NotificationService] Render blocks SMTP ports 25/465/587. Add SENDGRID_API_KEY or SMTP_PASS (your SG.* API key) in the Render dashboard → Environment.',
     );
     return;
   }
@@ -220,15 +234,9 @@ async function initNotificationService() {
     console.log('[NotificationService] SMTP transporter initialized successfully.');
   } catch (err) {
     console.error('[NotificationService] Initialization failed:', err.message);
-    if (resolveSendGridApiKey()) {
-      console.warn(
-        '[NotificationService] SMTP verify failed but SENDGRID_API_KEY/SMTP_PASS is set — set EMAIL_TRANSPORT=sendgrid_api or deploy on production to use HTTP API instead.',
-      );
-    } else {
-      console.warn(
-        '[NotificationService] Server will continue without verified SMTP; fix SMTP_* env vars to enable email.',
-      );
-    }
+    console.warn(
+      '[NotificationService] Server will continue without verified SMTP; fix SMTP_* env vars to enable email.',
+    );
   }
 }
 
