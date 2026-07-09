@@ -225,15 +225,38 @@ For beta testing, **`0.0.0.0/0` + strong password is OK**.
 
 ---
 
+## Part 9 — Stripe readiness (future)
+
+Keep **`PAYMENTS_PROVIDER=mock`** until you are ready for real charges.
+
+When switching to Stripe:
+
+1. Create a Stripe account + enable **Connect** for driver payouts.
+2. In Render, set:
+   ```env
+   PAYMENTS_PROVIDER=stripe
+   STRIPE_SECRET_KEY=sk_live_...
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   ```
+3. In `src/environments/environment.prod.ts`, set `mockPayments: false`.
+4. Point Stripe webhooks to `https://moving-mate.com/api/payments/webhook` (confirm exact route in `server/routes`).
+5. Add legal pages (terms, refunds) before taking live card data.
+
+Until then, checkout shows **Test mode** and no real money moves.
+
+---
+
 ## Checklist
 
-- [ ] GoDaddy: domain only — **no hosting purchased**
-- [ ] Code on GitHub
-- [ ] SendGrid API key
-- [ ] Google Maps keys + browser key in `environment.prod.ts`
-- [ ] Render web service created with env vars
-- [ ] `https://xxx.onrender.com` works
-- [ ] GoDaddy DNS → Render custom domain
-- [ ] `https://moving-mate.com` works
-- [ ] Admin user via `make-admin.js` locally
-- [ ] Smoke test: order → mock pay → driver accept
+- [x] GoDaddy: domain only — **no hosting purchased**
+- [x] Code on GitHub
+- [ ] SendGrid API key verified in Render (`SMTP_PASS` + sender/domain verified)
+- [x] Google Maps keys + browser key in `environment.prod.ts`
+- [x] Render web service created with env vars
+- [x] `https://moving-mate.onrender.com` works
+- [x] GoDaddy DNS → Render custom domain
+- [x] `https://moving-mate.com` works
+- [x] Admin user via `make-admin.js` locally
+- [ ] Firebase: authorized domains + service account on Render (push)
+- [ ] Smoke test on production: order → mock pay → driver accept
+- [ ] Optional: Render Starter ($7/mo) to remove cold starts

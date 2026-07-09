@@ -35,3 +35,7 @@ services:
         sync: false
       - key: EMAIL_FROM
         value: Moving Mate <noreply@moving-mate.com>
+      # Upload firebase-service-account.json to server/config/ at build time,
+      # or set path relative to server/ cwd (e.g. config/firebase-service-account.json).
+      - key: FIREBASE_SERVICE_ACCOUNT_PATH
+        sync: false

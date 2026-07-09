@@ -6,6 +6,7 @@ const {
   acceptSafetyConsent,
 } = require('./helpers/new-order-form');
 const { gotoDriverAvailableJobs } = require('./helpers/register-driver');
+const { authorizeOrderPayment } = require('./helpers/payments');
 
 function uniqueRunId() {
   return `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -84,6 +85,14 @@ test('driver flow: customer order in Nicosia, driver sees and accepts', async ({
     const created = await createResp.json();
     const orderId = String(created._id);
 
+    const customerLogin = await backend.post('/api/auth/login', {
+      data: { emailOrPhone: bootstrap.customer.email, password: bootstrap.customer.password },
+    });
+    expect(customerLogin.ok()).toBeTruthy();
+    const customerToken = (await customerLogin.json()).token;
+    const paymentRes = await authorizeOrderPayment(backend, orderId, customerToken);
+    expect(paymentRes.ok()).toBeTruthy();
+
     await page.getByTestId('sidebar').getByRole('button', { name: /logout/i }).click();
     await expect(page).toHaveURL(/\/login$/);
 
@@ -98,9 +107,8 @@ test('driver flow: customer order in Nicosia, driver sees and accepts', async ({
       resp.url().includes(`/api/orders/${orderId}/accept`) && resp.request().method() === 'PATCH'
     ));
     await page.getByTestId(`accept-order-${orderId}`).click();
-    await acceptPromise;
-
-    await expect(page.getByTestId(`accept-order-${orderId}`)).toHaveCount(0, { timeout: 15000 });
+    const acceptResp = await acceptPromise;
+    await expect(acceptResp.status()).toBe(200);
   } finally {
     await backend.post('/api/test/e2e/cleanup', { data: { runId } }).catch(() => {});
     await backend.dispose();

@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/card';
 import { UiBadgeComponent } from '@/components/ui/badge';
 import { AppLayoutComponent } from '../../shared/components/app-layout/app-layout.component';
+import { AppFooterComponent } from '../../shared/components/app-footer/app-footer.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import {
   customerOrderSegmentFilled,
@@ -44,6 +45,7 @@ import { DriverAnalyticsComponent } from '../driver/driver-analytics/driver-anal
     NgTemplateOutlet,
     LucideAngularModule,
     AppLayoutComponent,
+    AppFooterComponent,
     EmptyStateComponent,
     UiCardComponent,
     UiCardContentComponent,

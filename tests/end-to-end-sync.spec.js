@@ -2,6 +2,7 @@ const { test, expect, request } = require('@playwright/test');
 const { DEFAULT_LOGISTICS_PAYLOAD, testOrderPrice } = require('./helpers/order-logistics-payload');
 const { clickCompletedOrdersTab } = require('./helpers/e2e-ui');
 const { gotoDriverAvailableJobs } = require('./helpers/register-driver');
+const { authorizeOrderPayment } = require('./helpers/payments');
 
 function uniqueRunId() {
   return `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -84,6 +85,9 @@ test('end-to-end: customer order syncs to Accepted then Completed via polling', 
     expect(orderRes.ok()).toBeTruthy();
     const created = await orderRes.json();
     const orderId = String(created._id);
+
+    const paymentRes = await authorizeOrderPayment(backend, orderId, customerToken);
+    expect(paymentRes.ok()).toBeTruthy();
 
     const customerCtx = await browser.newContext();
     const driverCtx = await browser.newContext();

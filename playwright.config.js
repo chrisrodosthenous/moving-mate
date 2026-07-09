@@ -19,7 +19,7 @@ module.exports = defineConfig({
       command: 'npm start',
       cwd: 'server',
       url: 'http://127.0.0.1:3000/api/health',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       env: {
         ENABLE_TEST_ROUTES: 'true',
         E2E_TEST: 'true',
@@ -32,7 +32,7 @@ module.exports = defineConfig({
       command: 'npx ng serve --host 127.0.0.1 --port 4200',
       cwd: '.',
       url: 'http://127.0.0.1:4200',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       env: {
         NODE_ENV: 'development',
       },

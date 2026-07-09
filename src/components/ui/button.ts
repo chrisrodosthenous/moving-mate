@@ -79,7 +79,6 @@ export type ButtonSize = NonNullable<VariantProps<typeof buttonVariants>['size']
   selector: 'ui-button',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'contents' },
   template: `
     <button [attr.type]="type()" [disabled]="disabled()" [class]="classes()">
       <ng-content />

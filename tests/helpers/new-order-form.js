@@ -33,11 +33,14 @@ async function selectOrderRouteOnMap(page) {
 
 /** Add cargo via inventory +/- counters (defaults: 1 box). */
 async function fillOrderInventoryAndSchedule(page, { boxes = 1, time = '10:00' } = {}) {
-  const currentQty = Number(await page.getByTestId('cargo-qty-boxes').innerText())
+  const qty = page.getByTestId('cargo-qty-boxes')
+  const incBoxes = page.getByTestId('cargo-inc-boxes')
+  const currentQty = Number(await qty.innerText())
   if (currentQty < boxes) {
     for (let i = currentQty; i < boxes; i++) {
-      await page.getByTestId('cargo-inc-boxes').click()
+      await incBoxes.dispatchEvent('click')
     }
+    await expect(qty).toHaveText(String(boxes))
   }
 
   const tomorrow = new Date()

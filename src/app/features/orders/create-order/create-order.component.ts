@@ -673,10 +673,43 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
         this.fetchDirections();
       },
       error: (err) => {
+        const fallbackKm = this.fallbackDistanceKmFromCoordinates();
+        if (fallbackKm != null) {
+          this.distanceKm.set(fallbackKm);
+          // Conservative fallback ETA for map/routing outages (~40km/h average urban pace).
+          const approxMinutes = Math.max(1, Math.round((fallbackKm / 40) * 60));
+          this.durationText.set(`~${approxMinutes} min`);
+          this.error.set('');
+          this.loading.set(false);
+          this.toast.show('Using estimated distance while route service is unavailable.', 'info');
+          return;
+        }
         this.loading.set(false);
         this.error.set(err?.message || 'Could not calculate route.');
       },
     });
+  }
+
+  private fallbackDistanceKmFromCoordinates(): number | null {
+    const p = this.pickup();
+    const d = this.dropoff();
+    if (!p || !d) return null;
+    const pLat = Number(p.lat);
+    const pLng = Number(p.lng);
+    const dLat = Number(d.lat);
+    const dLng = Number(d.lng);
+    if ([pLat, pLng, dLat, dLng].some((n) => Number.isNaN(n))) return null;
+
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const earthKm = 6371;
+    const dLatRad = toRad(dLat - pLat);
+    const dLngRad = toRad(dLng - pLng);
+    const a =
+      Math.sin(dLatRad / 2) ** 2 +
+      Math.cos(toRad(pLat)) * Math.cos(toRad(dLat)) * Math.sin(dLngRad / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const km = earthKm * c;
+    return Number.isFinite(km) && km > 0 ? Number(km.toFixed(2)) : null;
   }
 
   private fetchDirections(): void {

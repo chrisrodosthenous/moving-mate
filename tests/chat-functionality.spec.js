@@ -1,5 +1,6 @@
 const { test, expect, request } = require('@playwright/test');
 const { DEFAULT_LOGISTICS_PAYLOAD, testOrderPrice } = require('./helpers/order-logistics-payload');
+const { authorizeOrderPayment } = require('./helpers/payments');
 
 function uniqueRunId() {
   return `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -84,6 +85,8 @@ test('chat: driver and customer messages persist after reload', async ({ browser
     expect(orderRes.ok()).toBeTruthy();
     const created = await orderRes.json();
     const orderId = String(created._id);
+    const paymentRes = await authorizeOrderPayment(backend, orderId, customerToken);
+    expect(paymentRes.ok()).toBeTruthy();
 
     const driverLogin = await backend.post('/api/auth/login', {
       data: {
