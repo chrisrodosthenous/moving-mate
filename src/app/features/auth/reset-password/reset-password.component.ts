@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -35,6 +36,7 @@ export class ResetPasswordComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   token = '';
   newPassword = '';
@@ -45,14 +47,17 @@ export class ResetPasswordComponent implements OnInit {
   readonly done = signal(false);
 
   ngOnInit(): void {
-    const raw = this.route.snapshot.queryParamMap.get('token');
-    if (typeof raw === 'string' && raw.length > 0) {
-      this.token = raw;
-    } else {
-      this.error.set(
-        'Invalid or missing reset link. Open the link from your password reset email.',
-      );
-    }
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const raw = params.get('token');
+      if (typeof raw === 'string' && raw.trim().length > 0) {
+        this.token = raw.trim();
+        this.error.set('');
+      } else if (!this.token) {
+        this.error.set(
+          'Invalid or missing reset link. Open the link from your password reset email.',
+        );
+      }
+    });
   }
 
   onSubmit(): void {

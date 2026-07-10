@@ -55,7 +55,7 @@ function parseEmailFrom(raw) {
   return { email: s, name: '' };
 }
 
-async function sendViaSendGridApi({ to, subject, html, text }) {
+async function sendViaSendGridApi({ to, subject, html, text, disableClickTracking = false }) {
   const apiKey = resolveSendGridApiKey();
   if (!apiKey) throw new Error('SendGrid API key missing (SENDGRID_API_KEY or SMTP_PASS).');
 
@@ -64,18 +64,27 @@ async function sendViaSendGridApi({ to, subject, html, text }) {
   if (text) content.push({ type: 'text/plain', value: text });
   content.push({ type: 'text/html', value: html });
 
+  const payload = {
+    personalizations: [{ to: [{ email: String(to).trim() }] }],
+    from: from.name ? { email: from.email, name: from.name } : { email: from.email },
+    subject,
+    content,
+  };
+
+  // SendGrid click-tracking wrappers often break long reset URLs with query tokens.
+  if (disableClickTracking) {
+    payload.tracking_settings = {
+      click_tracking: { enable: false, enable_text: false },
+    };
+  }
+
   const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      personalizations: [{ to: [{ email: String(to).trim() }] }],
-      from: from.name ? { email: from.email, name: from.name } : { email: from.email },
-      subject,
-      content,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
@@ -251,7 +260,15 @@ async function verifySmtpHealthy() {
   }
 }
 
-async function sendTemplateEmail({ to, subject, template, data, text, notificationEvent }) {
+async function sendTemplateEmail({
+  to,
+  subject,
+  template,
+  data,
+  text,
+  notificationEvent,
+  disableClickTracking = false,
+}) {
   if (!to || !subject || !template) {
     throw new Error('sendTemplateEmail requires to, subject and template');
   }
@@ -284,6 +301,7 @@ async function sendTemplateEmail({ to, subject, template, data, text, notificati
         subject,
         html,
         text: text || '',
+        disableClickTracking,
       });
     } else {
       const transport = await getTransporter();
@@ -329,6 +347,7 @@ async function sendPasswordResetEmail({ to, firstName, resetUrl }) {
       expiresIn: '1 hour',
     },
     text: `Hi ${safeName}, reset your Moving Mate password using this link (expires in 1 hour): ${resetUrl}`,
+    disableClickTracking: true,
   });
 }
 
