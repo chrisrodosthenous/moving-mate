@@ -312,13 +312,14 @@ async function login(req, res, next) {
   }
 }
 
-/** Generic success body so email enumeration is not possible. */
-const FORGOT_PASSWORD_PUBLIC_MESSAGE =
-  'If an account exists with this email, you will receive a reset link shortly.';
+/** Success body shown when a reset link has been emailed. */
+const FORGOT_PASSWORD_SENT_MESSAGE =
+  'A password reset link has been sent to your email.';
 
 /**
  * POST /api/auth/forgot-password
- * Body: { email }. Issues a reset token for customer/driver accounts; logs link in development.
+ * Body: { email }. Issues a reset token for any registered account (any role).
+ * Returns 404 if the email is not registered so the UI can show a clear message.
  */
 async function forgotPassword(req, res, next) {
   try {
@@ -328,11 +329,9 @@ async function forgotPassword(req, res, next) {
       return res.status(400).json({ message: 'Valid email is required' });
     }
 
-    const okPublic = () => res.json({ message: FORGOT_PASSWORD_PUBLIC_MESSAGE });
-
     const user = await User.findOne({ email });
-    if (!user || user.role === 'admin') {
-      return okPublic();
+    if (!user) {
+      return res.status(404).json({ message: 'This email is not registered.' });
     }
 
     const rawToken = crypto.randomBytes(32).toString('hex');
@@ -357,9 +356,12 @@ async function forgotPassword(req, res, next) {
     } catch (mailErr) {
       console.error('[PASSWORD RESET] Email send failed:', mailErr.message);
       console.log('[PASSWORD RESET] Reset link (use manually):', resetLink);
+      return res.status(502).json({
+        message: 'We could not send the reset email right now. Please try again later.',
+      });
     }
 
-    return okPublic();
+    return res.json({ message: FORGOT_PASSWORD_SENT_MESSAGE });
   } catch (err) {
     next(err);
   }

@@ -8,8 +8,7 @@ import { UiButtonComponent } from '@/components/ui/button';
 import { UiInputDirective } from '@/components/ui/input';
 import { AppLogoComponent } from '../../../shared/components/app-logo/app-logo.component';
 
-const SUCCESS_COPY =
-  'If an account exists with this email, you will receive a reset link shortly.';
+const SUCCESS_COPY = 'A password reset link has been sent to your email.';
 
 @Component({
   selector: 'app-forgot-password',
