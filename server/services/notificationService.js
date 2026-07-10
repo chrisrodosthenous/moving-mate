@@ -865,10 +865,62 @@ async function sendAdminScenarioEmail(scenario, to, firstName = 'Test') {
   }
 }
 
+/** Escape user-supplied text for safe inclusion in HTML email bodies. */
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Marketing website "Contact us" submission. Emails the support inbox
+ * (CONTACT_TO, else EMAIL_FROM address) with the visitor's message and
+ * sets reply-to so replies go straight back to the sender.
+ * @param {{ name: string, email: string, subject?: string, message: string }} params
+ */
+async function sendContactMessageEmail({ name, email, subject, message }) {
+  const senderName = String(name || '').trim();
+  const senderEmail = String(email || '').trim();
+  const topic = String(subject || '').trim() || 'New contact message';
+  const body = String(message || '').trim();
+  if (!senderEmail || !body) {
+    throw new Error('sendContactMessageEmail requires email and message');
+  }
+
+  const to = (process.env.CONTACT_TO || '').trim() || parseEmailFrom(defaultFrom).email;
+  const mailSubject = `[Moving Mate] Contact: ${topic}`;
+  const text = `New contact message from the website\n\nName: ${senderName || '—'}\nEmail: ${senderEmail}\nSubject: ${topic}\n\n${body}\n`;
+  const html = `
+    <div style="font-family:Inter,Arial,sans-serif;color:#0f0f0f;">
+      <h2 style="margin:0 0 12px;color:#16A34A;">New contact message</h2>
+      <p style="margin:0 0 4px;"><strong>Name:</strong> ${escapeHtml(senderName || '—')}</p>
+      <p style="margin:0 0 4px;"><strong>Email:</strong> ${escapeHtml(senderEmail)}</p>
+      <p style="margin:0 0 12px;"><strong>Subject:</strong> ${escapeHtml(topic)}</p>
+      <div style="padding:12px 16px;background:#F0EDE6;border-radius:8px;white-space:pre-wrap;">${escapeHtml(body)}</div>
+    </div>`;
+
+  if (shouldUseSendGridApi()) {
+    return sendViaSendGridApi({ to, subject: mailSubject, html, text });
+  }
+  const transport = await getTransporter();
+  return transport.sendMail({
+    from: defaultFrom,
+    to,
+    replyTo: senderEmail,
+    subject: mailSubject,
+    text,
+    html,
+  });
+}
+
 module.exports = {
   clientBaseUrl,
   initNotificationService,
   verifySmtpHealthy,
+  sendContactMessageEmail,
   async sendTestEmail(to) {
     return sendTemplateEmail({
       to: to || 'test@example.com',

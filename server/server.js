@@ -428,6 +428,7 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/reviews', reviewsRoutes);
+app.use('/api/contact', require('./routes/contact.routes'));
 /** Explicit POST so path is always POST /api/admin/notifications/test (auth + admin, same as admin router). */
 app.post('/api/admin/notifications/test', authMiddleware, adminMiddleware, postNotificationTest);
 /** Temporary deep-link test endpoint — sends a push with an arbitrary url to the admin's own devices. */

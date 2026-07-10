@@ -8,7 +8,51 @@ import { redirectDriverFromMyOrdersGuard } from './core/guards/redirect-driver-f
 import { driverStatusRefreshGuard } from './core/guards/driver-status-refresh.guard';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'login' },
+  /* ── Public marketing site (integrated). '/' is the landing page. ───── */
+  {
+    path: '',
+    loadComponent: () =>
+      import('./features/marketing/marketing-shell.component').then(m => m.MarketingShellComponent),
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        title: 'Moving Mate — Move smarter. Book trusted movers in minutes.',
+        loadComponent: () =>
+          import('./features/marketing/pages/home/home.component').then(m => m.HomeComponent),
+      },
+      {
+        path: 'features',
+        title: 'Features — Moving Mate',
+        loadComponent: () =>
+          import('./features/marketing/pages/features/features.component').then(m => m.FeaturesComponent),
+      },
+      {
+        path: 'how-it-works',
+        title: 'How it works — Moving Mate',
+        loadComponent: () =>
+          import('./features/marketing/pages/how-it-works/how-it-works.component').then(m => m.HowItWorksComponent),
+      },
+      {
+        path: 'about',
+        title: 'About us — Moving Mate',
+        loadComponent: () =>
+          import('./features/marketing/pages/about/about.component').then(m => m.AboutComponent),
+      },
+      {
+        path: 'contact',
+        title: 'Contact us — Moving Mate',
+        loadComponent: () =>
+          import('./features/marketing/pages/contact/contact.component').then(m => m.ContactComponent),
+      },
+      {
+        path: 'download',
+        title: 'Get the app — Moving Mate',
+        loadComponent: () =>
+          import('./features/marketing/pages/download/download.component').then(m => m.DownloadComponent),
+      },
+    ],
+  },
   {
     path: 'login',
     loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent),
