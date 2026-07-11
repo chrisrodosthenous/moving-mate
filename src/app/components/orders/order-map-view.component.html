@@ -24,25 +24,6 @@
           <map-directions-renderer [directions]="dirs"></map-directions-renderer>
         }
       </google-map>
-    } @else if (mapsLoadFailed()) {
-      <div
-        class="map-status map-status--error flex h-full min-h-[13.75rem] flex-col items-center justify-center gap-2 px-6 text-center"
-        role="alert"
-      >
-        <p class="text-sm font-semibold text-foreground">Map could not load</p>
-        <p class="max-w-sm text-xs leading-relaxed text-muted-foreground">
-          Check that your Google Maps browser key has Maps JavaScript API enabled and allows
-          <span class="font-medium text-foreground">moving-mate.com</span>. You can still retry after refreshing the page.
-        </p>
-      </div>
-    } @else {
-      <div
-        class="map-status map-status--loading flex h-full min-h-[13.75rem] flex-col items-center justify-center gap-2 px-6 text-center"
-        role="status"
-        aria-live="polite"
-      >
-        <p class="text-sm font-medium text-muted-foreground">Loading map…</p>
-      </div>
     }
   </div>
 

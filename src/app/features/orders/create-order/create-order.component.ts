@@ -175,8 +175,6 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
   directionsResult = signal<google.maps.DirectionsResult | null>(null);
   loading = signal(false);
   error = signal('');
-  /** Hides the yellow map tip after the user taps the map (mobile space). */
-  mapTouched = signal(false);
   showBookingSuccess = signal(false);
 
   readonly createSubmitting = toSignal(this.store.select(selectCustomerCreateSubmitting), {
@@ -193,8 +191,6 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
 
   /** True after {@link GoogleMapsLoaderService} has loaded the core maps library. */
   readonly mapsEmbedReady = signal(false);
-  /** True when the maps library could not be loaded (blank map fallback). */
-  readonly mapsLoadFailed = signal(false);
 
   readonly defaultCenter = CYPRUS_CENTER;
   readonly defaultZoom = 8;
@@ -235,14 +231,7 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
     maxZoom: 18,
     minZoom: 4,
   };
-  /** Next map tap sets pickup or dropoff explicitly; crosshair cursor while active. */
-  mapClickMode = signal<'pickup' | 'dropoff' | null>(null);
-  readonly mapOptionsWithClick = computed(
-    (): google.maps.MapOptions => ({
-      ...this.mapOptions,
-      ...(this.mapClickMode() ? { draggableCursor: 'crosshair' as const } : {}),
-    }),
-  );
+  readonly mapOptionsWithClick = computed((): google.maps.MapOptions => ({ ...this.mapOptions }));
 
   /** Date only (YYYY-MM-DD). min = today. Defaults to tomorrow (React parity). */
   scheduledDate = tomorrowDateString();
@@ -251,61 +240,15 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
   cargoFile: File | null = null;
   /** Pickup province for job routing (sent as pickupDistrict). Empty until user selects. */
   pickupDistrict = '';
+  pickupAddressText = '';
+  dropoffAddressText = '';
   /** True when Point A was set by map click and geocoder failed (Distance Matrix still uses lat,lng). */
   pickupCoordinatesFallback = signal(false);
   dropoffCoordinatesFallback = signal(false);
 
-  /** While reverse geocoding after a map tap — UI shows “Point Selected on Map” instead of coordinates. */
+  /** While reverse geocoding after a map tap. */
   readonly pickupGeocoding = signal(false);
   readonly dropoffGeocoding = signal(false);
-
-  /** Read-only location field labels (never raw lat/lng). */
-  readonly pickupLocationDisplay = computed(() =>
-    this.getDisplayLocation(
-      this.pickup()?.address,
-      this.pickup()?.lat,
-      this.pickup()?.lng,
-      this.pickupCoordinatesFallback(),
-      this.pickupGeocoding(),
-    ),
-  );
-  readonly dropoffLocationDisplay = computed(() =>
-    this.getDisplayLocation(
-      this.dropoff()?.address,
-      this.dropoff()?.lat,
-      this.dropoff()?.lng,
-      this.dropoffCoordinatesFallback(),
-      this.dropoffGeocoding(),
-    ),
-  );
-
-  /**
-   * Maps stored place data to input copy: human address when available, otherwise confirmation phrase.
-   * Coordinates are never shown — API still uses {@link pickup}/{@link dropoff} lat/lng + address.
-   */
-  getDisplayLocation(
-    address: string | undefined,
-    lat: number | undefined,
-    lng: number | undefined,
-    isCoordinatesFallback: boolean,
-    isGeocoding: boolean,
-  ): string {
-    const hasCoords =
-      lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng);
-    if (!hasCoords) return '';
-
-    if (isGeocoding || isCoordinatesFallback || this.isCoordinateLikeAddress(address)) {
-      return 'Point Selected on Map';
-    }
-    const a = (address ?? '').trim();
-    return a || 'Point Selected on Map';
-  }
-
-  /** Detect legacy coordinate literal used internally for Distance Matrix when geocoding fails. */
-  isCoordinateLikeAddress(address: string | undefined): boolean {
-    if (!address?.trim()) return false;
-    return /^-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?$/.test(address.trim());
-  }
 
   /** Green markers for Pickup (A) and Destination (B) — circle path works before google.maps load */
   readonly pickupMarkerOptions: google.maps.MarkerOptions = {
@@ -397,10 +340,7 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    void this.googleMapsLoader.ensureLoaded().then((ok) => {
-      this.mapsEmbedReady.set(ok);
-      this.mapsLoadFailed.set(!ok);
-    });
+    void this.googleMapsLoader.ensureLoaded().then((ok) => this.mapsEmbedReady.set(ok));
     fromEvent(globalThis.window, 'resize')
       .pipe(debounceTime(250), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -524,53 +464,51 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
     this.drawerOpen.set(false);
   }
 
-  toggleMapSelectPickup(): void {
-    const next = this.mapClickMode() === 'pickup' ? null : 'pickup';
-    this.mapClickMode.set(next);
-    if (next === 'pickup') {
-      this.toast.show('Tap the map to set pickup (A).', 'info');
-    }
+  onPickupPlaceSelected(place: PlaceResult): void {
+    this.pickup.set(place);
+    this.pickupAddressText = place.address;
+    this.pickupCoordinatesFallback.set(false);
+    this.error.set('');
+    if (this.dropoff()) this.updateRouteAndPrice();
+    this.drawerOpen.set(true);
   }
 
-  toggleMapSelectDropoff(): void {
-    if (!this.pickup()) {
-      this.toast.show('Set pickup first.', 'info');
-      return;
-    }
-    const next = this.mapClickMode() === 'dropoff' ? null : 'dropoff';
-    this.mapClickMode.set(next);
-    if (next === 'dropoff') {
-      this.toast.show('Tap the map to set destination (B).', 'info');
-    }
+  onDropoffPlaceSelected(place: PlaceResult): void {
+    this.dropoff.set(place);
+    this.dropoffAddressText = place.address;
+    this.dropoffCoordinatesFallback.set(false);
+    this.error.set('');
+    if (this.pickup()) this.updateRouteAndPrice();
   }
 
   clearPickupOnly(): void {
-    this.mapClickMode.set(null);
-      this.pickup.set(null);
+    this.pickup.set(null);
+    this.pickupAddressText = '';
     this.pickupGeocoding.set(false);
-      this.pickupCoordinatesFallback.set(false);
-      this.directionsResult.set(null);
-      this.distanceKm.set(null);
-      this.durationText.set('');
+    this.pickupCoordinatesFallback.set(false);
+    this.directionsResult.set(null);
+    this.distanceKm.set(null);
+    this.durationText.set('');
     this.error.set('');
   }
 
   clearDropoffOnly(): void {
-    this.mapClickMode.set(null);
-      this.dropoff.set(null);
+    this.dropoff.set(null);
+    this.dropoffAddressText = '';
     this.dropoffGeocoding.set(false);
-      this.dropoffCoordinatesFallback.set(false);
-      this.directionsResult.set(null);
-      this.distanceKm.set(null);
-      this.durationText.set('');
+    this.dropoffCoordinatesFallback.set(false);
+    this.directionsResult.set(null);
+    this.distanceKm.set(null);
+    this.durationText.set('');
     this.error.set('');
   }
 
   /** Clear both points and start over. */
   clearPoints(): void {
-    this.mapClickMode.set(null);
     this.pickup.set(null);
     this.dropoff.set(null);
+    this.pickupAddressText = '';
+    this.dropoffAddressText = '';
     this.pickupGeocoding.set(false);
     this.dropoffGeocoding.set(false);
     this.pickupCoordinatesFallback.set(false);
@@ -581,14 +519,12 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
     this.error.set('');
   }
 
-  /** Map tap: optional mode from form buttons; otherwise 1st tap = A, 2nd = B. */
+  /** Map tap: 1st tap = pickup (A), 2nd = destination (B). */
   onMapClick(event: google.maps.MapMouseEvent): void {
-    this.mapTouched.set(true);
     const latLng = event.latLng;
     if (!latLng) return;
     const lat = latLng.lat();
     const lng = latLng.lng();
-    const mode = this.mapClickMode();
 
     const applyPickup = () => {
       this.pickupGeocoding.set(true);
@@ -600,12 +536,13 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
         .subscribe({
         next: ({ address, isCoordinatesFallback }) => {
           this.pickup.set({ address, lat, lng });
+          this.pickupAddressText = isCoordinatesFallback ? 'Point selected on map' : address;
           this.pickupCoordinatesFallback.set(isCoordinatesFallback);
           this.error.set('');
           if (isCoordinatesFallback) {
               this.toast.show('Address not found; location still saved for the route.', 'info');
           }
-          this.updateRouteAndPrice();
+          if (this.dropoff()) this.updateRouteAndPrice();
           this.drawerOpen.set(true);
         },
       });
@@ -621,31 +558,16 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
         .subscribe({
         next: ({ address, isCoordinatesFallback }) => {
           this.dropoff.set({ address, lat, lng });
+          this.dropoffAddressText = isCoordinatesFallback ? 'Point selected on map' : address;
           this.dropoffCoordinatesFallback.set(isCoordinatesFallback);
           this.error.set('');
           if (isCoordinatesFallback) {
               this.toast.show('Address not found; location still saved for the route.', 'info');
           }
-          this.updateRouteAndPrice();
+          if (this.pickup()) this.updateRouteAndPrice();
         },
       });
     };
-
-    if (mode === 'pickup') {
-      this.mapClickMode.set(null);
-      applyPickup();
-      return;
-    }
-
-    if (mode === 'dropoff') {
-      if (!this.pickup()) {
-        this.toast.show('Set pickup first.', 'info');
-        return;
-      }
-      this.mapClickMode.set(null);
-      applyDropoff();
-      return;
-    }
 
     const p = this.pickup();
     const d = this.dropoff();

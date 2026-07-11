@@ -14,8 +14,6 @@ import type { PlaceResult } from '../../shared/directives/places-autocomplete.di
 export class OrderMapViewComponent {
   /** True when the Google Maps script has finished loading. */
   readonly mapsEmbedReady = input(false);
-  /** True when the core maps library failed to load. */
-  readonly mapsLoadFailed = input(false);
   readonly center = input.required<google.maps.LatLngLiteral>();
   readonly zoom = input.required<number>();
   readonly mapOptionsWithClick = input.required<google.maps.MapOptions>();

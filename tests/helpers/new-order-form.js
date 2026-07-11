@@ -19,13 +19,11 @@ async function selectOrderRouteOnMap(page) {
   const center = { x: Math.floor(box.width / 2), y: Math.floor(box.height / 2) }
   const offset = { x: center.x + Math.min(80, Math.floor(box.width * 0.15)), y: center.y + Math.min(60, Math.floor(box.height * 0.12)) }
 
-  await page.getByRole('button', { name: 'Select pickup' }).click()
   await mapShell.click({ position: center })
-  await expect(page.locator('#pickupLocationReadonly')).not.toHaveValue('', { timeout: 20000 })
+  await expect(page.locator('#pickupAddress')).not.toHaveValue('', { timeout: 20000 })
 
-  await page.getByRole('button', { name: 'Select dropoff' }).click()
   await mapShell.click({ position: offset })
-  await expect(page.locator('#dropoffLocationReadonly')).not.toHaveValue('', { timeout: 20000 })
+  await expect(page.locator('#dropoffAddress')).not.toHaveValue('', { timeout: 20000 })
 
   await expect(page.getByTestId('order-summary-panel')).toBeVisible({ timeout: 20000 })
   await expect(page.getByTestId('order-summary-price')).toBeVisible({ timeout: 45000 })

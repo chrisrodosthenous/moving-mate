@@ -10,41 +10,6 @@
   }
 
   <div class="grid grid-cols-1 gap-2 xs:gap-4 md:grid-cols-2 md:gap-x-6 md:gap-y-8">
-    @if (!hideMapHint()) {
-      <div
-        class="order-form-map-hint rounded-md alert-warning border px-2 py-1.5 text-[9px] leading-snug text-foreground xs:px-2.5 xs:text-[10px] md:col-span-2 md:rounded-lg md:px-5 md:py-4 md:text-sm md:leading-relaxed"
-        role="note"
-      >
-        Map first — tap twice on the map: pickup (A) then destination (B). Or use the buttons below, then tap
-        once each. Addresses are filled automatically.
-      </div>
-    }
-
-    <div class="flex max-w-full flex-wrap gap-1.5 md:col-span-2 md:gap-2 [&>ui-button]:max-w-[min(100%,20rem)]">
-      <ui-button
-        type="button"
-        variant="outline"
-        (click)="mapSelectPickupToggle.emit()"
-        [className]="
-          (mapClickMode() === 'pickup' ? mapBtnActive + ' ' : mapBtnIdle + ' ') +
-          'inline-flex min-h-[44px] max-w-full flex-1 items-center justify-center whitespace-normal rounded-md px-2 py-1 text-[10px] font-medium xs:flex-none xs:text-xs md:rounded-lg md:min-h-[40px] md:px-4 md:py-2.5'
-        "
-      >
-        Select pickup
-      </ui-button>
-      <ui-button
-        type="button"
-        variant="outline"
-        (click)="mapSelectDropoffToggle.emit()"
-        [className]="
-          (mapClickMode() === 'dropoff' ? mapBtnActive + ' ' : mapBtnIdle + ' ') +
-          'inline-flex min-h-[44px] max-w-full flex-1 items-center justify-center whitespace-normal rounded-md px-2 py-1 text-[10px] font-medium xs:flex-none xs:text-xs md:rounded-lg md:min-h-[40px] md:px-4 md:py-2.5'
-        "
-      >
-        Select dropoff
-      </ui-button>
-    </div>
-
     <div class="min-w-0 md:col-span-2">
       <label for="pickupDistrict" [class]="labelClass">Pickup district</label>
       <select
@@ -54,150 +19,145 @@
         name="pickupDistrict"
         [class]="selectClass"
       >
-        <option value="" disabled>Select District</option>
+        <option value="" disabled>Select district</option>
         @for (dist of cyprusPickupDistricts(); track dist) {
           <option [value]="dist">{{ dist }}</option>
         }
       </select>
+      @if (pickupDistrict()) {
+        <p class="mt-1.5 text-sm font-medium text-primary" role="status">
+          Selected district: {{ pickupDistrict() }}
+        </p>
+      }
     </div>
 
-    <div class="min-w-0 md:contents">
-      <div class="min-w-0">
-        <label [class]="labelClass" for="pickupLocationReadonly">
-          Pickup (A) <span class="text-primary">●</span>
-        </label>
-        <div
-          class="relative flex min-h-[44px] items-center overflow-hidden rounded-lg border bg-input/70 transition"
-          [class.border-primary/80]="pickupLocationSet()"
-          [class.bg-primary/10]="pickupLocationSet()"
-          [class.border-border]="!pickupLocationSet()"
+    <div class="min-w-0 md:col-span-2">
+      <label [class]="labelClass" for="pickupAddress">From (pickup)</label>
+      <div
+        class="relative flex min-h-[44px] items-center overflow-hidden rounded-lg border bg-input/70 transition"
+        [class.border-primary/80]="pickupLocationSet()"
+        [class.bg-primary/10]="pickupLocationSet()"
+        [class.border-border]="!pickupLocationSet()"
+      >
+        <span
+          class="pointer-events-none absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-card-foreground"
+          aria-hidden="true"
         >
-          <span
-            class="pointer-events-none absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-card-foreground"
-            aria-hidden="true"
+          <lucide-icon name="map-pin" [size]="18" class="shrink-0" />
+        </span>
+        <input
+          id="pickupAddress"
+          type="text"
+          name="pickupAddress"
+          appPlacesAutocomplete
+          autocomplete="off"
+          [ngModel]="pickupAddressText()"
+          (ngModelChange)="pickupAddressTextChange.emit($event)"
+          (placeSelected)="pickupPlaceSelected.emit($event)"
+          placeholder="Type pickup address in Cyprus"
+          uiInput
+          [className]="
+            'min-h-[44px] w-full min-w-0 border-0 bg-transparent py-2.5 pr-10 pl-11 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-0 md:py-2.5 md:pl-11 md:text-sm'
+          "
+        />
+        @if (pickupLocationSet()) {
+          <button
+            type="button"
+            class="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary/30 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            (click)="clearPickupLocation.emit(); $event.stopPropagation()"
+            aria-label="Clear pickup location"
           >
-            <lucide-icon name="map-pin" [size]="18" class="shrink-0" />
-          </span>
-          <input
-            id="pickupLocationReadonly"
-            type="text"
-            name="pickupLocationReadonly"
-            readonly
-            tabindex="0"
-            [value]="pickupLocationDisplay()"
-            placeholder="Select on map (buttons above)"
-            uiInput
-            [className]="
-              'min-h-[44px] w-full min-w-0 border-0 bg-transparent py-2.5 pr-[4.25rem] pl-11 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-0 md:py-2.5 md:pl-11 md:text-sm'
-            "
-          />
-          @if (pickupLocationSet()) {
-            <span
-              class="pointer-events-none absolute right-11 top-1/2 flex -translate-y-1/2 items-center text-primary"
-              aria-hidden="true"
-            >
-              <lucide-icon name="check" [size]="18" class="shrink-0" />
-            </span>
-            <button
-              type="button"
-              class="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary/30 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              (click)="clearPickupLocation.emit(); $event.stopPropagation()"
-              aria-label="Clear pickup location"
-            >
-              <span class="text-lg leading-none" aria-hidden="true">&times;</span>
-            </button>
-          }
-        </div>
-      </div>
-
-      <div class="min-w-0">
-        <label [class]="labelClass" for="dropoffLocationReadonly">
-          Destination (B) <span class="text-primary">●</span>
-        </label>
-        <div
-          class="relative flex min-h-[44px] items-center overflow-hidden rounded-lg border bg-input/70 transition"
-          [class.border-primary/80]="dropoffLocationSet()"
-          [class.bg-primary/10]="dropoffLocationSet()"
-          [class.border-border]="!dropoffLocationSet()"
-        >
-          <span
-            class="pointer-events-none absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-card-foreground"
-            aria-hidden="true"
-          >
-            <lucide-icon name="map-pin" [size]="18" class="shrink-0" />
-          </span>
-          <input
-            id="dropoffLocationReadonly"
-            type="text"
-            name="dropoffLocationReadonly"
-            readonly
-            tabindex="0"
-            [value]="dropoffLocationDisplay()"
-            placeholder="Select on map after pickup (A)"
-            uiInput
-            [className]="
-              'min-h-[44px] w-full min-w-0 border-0 bg-transparent py-2.5 pr-[4.25rem] pl-11 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-0 md:py-2.5 md:pl-11 md:text-sm'
-            "
-          />
-          @if (dropoffLocationSet()) {
-            <span
-              class="pointer-events-none absolute right-11 top-1/2 flex -translate-y-1/2 items-center text-primary"
-              aria-hidden="true"
-            >
-              <lucide-icon name="check" [size]="18" class="shrink-0" />
-            </span>
-            <button
-              type="button"
-              class="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary/30 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              (click)="clearDropoffLocation.emit(); $event.stopPropagation()"
-              aria-label="Clear destination location"
-            >
-              <span class="text-lg leading-none" aria-hidden="true">&times;</span>
-            </button>
-          }
-        </div>
+            <span class="text-lg leading-none" aria-hidden="true">&times;</span>
+          </button>
+        }
       </div>
     </div>
+
+    <div class="min-w-0 md:col-span-2">
+      <label [class]="labelClass" for="dropoffAddress">To (destination)</label>
+      <div
+        class="relative flex min-h-[44px] items-center overflow-hidden rounded-lg border bg-input/70 transition"
+        [class.border-primary/80]="dropoffLocationSet()"
+        [class.bg-primary/10]="dropoffLocationSet()"
+        [class.border-border]="!dropoffLocationSet()"
+      >
+        <span
+          class="pointer-events-none absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-card-foreground"
+          aria-hidden="true"
+        >
+          <lucide-icon name="map-pin" [size]="18" class="shrink-0" />
+        </span>
+        <input
+          id="dropoffAddress"
+          type="text"
+          name="dropoffAddress"
+          appPlacesAutocomplete
+          autocomplete="off"
+          [ngModel]="dropoffAddressText()"
+          (ngModelChange)="dropoffAddressTextChange.emit($event)"
+          (placeSelected)="dropoffPlaceSelected.emit($event)"
+          placeholder="Type destination address in Cyprus"
+          uiInput
+          [className]="
+            'min-h-[44px] w-full min-w-0 border-0 bg-transparent py-2.5 pr-10 pl-11 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-0 md:py-2.5 md:pl-11 md:text-sm'
+          "
+        />
+        @if (dropoffLocationSet()) {
+          <button
+            type="button"
+            class="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary/30 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            (click)="clearDropoffLocation.emit(); $event.stopPropagation()"
+            aria-label="Clear destination location"
+          >
+            <span class="text-lg leading-none" aria-hidden="true">&times;</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <p
+      class="md:col-span-2 text-xs leading-relaxed text-muted-foreground md:text-sm"
+      role="note"
+    >
+      Can't find your address? Create your route by tapping two points on the map — first pickup, then
+      destination.
+    </p>
 
     <div class="md:col-span-2" [formGroup]="logisticsForm()">
       <span [class]="labelClass + ' mb-2 md:mb-3 block'">What do you want to move?</span>
-      <div class="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2 lg:grid-cols-3">
+      <div class="order-inventory-grid grid grid-cols-1 gap-3 sm:grid-cols-2">
         @for (cat of inventoryCategories; track cat.key) {
-          <div
-            class="order-inventory-row flex flex-col gap-3 rounded-lg border border-border/35 bg-input/70 px-3 py-3 xs:flex-row xs:items-center xs:justify-between md:px-4 md:py-3"
-          >
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-card-foreground">{{ cat.title }}</p>
-              <p class="text-xs text-muted-foreground">{{ cat.subtitle }}</p>
+          <div class="order-inventory-row rounded-lg border border-border/35 bg-input/70 px-4 py-3">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold leading-snug text-card-foreground">{{ cat.title }}</p>
+              <p class="mt-0.5 text-xs leading-relaxed text-muted-foreground">{{ cat.subtitle }}</p>
             </div>
-            <div class="flex shrink-0 items-center justify-center gap-2 self-stretch xs:self-auto">
-              <ui-button
+            <div class="order-inventory-controls mt-3 flex items-center justify-end gap-2">
+              <button
                 type="button"
-                variant="outline"
+                class="order-qty-btn"
                 [attr.data-testid]="'cargo-dec-' + cat.key"
                 (click)="decrementCargoItem.emit(cat.key)"
                 [disabled]="quantityFor(cat.key) === 0"
-                [className]="'inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg p-0 text-lg font-semibold'"
-                aria-label="Decrease {{ cat.title }}"
+                [attr.aria-label]="'Decrease ' + cat.title"
               >
                 −
-              </ui-button>
+              </button>
               <span
-                class="min-w-[2.75rem] text-center text-sm font-semibold tabular-nums text-foreground"
+                class="min-w-[2.5rem] text-center text-sm font-semibold tabular-nums text-foreground"
                 [attr.data-testid]="'cargo-qty-' + cat.key"
               >
                 {{ quantityFor(cat.key) }}
               </span>
-              <ui-button
+              <button
                 type="button"
-                variant="outline"
+                class="order-qty-btn"
                 [attr.data-testid]="'cargo-inc-' + cat.key"
                 (click)="incrementCargoItem.emit(cat.key)"
-                [className]="'inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg p-0 text-lg font-semibold'"
-                aria-label="Increase {{ cat.title }}"
+                [attr.aria-label]="'Increase ' + cat.title"
               >
                 +
-              </ui-button>
+              </button>
             </div>
           </div>
         }
@@ -296,7 +256,7 @@
             ' inline-flex min-h-[44px] w-full justify-center rounded-lg px-4 py-2.5 text-xs font-medium md:py-3 md:text-sm'
           "
         >
-          Clear points and start over
+          Clear route and start over
         </ui-button>
       }
 
@@ -332,10 +292,8 @@
             </select>
           </div>
         </div>
-        <p [class]="labelSubClass + ' mt-1.5'">Delivery 09:00–21:00, 30-min slots. Today: future slots only.</p>
       </div>
     </div>
-
 
     <div class="md:col-span-2 min-w-0">
       <label [class]="labelClass">Cargo photo (optional)</label>
