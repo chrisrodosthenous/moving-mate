@@ -20,6 +20,7 @@ const SchedulerService = require('./services/schedulerService');
 const { getMongoUri, getJwtSecret, isProductionDefaultJwt, getPaymentsProvider, isMockPayments } = require('./config/env');
 const { registerClientStatic, registerSpaFallback } = require('./config/clientStatic');
 const { ALLOWED_ORIGINS, ALLOWED_HEADERS, ALLOWED_METHODS } = require('./config/cors');
+const { buildHelmetOptions } = require('./config/helmetConfig');
 const { globalApiLimiter } = require('./middleware/rateLimiters');
 const { joinUserSocketRooms, attachDriverLocationHandlers } = require('./services/realtimeService');
 const { attachChatPresenceToSocket } = require('./services/chatPresenceService');
@@ -89,7 +90,7 @@ io.on('connection', (socket) => {
 });
 
 // ── Security & parsing middleware ─────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet(buildHelmetOptions()));
 // CORS only on /api — global CORS rejects ES module chunk requests (Origin header)
 // for static JS when the prod allow-list omits the live site URL (black screen).
 const apiCors = cors({
