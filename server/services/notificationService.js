@@ -98,10 +98,62 @@ async function sendViaSendGridApi({ to, subject, html, text, disableClickTrackin
   };
 }
 
+function normalizeBaseUrl(raw) {
+  const s = String(raw || '').trim().replace(/\/$/, '');
+  if (!s) return '';
+  try {
+    const withScheme = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+    return new URL(withScheme).origin;
+  } catch {
+    return s;
+  }
+}
+
+function originsFromEnvList(raw) {
+  return String(raw || '')
+    .split(',')
+    .map((entry) => normalizeBaseUrl(entry.trim()))
+    .filter(Boolean);
+}
+
+function isRenderDefaultHost(url) {
+  try {
+    return new URL(url).hostname.endsWith('.onrender.com');
+  } catch {
+    return false;
+  }
+}
+
+/** Prefer a custom/public domain over Render's default *.onrender.com host for email links. */
+function pickPreferredPublicOrigin(configured, extras) {
+  const candidates = [configured, ...extras].filter(Boolean);
+  const custom = candidates.filter((origin) => !isRenderDefaultHost(origin));
+  if (custom.length === 0) return configured || extras[0] || '';
+
+  const apex = custom.find((origin) => {
+    try {
+      return !new URL(origin).hostname.startsWith('www.');
+    } catch {
+      return false;
+    }
+  });
+  return apex || custom[0];
+}
+
 /** Base URL for email links (no trailing slash). Defaults to Angular dev server port. */
 function clientBaseUrl() {
-  const raw = (process.env.CLIENT_URL || 'http://localhost:4200').trim();
-  return raw.replace(/\/$/, '');
+  const publicUrl = normalizeBaseUrl(process.env.PUBLIC_APP_URL);
+  if (publicUrl) return publicUrl;
+
+  const configured = normalizeBaseUrl(process.env.CLIENT_URL);
+  const extras = originsFromEnvList(process.env.EXTRA_ALLOWED_ORIGINS);
+  const preferred = pickPreferredPublicOrigin(configured, extras);
+  if (preferred) return preferred;
+
+  const renderUrl = normalizeBaseUrl(process.env.RENDER_EXTERNAL_URL);
+  if (renderUrl) return renderUrl;
+
+  return 'http://localhost:4200';
 }
 
 let transporter = null;
@@ -221,6 +273,7 @@ async function initNotificationService() {
     console.log(
       '[NotificationService] SendGrid HTTP API transport ready (SMTP verify skipped; uses HTTPS port 443).',
     );
+    console.log(`[NotificationService] Public app URL for email links: ${clientBaseUrl()}`);
     return;
   }
 
@@ -346,7 +399,7 @@ async function sendPasswordResetEmail({ to, firstName, resetUrl }) {
       resetUrl,
       expiresIn: '1 hour',
     },
-    text: `Hi ${safeName}, reset your Moving Mate password using this link (expires in 1 hour): ${resetUrl}`,
+    text: `Hi ${safeName},\n\nReset your Moving Mate password (expires in 1 hour):\n${resetUrl}\n\nIf the button does not work, copy and paste the link above into your browser.`,
     disableClickTracking: true,
   });
 }

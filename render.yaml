@@ -17,6 +17,8 @@ services:
         value: mock
       - key: CLIENT_URL
         value: https://moving-mate.com
+      - key: PUBLIC_APP_URL
+        value: https://moving-mate.com
       - key: EXTRA_ALLOWED_ORIGINS
         value: https://moving-mate.com,https://www.moving-mate.com,https://moving-mate.onrender.com
       - key: MONGODB_URI
