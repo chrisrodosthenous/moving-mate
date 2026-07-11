@@ -52,6 +52,7 @@ export type CardContentPadding = NonNullable<
   selector: 'ui-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-design-scope': 'global-shared' },
   template: ` <div [class]="classes()"><ng-content /></div> `,
 })
 export class UiCardComponent {

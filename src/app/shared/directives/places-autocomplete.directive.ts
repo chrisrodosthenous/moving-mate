@@ -5,7 +5,10 @@ import {
   EventEmitter,
   AfterViewInit,
   OnDestroy,
+  inject,
 } from '@angular/core';
+import { GoogleMapsLoaderService } from '../../core/services/google-maps-loader.service';
+import { LoggerService } from '../../core/services/logger.service';
 
 export interface PlaceResult {
   address: string;
@@ -26,13 +29,15 @@ declare global {
 export class PlacesAutocompleteDirective implements AfterViewInit, OnDestroy {
   @Output() placeSelected = new EventEmitter<PlaceResult>();
 
+  private readonly el = inject(ElementRef<HTMLInputElement>);
+  private readonly mapsLoader = inject(GoogleMapsLoaderService);
+  private readonly logger = inject(LoggerService);
+
   private autocomplete: google.maps.places.Autocomplete | null = null;
   private listener: google.maps.MapsEventListener | null = null;
 
-  constructor(private el: ElementRef<HTMLInputElement>) {}
-
   ngAfterViewInit(): void {
-    this.initAutocomplete();
+    void this.initAutocomplete();
   }
 
   ngOnDestroy(): void {
@@ -40,28 +45,25 @@ export class PlacesAutocompleteDirective implements AfterViewInit, OnDestroy {
     this.autocomplete = null;
   }
 
-  private initAutocomplete(): void {
+  private async initAutocomplete(): Promise<void> {
+    const loaded = await this.mapsLoader.ensureLoaded();
+    const placesReady = this.mapsLoader.getLoadResult()?.placesReady;
     const g = window.google;
-    if (g?.maps?.places?.Autocomplete) {
-      this.setupAutocomplete(g);
+
+    if (!loaded || !placesReady || !g?.maps?.places?.Autocomplete) {
+      this.logger.warn(
+        '[MovingMate] Places autocomplete unavailable. Check that your browser key allows Places API and moving-mate.com referrers. You can still tap two points on the map.',
+      );
       return;
     }
-    let attempts = 0;
-    const id = setInterval(() => {
-      attempts++;
-      const gm = window.google;
-      if (gm?.maps?.places?.Autocomplete) {
-        clearInterval(id);
-        this.setupAutocomplete(gm);
-      } else if (attempts > 50) {
-        clearInterval(id);
-      }
-    }, 100);
+
+    this.setupAutocomplete(g);
   }
 
   private setupAutocomplete(g: typeof google): void {
     this.autocomplete = new g.maps.places.Autocomplete(this.el.nativeElement, {
-      fields: ['formatted_address', 'geometry'],
+      fields: ['formatted_address', 'geometry', 'name'],
+      types: ['geocode'],
       componentRestrictions: { country: 'cy' },
     });
     this.listener = this.autocomplete.addListener('place_changed', () => {

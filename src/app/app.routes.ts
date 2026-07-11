@@ -110,7 +110,7 @@ export const routes: Routes = [
       { path: 'profile', redirectTo: '/profile', pathMatch: 'full' },
       {
         path: 'book',
-        data: { pageTitle: 'New Order', shellFullBleed: true },
+        data: { pageTitle: 'New Order', shellFullBleed: true, hideShellPageTitle: true },
         loadComponent: () => import('./features/orders/create-order/create-order.component').then(m => m.CreateOrderComponent),
       },
       {

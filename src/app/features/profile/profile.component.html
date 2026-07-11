@@ -264,6 +264,7 @@
         <div
           class="mt-8 space-y-6 border-t border-brand-slate/30 pt-8"
         >
+          @if (driverIsVerified()) {
           <section>
             <ui-card [className]="'rounded-xl shadow-sm'">
               <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-8'">
@@ -334,6 +335,7 @@
               </ui-card-content>
             </ui-card>
           </section>
+          }
 
           <section>
             <ui-card [className]="'rounded-xl shadow-sm'">
@@ -456,7 +458,7 @@
               class="mb-4 mt-6 border-b border-brand-slate/30"
               aria-hidden="true"
             ></div>
-            @if (user()?.isVerified === true) {
+            @if (driverIsVerified()) {
               <div class="mb-4 flex items-center gap-4">
                 <span
                   class="inline-flex items-center rounded-md bg-primary/15 px-2.5 py-1 text-sm font-medium text-primary"
@@ -470,7 +472,7 @@
                   Congratulations! You are now verified.
                 </div>
               }
-            } @else if (user()?.verificationStatus === 'pending' && !user()?.isVerified) {
+            } @else if (driverShowUnderReview()) {
               <div
                 class="mb-4 flex flex-wrap items-center gap-4"
                 data-testid="driver-profile-verification-pending"
@@ -505,14 +507,17 @@
                   </p>
                 }
               </div>
+            } @else if (driverShowLicensePrompt()) {
+              <div
+                class="mb-4 rounded-lg border border-primary/25 bg-primary/10 px-5 py-4 text-sm text-foreground"
+                data-testid="driver-license-submit-prompt"
+                role="status"
+              >
+                Please submit your professional driving license.
+              </div>
             }
 
-            @if (
-              user()?.verificationStatus === 'none' ||
-              user()?.verificationStatus === 'rejected' ||
-              user()?.verificationStatus === undefined ||
-              (user()?.verificationStatus === 'pending' && !licenseUrl())
-            ) {
+            @if (driverShowLicenseUpload()) {
               <div data-testid="driver-license-upload-form">
               @if (uploadLicenseError()) {
                 <div
@@ -562,6 +567,19 @@
       }
       </div>
       </div>
+    </div>
+
+    <div class="app-shell-main-pad mt-2 border-t border-border/20 pt-4 pb-2">
+      <ui-button
+        type="button"
+        variant="outline"
+        (click)="authService.logout()"
+        [className]="'inline-flex w-full min-h-[44px] items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium'"
+        data-testid="profile-logout-button"
+      >
+        <lucide-icon name="log-out" [size]="18" aria-hidden="true" />
+        Log out
+      </ui-button>
     </div>
   </main>
   @if (user()?.role === 'customer') {

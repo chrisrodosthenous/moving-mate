@@ -1,27 +1,28 @@
-import { Component, DestroyRef, inject, OnDestroy, effect } from '@angular/core';
+import { Component, DestroyRef, inject, OnDestroy, effect, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { ToastComponent } from './shared/components/toast/toast.component';
 import { DialogComponent } from './shared/components/dialog/dialog.component';
 import { ThemeEditorComponent } from './shared/components/theme-editor/theme-editor.component';
+import { AdminDesignHubComponent } from './shared/components/admin-design-hub/admin-design-hub.component';
 import { FcmService } from './core/services/fcm.service';
 import { NotificationStore } from './store/notification.store';
 import { AuthStore } from './store/auth.store';
 import { ToastService } from './core/services/toast.service';
 import { SidebarLayoutService } from './core/services/sidebar-layout.service';
-import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ToastComponent, DialogComponent, ThemeEditorComponent],
+  imports: [RouterOutlet, ToastComponent, DialogComponent, ThemeEditorComponent, AdminDesignHubComponent],
   template: `
     <router-outlet />
     <app-toast />
     <app-dialog />
-    @if (!isProduction && !isAutomatedBrowser) {
-      <app-theme-editor />
+    @if (showAdminDesignTools()) {
+      <app-admin-design-hub />
+      <app-theme-editor anchor="left" [showFloatingToggle]="false" />
     }
   `,
   styles: [
@@ -43,10 +44,12 @@ export class AppComponent implements OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly _sidebarLayout = inject(SidebarLayoutService);
 
-  /** Only show theme editor in development mode (hidden under Playwright / WebDriver). */
-  readonly isProduction = environment.production;
   readonly isAutomatedBrowser =
     typeof navigator !== 'undefined' && Boolean((navigator as Navigator & { webdriver?: boolean }).webdriver);
+
+  readonly showAdminDesignTools = computed(
+    () => this.authStore.isAdmin() && !this.isAutomatedBrowser,
+  );
 
   constructor() {
     // React FcmRegistration: re-attempt token registration on every navigation while logged in.

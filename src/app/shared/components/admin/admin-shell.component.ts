@@ -19,6 +19,7 @@ import {
   templateUrl: './admin-shell.component.html',
   styleUrl: './admin-shell.component.css',
   animations: [adminShellTabTransition],
+  host: { 'data-design-scope': 'admin' },
 })
 export class AdminShellComponent {
   private readonly router = inject(Router);

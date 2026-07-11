@@ -18,26 +18,31 @@ export const CARGO_INVENTORY_SCORES: Readonly<Record<keyof OrderCargoInventory, 
 export const CARGO_INVENTORY_CATEGORIES: ReadonlyArray<{
   key: keyof OrderCargoInventory;
   title: string;
+  shortTitle: string;
   subtitle: string;
 }> = [
   {
     key: 'boxes',
     title: 'Boxes / Small Items',
+    shortTitle: 'Boxes',
     subtitle: 'Small boxes and loose items',
   },
   {
     key: 'mediumItems',
     title: 'Medium Items / Furniture',
+    shortTitle: 'Medium',
     subtitle: 'e.g. washing machine, chairs, small table',
   },
   {
     key: 'largeFurniture',
     title: 'Large Furniture',
+    shortTitle: 'Large',
     subtitle: 'e.g. sofa, bed, wardrobe',
   },
   {
     key: 'heavyAppliances',
     title: 'Heavy / Large Appliances',
+    shortTitle: 'Heavy',
     subtitle: 'e.g. fridge, double-door fridge',
   },
 ];

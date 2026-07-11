@@ -2,6 +2,7 @@
   display: block;
   width: 100%;
   height: 100%;
+  min-height: 0;
 }
 
 .create-order-map-wrap {
@@ -15,10 +16,38 @@
   width: 100%;
 }
 
-/* Mobile through tablet: inline form below map — no drawer slide-off */
+.create-order-map-wrap .map-root,
+.create-order-map-wrap .map-shell,
+.create-order-map-wrap .map-embed {
+  min-height: 0;
+  height: 100%;
+}
+
+/* Mobile / tablet: map pinned on top, form scrolls below */
 @media (max-width: 1023px) {
   .create-order-drawer-panel {
+    order: 2;
+    flex: 1 1 auto;
+    min-height: 0;
     transform: none !important;
     transition: none;
+  }
+
+  .create-order-map-wrap {
+    order: 1;
+    flex: 0 0 auto;
+    height: clamp(11.5rem, 38vh, 17.5rem);
+    min-height: 11.5rem;
+    border-bottom: 1px solid hsl(var(--border) / 0.35);
+  }
+}
+
+@media (min-width: 1024px) {
+  .create-order-drawer-panel {
+    order: 1;
+  }
+
+  .create-order-map-wrap {
+    order: 2;
   }
 }

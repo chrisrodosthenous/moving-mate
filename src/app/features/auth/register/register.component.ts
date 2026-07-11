@@ -40,6 +40,7 @@ const VEHICLE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
   ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.css',
+  host: { 'data-design-scope': 'auth' },
 })
 export class RegisterComponent implements OnDestroy {
   firstName = '';

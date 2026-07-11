@@ -14,6 +14,7 @@ import { leafShellOutletData } from '../../routing/shell-route.helper';
   templateUrl: './driver-shell.component.html',
   styleUrl: './driver-shell.component.css',
   animations: [driverShellTabTransition],
+  host: { 'data-design-scope': 'driver' },
 })
 export class DriverShellComponent {
   private readonly router = inject(Router);

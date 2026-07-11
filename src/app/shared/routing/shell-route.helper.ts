@@ -3,6 +3,7 @@ import type { ActivatedRouteSnapshot, Router } from '@angular/router';
 export interface ShellOutletData {
   pageTitle: string;
   shellFullBleed: boolean;
+  hideShellPageTitle: boolean;
 }
 
 function walkLeaf(snapshot: ActivatedRouteSnapshot): ActivatedRouteSnapshot {
@@ -21,5 +22,6 @@ export function leafShellOutletData(router: Router): ShellOutletData {
   const pt = leaf.data['pageTitle'];
   const title = typeof pt === 'string' && pt.trim() ? pt.trim() : '';
   const fullBleed = leaf.data['shellFullBleed'] === true;
-  return { pageTitle: title, shellFullBleed: fullBleed };
+  const hideShellPageTitle = leaf.data['hideShellPageTitle'] === true;
+  return { pageTitle: title, shellFullBleed: fullBleed, hideShellPageTitle };
 }

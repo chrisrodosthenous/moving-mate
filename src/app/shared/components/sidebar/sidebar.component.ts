@@ -26,6 +26,7 @@ import {
   imports: [RouterLink, RouterLinkActive, LucideAngularModule, AppLogoComponent],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.css',
+  host: { 'data-design-scope': 'global-shared' },
 })
 export class SidebarComponent implements OnInit, OnDestroy {
   auth = inject(AuthService);

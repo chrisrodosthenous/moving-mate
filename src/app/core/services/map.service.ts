@@ -6,6 +6,14 @@ export interface DistanceMatrixResult {
   duration: { text: string; value: number };
 }
 
+export type MapRouteEndpoint = string | google.maps.LatLngLiteral;
+
+export interface GeocodedPlace {
+  address: string;
+  lat: number;
+  lng: number;
+}
+
 declare global {
   interface Window {
     google?: typeof google;
@@ -23,8 +31,8 @@ export class MapService {
    * Origin and destination can be addresses or "lat,lng" strings.
    */
   getDistanceAndDuration(
-    origin: string,
-    destination: string
+    origin: MapRouteEndpoint,
+    destination: MapRouteEndpoint,
   ): Observable<DistanceMatrixResult> {
     return new Observable((subscriber) => {
       const g = typeof window !== 'undefined' ? window.google : undefined;
@@ -82,6 +90,37 @@ export class MapService {
    * On success: returns { address, isCoordinatesFallback: false }.
    * On failure: returns { address: "lat, lng", isCoordinatesFallback: true } so the UI can show a fallback message.
    */
+  /** Forward geocode a typed address (Cyprus-biased). Returns null when no match. */
+  forwardGeocode(address: string): Observable<GeocodedPlace | null> {
+    const query = address.trim();
+    return new Observable((subscriber) => {
+      const g = typeof window !== 'undefined' ? window.google : undefined;
+      if (!query || !g?.maps?.Geocoder) {
+        subscriber.next(null);
+        subscriber.complete();
+        return;
+      }
+      const geocoder = new g.maps.Geocoder();
+      geocoder.geocode(
+        { address: query, componentRestrictions: { country: 'cy' } },
+        (results, status) => {
+          const first = results?.[0];
+          const loc = first?.geometry?.location;
+          if (status === g.maps.GeocoderStatus.OK && first?.formatted_address && loc) {
+            subscriber.next({
+              address: first.formatted_address,
+              lat: loc.lat(),
+              lng: loc.lng(),
+            });
+          } else {
+            subscriber.next(null);
+          }
+          subscriber.complete();
+        },
+      );
+    });
+  }
+
   reverseGeocode(lat: number, lng: number): Observable<{ address: string; isCoordinatesFallback: boolean }> {
     return new Observable((subscriber) => {
       const g = typeof window !== 'undefined' ? window.google : undefined;

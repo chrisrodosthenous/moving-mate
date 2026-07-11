@@ -14,6 +14,7 @@ import { AppLogoComponent } from '../../../shared/components/app-logo/app-logo.c
   imports: [FormsModule, RouterLink, UiButtonComponent, UiInputDirective, AppLogoComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
+  host: { 'data-design-scope': 'auth' },
 })
 export class LoginComponent {
   private readonly auth = inject(AuthService);

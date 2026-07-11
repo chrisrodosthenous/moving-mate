@@ -6,9 +6,11 @@ import {
   signal,
   computed,
   effect,
+  input,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ThemeEditorService } from '../../../core/services/theme-editor.service';
+import { DESIGN_SCOPE_META } from '../../../core/config/admin-design-preview.config';
 import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
@@ -17,24 +19,28 @@ import { LucideAngularModule } from 'lucide-angular';
   imports: [CommonModule, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- Floating Toggle Button -->
-    <button
-      type="button"
-      (click)="toggleEditor()"
-      class="fixed bottom-4 right-4 z-[9999] flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105"
-      style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border: 2px solid rgba(255,255,255,0.2);"
-      [class.ring-2]="themeEditor.isOpen()"
-      [class.ring-blue-400]="themeEditor.isOpen()"
-      title="Theme Editor"
-    >
-      <span class="text-lg">🎨</span>
-    </button>
+    @if (showFloatingToggle()) {
+      <button
+        type="button"
+        (click)="toggleEditor()"
+        class="fixed bottom-4 z-[9999] flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105"
+        [class.right-4]="anchor() === 'right'"
+        [class.left-[4.75rem]]="anchor() === 'left'"
+        style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border: 2px solid rgba(255,255,255,0.2);"
+        [class.ring-2]="themeEditor.isOpen()"
+        [class.ring-blue-400]="themeEditor.isOpen()"
+        title="Theme Editor"
+      >
+        <span class="text-lg">🎨</span>
+      </button>
+    }
 
-    <!-- Editor Panel -->
     @if (themeEditor.isOpen()) {
       <div
-        class="theme-editor-panel fixed right-4 z-[9998] flex flex-col overflow-hidden rounded-xl shadow-2xl"
-        [style.bottom]="'80px'"
+        class="theme-editor-panel fixed z-[9998] flex flex-col overflow-hidden rounded-xl shadow-2xl"
+        [class.right-4]="anchor() === 'right'"
+        [class.left-4]="anchor() === 'left'"
+        [style.bottom]="panelBottom()"
         [style.width]="'340px'"
         [style.maxHeight]="'calc(100vh - 120px)'"
         style="background: #111827; border: 1px solid rgba(59, 130, 246, 0.3);"
@@ -137,6 +143,19 @@ import { LucideAngularModule } from 'lucide-angular';
                   Clear
                 </button>
               </div>
+              @if (el.designScope; as scope) {
+                <p
+                  class="mb-2 rounded-md bg-violet-900/30 px-2 py-1.5 text-[10px] leading-snug text-violet-200"
+                  [title]="scopeDescription(scope)"
+                >
+                  <span class="font-semibold">Scope: {{ el.designScopeLabel }}</span>
+                  — {{ scopeDescription(scope) }}
+                </p>
+              } @else {
+                <p class="mb-2 text-[10px] leading-snug text-gray-500">
+                  Scope: <span class="text-violet-300">Global</span> — theme tokens apply app-wide unless a role shell overrides layout.
+                </p>
+              }
               <div class="space-y-2">
                 @for (c of el.colors; track c.id) {
                   <div class="flex items-center gap-2 rounded bg-gray-800/50 p-2">
@@ -266,6 +285,9 @@ import { LucideAngularModule } from 'lucide-angular';
   `],
 })
 export class ThemeEditorComponent {
+  readonly anchor = input<'left' | 'right'>('right');
+  readonly showFloatingToggle = input(true);
+
   readonly themeEditor = inject(ThemeEditorService);
   
   readonly inspectMode = signal(false);
@@ -302,6 +324,13 @@ export class ThemeEditorComponent {
     const rect = el.getBoundingClientRect();
     return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
   });
+
+  readonly panelBottom = computed(() => (this.anchor() === 'left' ? '80px' : '80px'));
+
+  scopeDescription(scope: string): string {
+    const meta = DESIGN_SCOPE_META[scope as keyof typeof DESIGN_SCOPE_META];
+    return meta?.description ?? '';
+  }
 
   constructor() {
     effect(() => {
@@ -353,7 +382,7 @@ export class ThemeEditorComponent {
 
   private onMouseMove = (e: MouseEvent): void => {
     const target = e.target as HTMLElement;
-    if (target.closest('.theme-editor-panel')) {
+    if (target.closest('.theme-editor-panel, .admin-design-hub-panel, .admin-design-hub-fab')) {
       this.hoveredEl.set(null);
       return;
     }
@@ -363,7 +392,7 @@ export class ThemeEditorComponent {
 
   private onMouseClick = (e: MouseEvent): void => {
     const target = e.target as HTMLElement;
-    if (target.closest('.theme-editor-panel')) return;
+    if (target.closest('.theme-editor-panel, .admin-design-hub-panel, .admin-design-hub-fab')) return;
     
     e.preventDefault();
     e.stopPropagation();

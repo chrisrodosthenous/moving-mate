@@ -1,6 +1,11 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import {
+  readDesignScopeFromElement,
+  DESIGN_SCOPE_META,
+  type DesignScopeId,
+} from '../config/admin-design-preview.config';
 
 export interface ThemeVariable {
   name: string;
@@ -30,6 +35,8 @@ export interface SelectedElement {
   classes: string;
   rect: DOMRect;
   colors: DetectedColor[];
+  designScope: DesignScopeId | null;
+  designScopeLabel: string | null;
 }
 
 const CLASS_TO_VARIABLE: Record<string, { variable: string; type: 'background' | 'text' | 'border' }> = {
@@ -255,6 +262,7 @@ export class ThemeEditorService {
 
     const tag = el.tagName.toLowerCase();
     const classList = el.className?.split?.(' ')?.filter(c => c && !c.startsWith('ng-'))?.slice(0, 5) || [];
+    const designScope = readDesignScopeFromElement(el);
 
     this.selectedElement.set({
       element: el,
@@ -262,6 +270,8 @@ export class ThemeEditorService {
       classes: classList.join(' '),
       rect: el.getBoundingClientRect(),
       colors,
+      designScope,
+      designScopeLabel: designScope ? DESIGN_SCOPE_META[designScope].label : null,
     });
   }
 

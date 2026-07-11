@@ -118,6 +118,12 @@ export class GoogleMapsLoaderService {
         return false;
       }
 
+      if (!result.placesReady) {
+        this.logger.warn(
+          '[MovingMate] Google Maps: Places library did not load. Autocomplete will not work — verify Places API is allowed on your browser key (not just enabled on the project).',
+        );
+      }
+
       return true;
     } catch (err) {
       this.logger.error('[MovingMate] Google Maps API failed to load:', err);

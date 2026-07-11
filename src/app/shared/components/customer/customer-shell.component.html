@@ -5,9 +5,9 @@
   <div
     class="customer-shell-main app-shell-sidebar-offset flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:h-full md:min-h-[100dvh] md:flex-1 md:overflow-hidden md:self-stretch md:pb-0"
   >
-    @if (pageTitle(); as title) {
+    @if (pageTitle() && !hideShellPageTitle()) {
       <header class="app-shell-header">
-        <h1 class="app-shell-header-title">{{ title }}</h1>
+        <h1 class="app-shell-header-title">{{ pageTitle() }}</h1>
       </header>
     }
 

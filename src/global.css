@@ -410,3 +410,24 @@ html.sidebar-collapsed .sidebar-section-title {
     @apply backdrop-blur-sm;
   }
 }
+
+/* Google Places autocomplete — appended to document.body; keep above drawers/maps */
+.pac-container {
+  z-index: 10000 !important;
+  margin-top: 2px;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border) / 0.45);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+  font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+}
+
+.pac-item {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.pac-item:hover,
+.pac-item-selected {
+  background-color: hsl(var(--primary) / 0.12);
+}

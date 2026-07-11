@@ -481,6 +481,43 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
     if (this.pickup()) this.updateRouteAndPrice();
   }
 
+  onPickupAddressBlur(): void {
+    void this.resolveTypedAddress('pickup');
+  }
+
+  onDropoffAddressBlur(): void {
+    void this.resolveTypedAddress('dropoff');
+  }
+
+  private resolveTypedAddress(kind: 'pickup' | 'dropoff'): void {
+    const text = (kind === 'pickup' ? this.pickupAddressText : this.dropoffAddressText).trim();
+    if (text.length < 4) return;
+
+    const current = kind === 'pickup' ? this.pickup() : this.dropoff();
+    if (current && current.address === text) {
+      if (this.pickup() && this.dropoff()) this.updateRouteAndPrice();
+      return;
+    }
+
+    this.mapService.forwardGeocode(text).subscribe({
+      next: (place) => {
+        if (!place) {
+          this.toast.show('Could not find that address. Pick a suggestion or tap the map.', 'info');
+          return;
+        }
+        if (kind === 'pickup') {
+          this.onPickupPlaceSelected(place);
+        } else {
+          this.onDropoffPlaceSelected(place);
+        }
+      },
+    });
+  }
+
+  private routeEndpoint(place: PlaceResult): google.maps.LatLngLiteral {
+    return { lat: place.lat, lng: place.lng };
+  }
+
   clearPickupOnly(): void {
     this.pickup.set(null);
     this.pickupAddressText = '';
@@ -588,7 +625,7 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.directionsResult.set(null);
 
-    this.mapService.getDistanceAndDuration(p.address, d.address).subscribe({
+    this.mapService.getDistanceAndDuration(this.routeEndpoint(p), this.routeEndpoint(d)).subscribe({
       next: (res) => {
         const km = res.distance.value / 1000;
         this.distanceKm.set(km);
@@ -643,8 +680,8 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
 
     this.directionsService
       .route({
-        origin: p.address,
-        destination: d.address,
+        origin: this.routeEndpoint(p),
+        destination: this.routeEndpoint(d),
         travelMode: google.maps.TravelMode.DRIVING,
       })
       .pipe(take(1))

@@ -1,17 +1,17 @@
 <div
-  class="create-order-root relative flex min-h-[100svh] min-w-0 w-full flex-1 flex-col overflow-x-hidden bg-background lg:min-h-0 lg:h-full lg:overflow-hidden"
+  class="create-order-root relative flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-background lg:h-full lg:overflow-hidden"
 >
   @if (!hideShell()) {
     <app-sidebar class="app-sidebar-host relative z-[45] border-border md:z-40 md:h-auto" />
   }
 
   <div
-    class="create-order-body flex min-h-0 min-w-0 w-full flex-1 flex-col lg:h-full lg:min-h-0 lg:grid lg:grid-cols-2 lg:grid-rows-1 lg:gap-0 lg:overflow-hidden"
+    class="create-order-body flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden lg:h-full lg:grid lg:grid-cols-2 lg:grid-rows-1 lg:gap-0"
     [class.app-shell-sidebar-offset]="!hideShell()"
   >
     <div
       #orderFormPanel
-      class="create-order-drawer-panel relative z-[25] order-1 flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-card/92 backdrop-blur-md lg:z-[1] lg:order-1 lg:min-h-0 lg:border-r lg:border-border"
+      class="create-order-drawer-panel relative z-[25] flex min-h-0 w-full flex-col overflow-hidden bg-card/92 backdrop-blur-md lg:z-[1] lg:order-1 lg:min-h-0 lg:border-r lg:border-border"
       [class.is-open]="drawerOpen()"
     role="dialog"
       aria-modal="false"
@@ -31,9 +31,11 @@
             [pickupAddressText]="pickupAddressText"
             (pickupAddressTextChange)="pickupAddressText = $event"
             (pickupPlaceSelected)="onPickupPlaceSelected($event)"
+            (pickupAddressBlur)="onPickupAddressBlur()"
             [dropoffAddressText]="dropoffAddressText"
             (dropoffAddressTextChange)="dropoffAddressText = $event"
             (dropoffPlaceSelected)="onDropoffPlaceSelected($event)"
+            (dropoffAddressBlur)="onDropoffAddressBlur()"
             [pickupLocationSet]="!!pickup()"
             [dropoffLocationSet]="!!dropoff()"
             (clearPickupLocation)="clearPickupOnly()"
@@ -67,6 +69,7 @@
                 <input
                   type="checkbox"
                   formControlName="safetyConsent"
+                  required
                   class="h-5 w-5 rounded border-border text-primary accent-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-card"
                 />
               </span>
@@ -78,6 +81,7 @@
                     safetyForm.controls.safetyConsent.invalid && safetyForm.controls.safetyConsent.touched
                   "
                 >
+                  <span class="text-destructive-foreground" aria-hidden="true">*</span>
                   I have been informed and I accept that the company bears no responsibility for the safety and
                   integrity of the products within the boxes. The customer is solely responsible for their proper
                   packaging.
@@ -105,8 +109,14 @@
         </div>
 
     <div
-      class="create-order-map-wrap relative z-[35] order-2 flex w-full min-w-0 shrink-0 flex-col overflow-hidden max-lg:aspect-[4/3] max-lg:min-h-[13.75rem] max-lg:max-h-[min(18.75rem,55vh)] max-lg:h-[clamp(13.75rem,calc(100dvh-18rem),18.75rem)] lg:min-h-[400px] lg:h-full lg:max-h-none lg:order-2"
+      class="create-order-map-wrap relative z-[35] flex w-full min-w-0 shrink-0 flex-col overflow-hidden lg:order-2 lg:min-h-[400px] lg:h-full lg:max-h-none"
     >
+      <p
+        class="shrink-0 border-b border-border/30 bg-muted/35 px-3 py-1.5 text-center text-[10px] leading-snug text-muted-foreground xs:text-xs lg:hidden"
+        role="note"
+      >
+        Tap the map to set pickup, then destination
+      </p>
       <app-order-map-view
         class="create-order-map-host block h-full min-h-0"
         [mapsEmbedReady]="mapsEmbedReady()"

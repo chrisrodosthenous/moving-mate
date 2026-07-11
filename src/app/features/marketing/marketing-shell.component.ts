@@ -10,7 +10,7 @@ import { SiteFooterComponent } from './shared/site-footer.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, SiteHeaderComponent, SiteFooterComponent],
   template: `
-    <div class="flex min-h-dvh flex-col bg-background text-foreground">
+    <div class="flex min-h-dvh flex-col bg-background text-foreground" data-design-scope="marketing">
       <web-site-header />
       <main class="flex-1">
         <router-outlet />

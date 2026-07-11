@@ -14,6 +14,7 @@ import { leafShellOutletData } from '../../routing/shell-route.helper';
   templateUrl: './customer-shell.component.html',
   styleUrl: './customer-shell.component.css',
   animations: [customerShellTabTransition],
+  host: { 'data-design-scope': 'customer' },
 })
 export class CustomerShellComponent {
   private readonly router = inject(Router);
@@ -42,4 +43,5 @@ export class CustomerShellComponent {
 
   readonly pageTitle = computed(() => this.shellOutletMeta().pageTitle);
   readonly shellFullBleed = computed(() => this.shellOutletMeta().shellFullBleed);
+  readonly hideShellPageTitle = computed(() => this.shellOutletMeta().hideShellPageTitle);
 }

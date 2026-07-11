@@ -19,6 +19,8 @@ import {
   ORDER_LABEL_SUB_CLASS,
   ORDER_MAP_BTN_ACTIVE,
   ORDER_MAP_BTN_IDLE,
+  ORDER_REQUIRED_HINT_CLASS,
+  ORDER_REQUIRED_MARK,
   ORDER_SELECT_CLASS,
 } from './order-form.constants';
 
@@ -42,6 +44,8 @@ export class OrderFormComponent {
   readonly floorOptions = ORDER_FLOOR_OPTIONS;
   readonly labelClass = ORDER_LABEL_CLASS;
   readonly labelSubClass = ORDER_LABEL_SUB_CLASS;
+  readonly requiredHintClass = ORDER_REQUIRED_HINT_CLASS;
+  readonly requiredMarkClass = ORDER_REQUIRED_MARK;
   readonly selectClass = ORDER_SELECT_CLASS;
   readonly mapBtnActive = ORDER_MAP_BTN_ACTIVE;
   readonly mapBtnIdle = ORDER_MAP_BTN_IDLE;
@@ -80,6 +84,8 @@ export class OrderFormComponent {
   readonly dropoffAddressTextChange = output<string>();
   readonly pickupPlaceSelected = output<PlaceResult>();
   readonly dropoffPlaceSelected = output<PlaceResult>();
+  readonly pickupAddressBlur = output<void>();
+  readonly dropoffAddressBlur = output<void>();
   readonly clearPickupLocation = output<void>();
   readonly clearDropoffLocation = output<void>();
   readonly clearPoints = output<void>();

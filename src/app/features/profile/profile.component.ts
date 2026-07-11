@@ -114,6 +114,40 @@ export class ProfileComponent implements OnInit, OnDestroy {
     () => this.user()?.role === 'driver' && this.user()?.isVerified !== true,
   );
 
+  readonly driverIsVerified = computed(() => this.user()?.isVerified === true);
+
+  readonly driverHasUploadedLicense = computed(() => {
+    const uploaded = this.licenseUrl().trim();
+    const stored = (this.user()?.licenseUrl ?? '').trim();
+    return Boolean(uploaded || stored);
+  });
+
+  /** After license upload while admin review is in progress. */
+  readonly driverShowUnderReview = computed(() => {
+    const u = this.user();
+    return (
+      u?.role === 'driver' &&
+      u.isVerified !== true &&
+      u.verificationStatus === 'pending' &&
+      this.driverHasUploadedLicense()
+    );
+  });
+
+  /** Before any license document has been submitted. */
+  readonly driverShowLicensePrompt = computed(() => {
+    const u = this.user();
+    if (u?.role !== 'driver' || u.isVerified === true) return false;
+    if (u.verificationStatus === 'rejected') return false;
+    return !this.driverHasUploadedLicense();
+  });
+
+  readonly driverShowLicenseUpload = computed(() => {
+    const u = this.user();
+    if (u?.role !== 'driver' || u.isVerified === true) return false;
+    if (u.verificationStatus === 'pending' && this.driverHasUploadedLicense()) return false;
+    return true;
+  });
+
   /** Profile uses route `data.pageTitle` so the headline matches dashboards / shell chrome. */
   readonly shellOutletTick = signal(0);
 
@@ -210,7 +244,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
     if (u?.role === 'driver') {
       this.resetDistrictDraftFromUser();
-      this.loadDriverWallet();
+      if (u.isVerified === true) {
+        this.loadDriverWallet();
+      }
     }
   }
 
@@ -290,6 +326,14 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
+  private onDriverVerified(): void {
+    if (this.autoCheckInterval) {
+      clearInterval(this.autoCheckInterval);
+      this.autoCheckInterval = null;
+    }
+    this.loadDriverWallet();
+  }
+
   /** Called by the 30s interval to refresh verification status without showing loading state. */
   private checkStatusQuiet(): void {
     const u = this.authService.user();
@@ -306,6 +350,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
         this.user.set(updatedUser);
         if (updatedUser.isVerified) {
           this.verificationMessage.set('verified');
+          this.onDriverVerified();
           this.cdr.detectChanges();
         } else if (updatedUser.verificationStatus === 'rejected') {
           this.verificationMessage.set('rejected');
@@ -324,8 +369,12 @@ export class ProfileComponent implements OnInit, OnDestroy {
         this.user.set(updatedUser);
         if (updatedUser.isVerified) {
           this.verificationMessage.set('verified');
+          this.onDriverVerified();
         } else if (updatedUser.verificationStatus === 'rejected') {
           this.verificationMessage.set('rejected');
+        }
+        if (updatedUser.licenseUrl) {
+          this.licenseUrl.set(updatedUser.licenseUrl);
         }
         this.cdr.detectChanges();
       },

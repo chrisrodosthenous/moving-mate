@@ -20,8 +20,13 @@ export { DEFAULT_ORDER_LOGISTICS } from '../../core/models/order.model';
 export const ORDER_SELECT_CLASS =
   'w-full max-w-full rounded-lg border border-border/40 bg-background/50 px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 md:px-4 md:py-2.5';
 
+export const ORDER_REQUIRED_MARK = 'text-destructive-foreground';
+
 export const ORDER_LABEL_CLASS =
   'mb-1 block text-[10px] font-medium text-card-foreground xs:text-xs md:mb-2 md:text-sm';
+
+export const ORDER_REQUIRED_HINT_CLASS =
+  'text-[10px] leading-relaxed text-muted-foreground xs:text-xs md:text-sm';
 
 export const ORDER_LABEL_SUB_CLASS =
   'mb-1 block text-[10px] text-muted-foreground xs:text-xs md:text-xs';

@@ -1,11 +1,9 @@
-.order-inventory-row {
-  display: flex;
-  flex-direction: column;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+.order-inventory-item {
+  transition: background-color 0.15s ease;
 }
 
-.order-inventory-row:hover {
-  border-color: hsl(var(--primary) / 0.35);
+.order-inventory-item:hover {
+  background-color: hsl(var(--primary) / 0.06);
 }
 
 .order-inventory-controls {
@@ -42,6 +40,13 @@
 .order-qty-btn:focus-visible {
   outline: 2px solid hsl(var(--ring) / 0.45);
   outline-offset: 2px;
+}
+
+.order-qty-btn--compact {
+  height: 1.75rem;
+  width: 1.75rem;
+  font-size: 0.9375rem;
+  border-radius: 0.375rem;
 }
 
 .order-vehicle-banner {
