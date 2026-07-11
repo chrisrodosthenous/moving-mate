@@ -191,11 +191,10 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
    */
   drawerOpen = signal(true);
 
-  /**
-   * True after {@link GoogleMapsLoaderService} has loaded the JS API (`@googlemaps/js-api-loader`).
-   * `<google-map>` must not mount until then (its constructor throws if `google` is missing).
-   */
+  /** True after {@link GoogleMapsLoaderService} has loaded the core maps library. */
   readonly mapsEmbedReady = signal(false);
+  /** True when the maps library could not be loaded (blank map fallback). */
+  readonly mapsLoadFailed = signal(false);
 
   readonly defaultCenter = CYPRUS_CENTER;
   readonly defaultZoom = 8;
@@ -398,7 +397,10 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    void this.googleMapsLoader.ensureLoaded().then((ok) => this.mapsEmbedReady.set(ok));
+    void this.googleMapsLoader.ensureLoaded().then((ok) => {
+      this.mapsEmbedReady.set(ok);
+      this.mapsLoadFailed.set(!ok);
+    });
     fromEvent(globalThis.window, 'resize')
       .pipe(debounceTime(250), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {

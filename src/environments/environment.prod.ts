@@ -6,7 +6,7 @@ export const environment = {
   production: true,
   /** Production testing phase: mock authorize/capture. Set false when Stripe is live. */
   mockPayments: true,
-  googleMapsApiKey: 'AIzaSyBZRuC0W63c6UnB5l73Ahi7M5V0vinhBqQ',
+  googleMapsApiKey: 'AIzaSyB5_oJxsXsi7nuJiYhV1c3vJGQrIc05ZGw',
 
   firebase: {
     apiKey: 'AIzaSyB5_oJxsXsi7nuJiYhV1c3vJGQrIc05ZGw',

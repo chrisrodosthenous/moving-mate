@@ -1,7 +1,11 @@
-const path = require('path');
-const fs = require('fs');
 const admin = require('firebase-admin');
 const { isNotificationEnabled } = require('./notificationSettingsService');
+const {
+  loadFirebaseServiceAccount,
+  firebaseServiceAccountCandidates,
+  resolveFirebaseServiceAccountPath,
+  DEFAULT_FILENAME,
+} = require('../config/firebaseServiceAccount');
 const { canonicalCyprusDistrict } = require('../constants/cyprusDistricts');
 const {
   filterDriversEligibleForOrder,
@@ -14,35 +18,6 @@ const { isUserSocketConnected } = require('./socketPresenceService');
 
 let initialized = false;
 let missingConfigWarned = false;
-let resolvedPathLogged = false;
-
-function resolveServiceAccountPath() {
-  const fromServerConfig = path.join(__dirname, '..', 'config', 'firebase-service-account.json');
-  const isDev = process.env.NODE_ENV === 'development';
-  if (!resolvedPathLogged) {
-    if (isDev) {
-      console.log(
-        `[PushNotificationService] Resolving service account (primary candidate): ${fromServerConfig}`
-      );
-    }
-    resolvedPathLogged = true;
-  }
-  const envPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
-    ? path.resolve(process.cwd(), process.env.FIREBASE_SERVICE_ACCOUNT_PATH)
-    : null;
-  const candidates = [
-    envPath,
-    fromServerConfig,
-    // Common mis-name: duplicate `.json` extension (still valid for Admin SDK)
-    path.join(__dirname, '..', 'config', 'firebase-service-account.json.json'),
-    path.join(__dirname, '..', '..', 'backend', 'config', 'firebase-service-account.json'),
-  ].filter(Boolean);
-
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
-  }
-  return null;
-}
 
 function initPushNotificationService() {
   try {
@@ -51,22 +26,38 @@ function initPushNotificationService() {
       return true;
     }
 
-    const serviceAccountPath = resolveServiceAccountPath();
-    if (!serviceAccountPath) {
+    let serviceAccount;
+    try {
+      serviceAccount = loadFirebaseServiceAccount();
+    } catch (err) {
+      console.warn('[PushNotificationService] Initialization failed. Push disabled.', err.message);
+      return false;
+    }
+
+    if (!serviceAccount) {
       if (!missingConfigWarned) {
+        const checked = firebaseServiceAccountCandidates().join(', ');
         console.warn('[PushNotificationService] Service account JSON not found. Push notifications remain disabled.');
+        console.warn(
+          `[PushNotificationService] On Render: add Secret File "${DEFAULT_FILENAME}" and set FIREBASE_SERVICE_ACCOUNT_PATH=/etc/secrets/${DEFAULT_FILENAME}`,
+        );
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[PushNotificationService] Checked paths: ${checked}`);
+        }
         missingConfigWarned = true;
       }
       return false;
     }
 
-    const serviceAccount = require(serviceAccountPath);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
     initialized = true;
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[PushNotificationService] Firebase Admin initialized. path=${serviceAccountPath}`);
+      const filePath = resolveFirebaseServiceAccountPath();
+      console.log(
+        `[PushNotificationService] Firebase Admin initialized.${filePath ? ` path=${filePath}` : ' (from FIREBASE_SERVICE_ACCOUNT_JSON)'}`,
+      );
     } else {
       console.log('[PushNotificationService] Firebase Admin initialized.');
     }

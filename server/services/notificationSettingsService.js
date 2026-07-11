@@ -1,6 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 const NotificationSetting = require('../models/NotificationSetting');
+const { resolveFirebaseServiceAccountPath } = require('../config/firebaseServiceAccount');
 
 /** Default rows (eventName must stay stable for code checks). */
 const DEFAULT_SETTINGS = [
@@ -153,23 +152,6 @@ async function isNotificationEnabled(eventName) {
   const map = await loadEnabledMap();
   if (!map.has(eventName)) return true;
   return map.get(eventName) === true;
-}
-
-function resolveFirebaseServiceAccountPath() {
-  const fromServerConfig = path.join(__dirname, '..', 'config', 'firebase-service-account.json');
-  const envPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
-    ? path.resolve(process.cwd(), process.env.FIREBASE_SERVICE_ACCOUNT_PATH)
-    : null;
-  const candidates = [
-    envPath,
-    fromServerConfig,
-    path.join(__dirname, '..', 'config', 'firebase-service-account.json.json'),
-    path.join(__dirname, '..', '..', 'backend', 'config', 'firebase-service-account.json'),
-  ].filter(Boolean);
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
-  }
-  return null;
 }
 
 /** Firebase Admin can initialize (service account file present). */
