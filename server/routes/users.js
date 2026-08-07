@@ -12,7 +12,6 @@ const {
   updateFcmToken,
   removeFcmToken,
   changePassword,
-  submitLicenseVerification,
 } = require('../controllers/userController');
 
 const router = express.Router();
@@ -21,7 +20,6 @@ router.use(authMiddleware);
 
 router.get('/driver-rating', getDriverRating);
 router.get('/driver-analytics', getDriverAnalytics);
-router.post('/profile/submit-verification', submitLicenseVerification);
 router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
 router.patch('/profile', updateProfile);

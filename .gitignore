@@ -44,6 +44,13 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
+# Local upload artifacts (E2E / manual tests); .gitkeep files track empty dirs
+server/uploads/**/*.png
+server/uploads/**/*.jpg
+server/uploads/**/*.jpeg
+server/uploads/**/*.pdf
+server/uploads/**/*.webp
+
 # Secrets
 server/.env
 .env

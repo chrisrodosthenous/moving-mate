@@ -25,11 +25,7 @@ function firebaseServiceAccountCandidates() {
     path.join('/etc/secrets', 'config', DEFAULT_FILENAME),
   );
 
-  candidates.push(
-    fromServerConfig,
-    path.join(__dirname, `${DEFAULT_FILENAME}.json`),
-    path.join(__dirname, '..', '..', 'backend', 'config', DEFAULT_FILENAME),
-  );
+  candidates.push(fromServerConfig, path.join(__dirname, `${DEFAULT_FILENAME}.json`));
 
   const seen = new Set();
   return candidates.filter((p) => {

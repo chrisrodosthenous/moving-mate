@@ -61,8 +61,7 @@ async function main() {
   console.log('Firebase Admin JSON search order (first file that exists wins):');
   console.log('  1. FIREBASE_SERVICE_ACCOUNT_PATH (resolved from process.cwd())');
   console.log('  2. server/config/firebase-service-account.json');
-  console.log('  3. server/config/firebase-service-account.json.json');
-  console.log('  4. backend/config/firebase-service-account.json (legacy path)\n');
+  console.log('  3. server/config/firebase-service-account.json.json\n');
 
   const report = {
     health: false,

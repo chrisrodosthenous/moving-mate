@@ -301,16 +301,6 @@ function toAuthUser(user) {
 }
 
 /**
- * POST /api/users/profile/submit-verification — legacy route; verification is file-only (POST /api/users/upload-license).
- */
-async function submitLicenseVerification(req, res) {
-  return res.status(400).json({
-    message:
-      'License verification is done by uploading your license file on the driver profile. License number submission is no longer used.',
-  });
-}
-
-/**
  * POST /api/users/change-password
  * Body: { currentPassword, newPassword }
  */
@@ -695,7 +685,6 @@ exports.updateProfileDistricts = updateProfileDistricts;
 exports.getDriverAnalytics = getDriverAnalytics;
 exports.getDriverRating = getDriverRating;
 exports.getProfile = getProfile;
-exports.submitLicenseVerification = submitLicenseVerification;
 exports.uploadLicense = uploadLicense;
 exports.updateFcmToken = updateFcmToken;
 exports.removeFcmToken = removeFcmToken;
