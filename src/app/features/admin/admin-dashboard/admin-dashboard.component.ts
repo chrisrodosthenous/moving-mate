@@ -29,6 +29,7 @@ import {
   RejectDriverDialogData,
 } from '../reject-driver-dialog/reject-driver-dialog.component';
 import { AdminFleetComponent } from '../../../components/admin/admin-fleet.component';
+import type { AdminLicensePreviewRequest } from '../../../components/admin/admin-fleet.component';
 import { AdminLogisticsComponent } from '../../../components/admin/admin-logistics.component';
 import { AdminNotifyComponent } from '../../../components/admin/admin-notify.component';
 import { AdminAnalyticsComponent } from '../admin-analytics/admin-analytics.component';
@@ -53,6 +54,7 @@ import {
   driverMatchesFleetVerifiedTab,
   orderMatchesLogisticsTab,
 } from '../../../core/constants/statuses';
+import { isPdfDocumentPath, resolveUploadUrl } from '../../../shared/utils/document-url';
 
 const ADMIN_OVERVIEW_POLL_MS = 30_000;
 
@@ -103,6 +105,7 @@ export class AdminDashboardComponent implements OnInit {
   /** Document / vehicle image preview modal. */
   licensePreviewUrl = signal<string | null>(null);
   vehiclePhotoPreviewUrl = signal<string | null>(null);
+  private licensePreviewBlobUrl: string | null = null;
 
   /** Logistics Control: in_progress → API `picked_up`, completed → API `delivered`. */
   selectedLogisticsTab = signal<AdminLogisticsTabId>(ADMIN_LOGISTICS_TAB.IN_PROGRESS);
@@ -309,26 +312,72 @@ export class AdminDashboardComponent implements OnInit {
     this.selectedDriver.set(driver);
   }
 
-  openLicensePreview(licenseUrl: string): void {
-    if (!licenseUrl) return;
-    const fullUrl = this.licenseBaseUrl + licenseUrl;
-    const lower = licenseUrl.toLowerCase();
+  openLicensePreview(target: string | AdminLicensePreviewRequest): void {
+    if (typeof target === 'string') {
+      this.openStaticImagePreview(target);
+      return;
+    }
+    const { userId, licenseUrl } = target;
+    if (!userId || !licenseUrl) return;
+
+    if (isPdfDocumentPath(licenseUrl)) {
+      this.adminService.getDriverLicenseBlob(userId).subscribe({
+        next: (blob) => {
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank', 'noopener,noreferrer');
+          window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+        },
+        error: () => {
+          this.toast.show('Could not open license document.', 'error');
+        },
+      });
+      return;
+    }
+
+    this.adminService.getDriverLicenseBlob(userId).subscribe({
+      next: (blob) => {
+        this.revokeLicensePreviewBlob();
+        const blobUrl = URL.createObjectURL(blob);
+        this.licensePreviewBlobUrl = blobUrl;
+        this.vehiclePhotoPreviewUrl.set(null);
+        this.licensePreviewUrl.set(blobUrl);
+      },
+      error: () => {
+        this.openStaticImagePreview(licenseUrl);
+      },
+    });
+  }
+
+  private openStaticImagePreview(relativeOrAbsoluteUrl: string): void {
+    if (!relativeOrAbsoluteUrl) return;
+    const fullUrl = resolveUploadUrl(relativeOrAbsoluteUrl, this.licenseBaseUrl);
+    const lower = relativeOrAbsoluteUrl.toLowerCase();
     if (lower.endsWith('.pdf')) {
       window.open(fullUrl, '_blank', 'noopener,noreferrer');
-    } else {
-      this.vehiclePhotoPreviewUrl.set(null);
-      this.licensePreviewUrl.set(fullUrl);
+      return;
+    }
+    this.revokeLicensePreviewBlob();
+    this.vehiclePhotoPreviewUrl.set(null);
+    this.licensePreviewUrl.set(fullUrl);
+  }
+
+  private revokeLicensePreviewBlob(): void {
+    if (this.licensePreviewBlobUrl) {
+      URL.revokeObjectURL(this.licensePreviewBlobUrl);
+      this.licensePreviewBlobUrl = null;
     }
   }
 
   openVehiclePhotoPreview(vehiclePhotoUrl: string): void {
     if (!vehiclePhotoUrl) return;
-    const fullUrl = this.licenseBaseUrl + vehiclePhotoUrl;
+    const fullUrl = resolveUploadUrl(vehiclePhotoUrl, this.licenseBaseUrl);
+    this.revokeLicensePreviewBlob();
     this.licensePreviewUrl.set(null);
     this.vehiclePhotoPreviewUrl.set(fullUrl);
   }
 
   closeLicensePreview(): void {
+    this.revokeLicensePreviewBlob();
     this.licensePreviewUrl.set(null);
   }
 

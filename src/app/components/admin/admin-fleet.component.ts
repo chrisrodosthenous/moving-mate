@@ -7,6 +7,12 @@ import { ADMIN_FLEET_TAB, type AdminFleetTabId } from '../../core/constants/stat
 import {
   driverVehicleTypeLabel,
 } from '../../core/models/driver.model';
+import { isImageDocumentPath, resolveUploadUrl } from '../../shared/utils/document-url';
+
+export interface AdminLicensePreviewRequest {
+  userId: string;
+  licenseUrl: string;
+}
 
 const DRIVER_VERIFY_BTN =
   'min-h-11 shrink-0 rounded-lg px-4 text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-60';
@@ -38,7 +44,7 @@ export class AdminFleetComponent {
 
   readonly driverTabChange = output<AdminFleetTabId>();
   readonly selectDriver = output<AdminUser | PendingVerificationUser>();
-  readonly openLicensePreview = output<string>();
+  readonly openLicensePreview = output<AdminLicensePreviewRequest>();
   readonly openVehiclePhotoPreview = output<string>();
   readonly approveDriver = output<string>();
   readonly rejectDriver = output<AdminUser | PendingVerificationUser>();
@@ -57,7 +63,24 @@ export class AdminFleetComponent {
   vehiclePhotoSrc(driver: AdminUser | PendingVerificationUser): string | null {
     const url = driver.vehiclePhotoUrl?.trim();
     if (!url) return null;
-    return this.licenseBaseUrl() + url;
+    return resolveUploadUrl(url, this.licenseBaseUrl());
+  }
+
+  licenseImageSrc(driver: AdminUser | PendingVerificationUser): string | null {
+    const url = driver.licenseUrl?.trim();
+    if (!url || !isImageDocumentPath(url)) return null;
+    return resolveUploadUrl(url, this.licenseBaseUrl());
+  }
+
+  licenseIsImage(driver: AdminUser | PendingVerificationUser): boolean {
+    const url = driver.licenseUrl?.trim();
+    return Boolean(url && isImageDocumentPath(url));
+  }
+
+  onLicensePreviewClick(driver: AdminUser | PendingVerificationUser): void {
+    const licenseUrl = driver.licenseUrl?.trim();
+    if (!licenseUrl) return;
+    this.openLicensePreview.emit({ userId: driver._id, licenseUrl });
   }
 
   onVehiclePhotoClick(event: Event, url: string | undefined | null): void {

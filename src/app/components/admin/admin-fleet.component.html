@@ -98,6 +98,14 @@
                     (click)="onVehiclePhotoClick($event, u.vehiclePhotoUrl)"
                   />
                 }
+                @if (licenseImageSrc(u); as licenseSrc) {
+                  <img
+                    [src]="licenseSrc"
+                    alt="License thumbnail"
+                    class="h-12 w-12 shrink-0 rounded-md border border-border/40 object-cover"
+                    (click)="onLicensePreviewClick(u); $event.stopPropagation()"
+                  />
+                }
               </div>
             </button>
           }
@@ -176,18 +184,32 @@
           @if (driver.licenseUrl) {
             <div class="mt-2">
               <p class="text-[11px] text-primary mb-1">License / ID document</p>
-              <ui-button
-                type="button"
-                (click)="openLicensePreview.emit(driver.licenseUrl!)"
-                variant="ghost"
-                [className]="'flex h-28 w-28 items-center justify-center overflow-hidden rounded border border-border/40 bg-secondary/30 !p-1'"
-              >
-                <img
-                  [src]="licenseBaseUrl() + driver.licenseUrl"
-                  alt="License document"
-                  class="max-h-full max-w-full object-contain"
-                />
-              </ui-button>
+              @if (licenseIsImage(driver)) {
+                <ui-button
+                  type="button"
+                  (click)="onLicensePreviewClick(driver)"
+                  variant="ghost"
+                  [className]="'flex h-28 w-28 items-center justify-center overflow-hidden rounded border border-border/40 bg-secondary/30 !p-1'"
+                  [attr.data-testid]="'admin-license-preview-' + driver._id"
+                >
+                  <img
+                    [src]="licenseImageSrc(driver)"
+                    alt="License document"
+                    class="max-h-full max-w-full object-contain"
+                  />
+                </ui-button>
+                <p class="mt-1 text-[10px] text-muted-foreground">Click to open full-size preview</p>
+              } @else {
+                <ui-button
+                  type="button"
+                  (click)="onLicensePreviewClick(driver)"
+                  variant="outline"
+                  [className]="'min-h-10 rounded-lg px-4 text-xs font-medium'"
+                  [attr.data-testid]="'admin-license-preview-' + driver._id"
+                >
+                  Open PDF document
+                </ui-button>
+              }
             </div>
           } @else {
             <p class="text-xs text-muted-foreground mt-2">No license document uploaded.</p>

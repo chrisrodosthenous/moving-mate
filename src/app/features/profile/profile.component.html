@@ -465,6 +465,34 @@
                   >Verified ✅</span
                 >
               </div>
+              @if (driverHasUploadedLicense()) {
+                <div class="mb-4" data-testid="driver-license-preview">
+                  <p class="mb-2 text-sm font-medium text-muted">License / ID document</p>
+                  @if (driverLicenseIsImage()) {
+                    <a
+                      [href]="driverLicenseFullUrl()"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-block overflow-hidden rounded-lg border border-brand-slate/45 shadow-sm transition hover:border-primary/40"
+                    >
+                      <img
+                        [src]="driverLicenseFullUrl()"
+                        alt="License document on file"
+                        class="h-28 w-auto max-w-full object-cover sm:h-32"
+                      />
+                    </a>
+                  } @else if (driverLicenseIsPdf()) {
+                    <ui-button
+                      type="button"
+                      variant="outline"
+                      [className]="'py-2.5 px-4 rounded-lg'"
+                      (click)="openDriverLicenseDocument()"
+                    >
+                      Open PDF document
+                    </ui-button>
+                  }
+                </div>
+              }
               @if (verificationMessage() === 'verified') {
                 <div
                   class="mb-4 rounded-lg border border-primary/20/60 bg-primary/10 px-5 py-4 text-sm text-primary"
@@ -488,6 +516,35 @@
                   {{ checkStatusLoading() ? 'Checking…' : 'Check verification status' }}
                 </ui-button>
               </div>
+              @if (driverHasUploadedLicense()) {
+                <div class="mb-4" data-testid="driver-license-preview">
+                  <p class="mb-2 text-sm font-medium text-muted">Submitted license / ID document</p>
+                  @if (driverLicenseIsImage()) {
+                    <a
+                      [href]="driverLicenseFullUrl()"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-block overflow-hidden rounded-lg border border-brand-slate/45 shadow-sm transition hover:border-primary/40"
+                    >
+                      <img
+                        [src]="driverLicenseFullUrl()"
+                        alt="Submitted license document"
+                        class="h-28 w-auto max-w-full object-cover sm:h-32"
+                      />
+                    </a>
+                    <p class="mt-1 text-xs text-muted">Tap to open full size</p>
+                  } @else if (driverLicenseIsPdf()) {
+                    <ui-button
+                      type="button"
+                      variant="outline"
+                      [className]="'py-2.5 px-4 rounded-lg'"
+                      (click)="openDriverLicenseDocument()"
+                    >
+                      Open PDF document
+                    </ui-button>
+                  }
+                </div>
+              }
               @if (verificationMessage() === 'verified') {
                 <div
                   class="mb-4 rounded-lg border border-primary/20/60 bg-primary/10 px-5 py-4 text-sm text-primary"
@@ -553,10 +610,36 @@
                 >
                   {{ uploadLicenseLoading() ? 'Uploading…' : 'Upload document' }}
                 </ui-button>
-                @if (licenseUrl()) {
-                  <span class="text-sm text-muted">Stored: {{ licenseUrl() }}</span>
-                }
               </div>
+              @if (driverHasUploadedLicense()) {
+                <div class="mt-4" data-testid="driver-license-preview">
+                  <p class="mb-2 text-sm font-medium text-muted">Uploaded document preview</p>
+                  @if (driverLicenseIsImage()) {
+                    <a
+                      [href]="driverLicenseFullUrl()"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-block overflow-hidden rounded-lg border border-brand-slate/45 shadow-sm transition hover:border-primary/40"
+                    >
+                      <img
+                        [src]="driverLicenseFullUrl()"
+                        alt="Uploaded license document"
+                        class="h-28 w-auto max-w-full object-cover sm:h-32"
+                      />
+                    </a>
+                    <p class="mt-1 text-xs text-muted">Tap to open full size</p>
+                  } @else if (driverLicenseIsPdf()) {
+                    <ui-button
+                      type="button"
+                      variant="outline"
+                      [className]="'py-2.5 px-4 rounded-lg'"
+                      (click)="openDriverLicenseDocument()"
+                    >
+                      Open PDF document
+                    </ui-button>
+                  }
+                </div>
+              }
               <p class="mt-2 text-xs text-muted">PDF, JPG or PNG. Max 5MB.</p>
               </div>
             }

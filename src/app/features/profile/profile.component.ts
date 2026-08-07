@@ -29,6 +29,11 @@ import { UiBadgeComponent } from '@/components/ui/badge';
 import { getPasswordPolicyErrors, validatePassword } from '../../shared/utils/password-policy';
 import { WalletService } from '../../core/services/wallet.service';
 import { leafShellOutletData } from '../../shared/routing/shell-route.helper';
+import {
+  isImageDocumentPath,
+  isPdfDocumentPath,
+  resolveUploadUrl,
+} from '../../shared/utils/document-url';
 
 const PHONE_PREFIX = '+357';
 const AUTO_CHECK_VERIFICATION_MS = 30_000;
@@ -121,6 +126,16 @@ export class ProfileComponent implements OnInit, OnDestroy {
     const stored = (this.user()?.licenseUrl ?? '').trim();
     return Boolean(uploaded || stored);
   });
+
+  readonly driverLicensePath = computed(
+    () => this.licenseUrl().trim() || (this.user()?.licenseUrl ?? '').trim(),
+  );
+
+  readonly driverLicenseFullUrl = computed(() => resolveUploadUrl(this.driverLicensePath()));
+
+  readonly driverLicenseIsImage = computed(() => isImageDocumentPath(this.driverLicensePath()));
+
+  readonly driverLicenseIsPdf = computed(() => isPdfDocumentPath(this.driverLicensePath()));
 
   /** After license upload while admin review is in progress. */
   readonly driverShowUnderReview = computed(() => {
@@ -502,6 +517,12 @@ export class ProfileComponent implements OnInit, OnDestroy {
         },
         complete: () => this.loading.set(false),
       });
+  }
+
+  openDriverLicenseDocument(): void {
+    const url = this.driverLicenseFullUrl();
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   onLicenseFileChange(event: Event): void {
