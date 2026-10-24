@@ -7,6 +7,7 @@ const { authMiddleware } = require('../middleware/auth');
 const { uploadCargo } = require('../middleware/uploadCargo');
 const {
   createOrder,
+  createOrderQuote,
   getOrders,
   updateOrder,
   pickupOrder,
@@ -38,6 +39,7 @@ router.patch('/:id/accept', authMiddleware, (req, res, next) => {
 router.use(authMiddleware);
 router.get('/summary', getOrderSummary);
 router.get('/mine', getMyOrders);
+router.post('/quote', createOrderQuote);
 router.post('/', createOrderLimiter, createOrder);
 router.post('/:id/rate', rateOrder);
 router.post('/:id/cargo', uploadCargo.single('cargo'), uploadOrderCargo);

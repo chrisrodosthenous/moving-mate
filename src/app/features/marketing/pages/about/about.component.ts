@@ -80,6 +80,6 @@ export class AboutComponent {
     { icon: 'heart', title: 'Fairness', text: 'A fair deal for customers and a fair payout for drivers on every completed job.' },
     { icon: 'users', title: 'Community', text: 'Ratings and reviews keep quality high and build a community you can rely on.' },
     { icon: 'route', title: 'Reliability', text: 'Accurate routes, real ETAs and dependable service you can plan your day around.' },
-    { icon: 'smartphone', title: 'Simplicity', text: 'Everything in one app — book, track, chat and pay without the hassle.' },
+    { icon: 'smartphone', title: 'Simplicity', text: 'Everything in one app — book, track and pay without the hassle.' },
   ];
 }

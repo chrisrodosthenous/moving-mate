@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
 const TransportOrder = require('../models/TransportOrder');
-const Message = require('../models/Message');
 const Review = require('../models/Review');
 const User = require('../models/User');
 const { sendOrderConfirmation, sendDriverAcceptedEmail, sendOrderCompletedEmail, sendPaymentCapturedEmail } = require('../services/notificationService');
@@ -36,7 +35,9 @@ const {
   driverCanFulfillOrderVehicle,
 } = require('../utils/driverVehicleMatching');
 const { calculateOrderPrice, pricesMatch } = require('../utils/orderPricing');
-const { applyCompletionCommission } = require('../utils/orderCommission');
+const { applyCompletionCommission, computeOrderCommission } = require('../utils/orderCommission');
+const { buildQuoteInputs, signOrderQuote, verifyOrderQuote } = require('../utils/orderQuote');
+const { getActivePricingConfig } = require('../services/pricingConfigService');
 const {
   ensurePaymentIntentForOrder,
   captureForOrderAccept,
@@ -379,6 +380,7 @@ async function createOrder(req, res, next) {
       destinationFloor,
       hasElevator,
       laborRequired,
+      quoteToken,
     } = req.body;
     const userId = req.user?.userId;
     if (!userId) {
@@ -392,7 +394,8 @@ async function createOrder(req, res, next) {
     const dropoffErr = validateLocation(dropoffLocation, 'dropoffLocation');
     if (dropoffErr) return res.status(400).json({ message: dropoffErr });
 
-    if (price == null || typeof price !== 'number' || !Number.isFinite(price) || price < 0) {
+    const hasQuote = typeof quoteToken === 'string' && quoteToken.trim() !== '';
+    if (!hasQuote && (price == null || typeof price !== 'number' || !Number.isFinite(price) || price < 0)) {
       return res.status(400).json({ message: 'Valid price is required' });
     }
     if (distanceKm == null || typeof distanceKm !== 'number' || !Number.isFinite(distanceKm) || distanceKm < 0) {
@@ -525,21 +528,52 @@ async function createOrder(req, res, next) {
     orderData.hasElevator = Boolean(hasElevator);
     orderData.laborRequired = laborRequired;
 
-    const serverPricing = calculateOrderPrice({
-      vehicleType: vt,
-      distanceKm,
-      pickupFloor,
-      destinationFloor,
-      hasElevator,
-      laborRequired,
-    });
-    if (!pricesMatch(price, serverPricing.total)) {
-      return res.status(400).json({
-        message: `Price mismatch: expected €${serverPricing.total.toFixed(2)} (received €${Number(price).toFixed(2)})`,
+    const { config } = await getActivePricingConfig();
+    let lockedSplit = null;
+
+    if (hasQuote) {
+      const verified = verifyOrderQuote(quoteToken, {
+        vehicleType: vt,
+        distanceKm,
+        cargoInventory,
+        pickupFloor,
+        destinationFloor,
+        hasElevator,
+        laborRequired,
       });
+      if (!verified.ok) {
+        return res.status(400).json({ message: verified.reason });
+      }
+      orderData.price = verified.total;
+      if (verified.driverEarnings != null && verified.platformCommission != null) {
+        lockedSplit = verified;
+      }
+    } else {
+      const serverPricing = calculateOrderPrice({
+        vehicleType: vt,
+        distanceKm,
+        cargoInventory,
+        pickupFloor,
+        destinationFloor,
+        hasElevator,
+        laborRequired,
+      }, config);
+      if (!pricesMatch(price, serverPricing.total)) {
+        return res.status(400).json({
+          message: `Price mismatch: expected €${serverPricing.total.toFixed(2)} (received €${Number(price).toFixed(2)})`,
+        });
+      }
+      orderData.price = serverPricing.total;
+      orderData.distanceKm = serverPricing.distanceKm;
     }
-    orderData.price = serverPricing.total;
-    orderData.distanceKm = serverPricing.distanceKm;
+
+    if (lockedSplit) {
+      orderData.commissionRate = lockedSplit.commissionRate;
+      orderData.platformCommission = lockedSplit.platformCommission;
+      orderData.driverEarnings = lockedSplit.driverEarnings;
+    } else {
+      applyCompletionCommission(orderData, undefined, config);
+    }
 
     const order = await TransportOrder.create(orderData);
     await ensurePaymentIntentForOrder(order);
@@ -719,7 +753,7 @@ async function updateOrder(req, res, next) {
             acceptedAt: new Date(),
           },
         },
-        { new: true },
+        { returnDocument: 'after' },
       )
         .populate('customerId', 'firstName lastName phoneNumber email fcmTokens')
         .populate('driverId', 'firstName lastName phoneNumber email fcmTokens');
@@ -905,38 +939,20 @@ async function getMyOrders(req, res, next) {
       }
     }
 
-    const unreadMap = new Map();
-    if (orderIds.length > 0) {
-      const agg = await Message.aggregate([
-        {
-          $match: {
-            orderId: { $in: orderIds },
-            receiverId: userObjectId,
-            read: false,
-          },
-        },
-        { $group: { _id: '$orderId', count: { $sum: 1 } } },
-      ]);
-      for (const row of agg) {
-        unreadMap.set(String(row._id), row.count);
-      }
-    }
-
-    const ordersWithUnread = orders.map((o) => {
+    const ordersForClient = orders.map((o) => {
       const driverRef = o.driverId && typeof o.driverId === 'object' ? o.driverId : null;
       const assignedDriverName = driverRef
         ? [driverRef.firstName, driverRef.lastName].filter(Boolean).join(' ').trim() || undefined
         : undefined;
       return {
         ...o,
-        unreadCount: unreadMap.get(String(o._id)) ?? 0,
         hasReview: reviewedOrderIds.has(String(o._id)),
         submittedAt: o.createdAt,
         assignedDriverName,
       };
     });
 
-    res.json({ orders: ordersWithUnread, total });
+    res.json({ orders: ordersForClient, total });
   } catch (err) {
     next(err);
   }
@@ -1349,8 +1365,52 @@ async function uploadOrderCargo(req, res, next) {
   }
 }
 
+/** Price the job from the active config and sign the result so a later config edit cannot change it. */
+async function createOrderQuote(req, res, next) {
+  try {
+    const cargoInventory = parseCargoInventory(req.body?.cargoInventory);
+    if (!cargoInventory) {
+      return res.status(400).json({
+        message:
+          'cargoInventory is required with non-negative integer fields: boxes, mediumItems, largeFurniture, heavyAppliances',
+      });
+    }
+    const distanceKm = Number(req.body?.distanceKm);
+    if (!Number.isFinite(distanceKm) || distanceKm < 0) {
+      return res.status(400).json({ message: 'distanceKm is required and must be a non-negative number' });
+    }
+
+    const score = cargoInventoryScore(cargoInventory);
+    const vehicleType = vehicleTypeFromScore(score);
+    const { config, version } = await getActivePricingConfig();
+    const inputs = buildQuoteInputs({ ...req.body, vehicleType, cargoInventory, distanceKm });
+    const breakdown = calculateOrderPrice(inputs, config);
+    const split = computeOrderCommission(breakdown.total, undefined, config);
+    const signed = signOrderQuote({
+      inputs,
+      total: breakdown.total,
+      configVersion: version,
+      split,
+    });
+
+    return res.json({
+      breakdown,
+      vehicleType,
+      cargoScore: score,
+      driverEarnings: split.driverEarnings,
+      platformCommission: split.platformCommission,
+      commissionRate: split.commissionRate,
+      quoteToken: signed.token,
+      expiresAt: signed.expiresAt,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   createOrder,
+  createOrderQuote,
   getOrders,
   updateOrder,
   pickupOrder,

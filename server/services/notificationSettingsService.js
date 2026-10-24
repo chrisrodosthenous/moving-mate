@@ -88,18 +88,6 @@ const DEFAULT_SETTINGS = [
     description: 'Push to customer asking them to rate after delivery. Deep-links to /rate-driver/:id.',
   },
   {
-    eventName: 'push_chat_message',
-    type: 'push',
-    label: 'New Chat Message (legacy key)',
-    description: 'Legacy event name; prefer push_new_chat_message.',
-  },
-  {
-    eventName: 'push_new_chat_message',
-    type: 'push',
-    label: 'New Chat Message',
-    description: 'Push when a chat message is sent to the other party. Deep-links to /chat/:orderId.',
-  },
-  {
     eventName: 'push_verification_request',
     type: 'push',
     label: 'Driver Verification Request',
@@ -117,6 +105,9 @@ function invalidateCache() {
 }
 
 async function ensureDefaultSettings() {
+  await NotificationSetting.deleteMany({
+    eventName: { $in: ['push_chat_message', 'push_new_chat_message'] },
+  });
   for (const row of DEFAULT_SETTINGS) {
     const { label, ...rest } = row;
     await NotificationSetting.updateOne(

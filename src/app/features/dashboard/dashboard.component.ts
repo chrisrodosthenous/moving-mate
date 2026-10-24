@@ -36,6 +36,9 @@ import {
 } from '../../shared/utils/order-tracking';
 import { DriverAnalyticsComponent } from '../driver/driver-analytics/driver-analytics.component';
 
+/** Dashboard charts use the newest trips. The earnings window is 30 days. */
+const DRIVER_CHART_ORDER_CAP = 100;
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -162,15 +165,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   /** Load customer's latest active order for dashboard status display */
   loadLatestActiveOrder(): void {
     if (!this.isCustomer) return;
-    this.ordersService.getMyOrders().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: ({ orders }) => {
-        const active = orders.filter(
-          (o) => !['delivered', 'completed', 'cancelled'].includes(o.status),
-        );
-        this.latestActiveOrder.set(active.length > 0 ? active[0] : null);
-      },
-      error: () => this.latestActiveOrder.set(null),
-    });
+    this.ordersService
+      .getMyOrders({ view: 'summary', scope: 'active', limit: 1 })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ orders }) => {
+          this.latestActiveOrder.set(orders[0] ?? null);
+        },
+        error: () => this.latestActiveOrder.set(null),
+      });
   }
 
   /** Load driver's average rating for dashboard */
@@ -182,11 +185,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Load driver's orders for analytics charts (uses existing trip data). */
+  /** Load driver's newest trips for analytics charts (summary fields only). */
   loadDriverChartOrders(): void {
     if (!this.isDriver) return;
     this.ordersService
-      .getMyOrders({ skipGlobalErrorToast: true })
+      .getMyOrders({
+        skipGlobalErrorToast: true,
+        view: 'summary',
+        limit: DRIVER_CHART_ORDER_CAP,
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {

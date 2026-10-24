@@ -41,12 +41,6 @@ const DRIVER_TESTS: DeepLinkTestButton[] = [
     title: 'New Order Available!',
     body: 'A new job is available in your area. Tap to view.',
   },
-  {
-    label: 'Test: Chat Message',
-    url: '/chat/test-id',
-    title: 'New Message',
-    body: 'You have a new chat message.',
-  },
 ];
 
 const ADMIN_TESTS: DeepLinkTestButton[] = [

@@ -173,6 +173,17 @@
           <span class="sidebar-label">Notifications</span>
         </a>
       </li>
+      <li>
+        <a
+          routerLink="/admin/settings/pricing"
+          routerLinkActive="bg-primary/20 text-primary"
+          [class]="navLinkClass"
+          (click)="closeMobileNav()"
+        >
+          <lucide-icon name="settings-2" [size]="20"></lucide-icon>
+          <span class="sidebar-label">Pricing</span>
+        </a>
+      </li>
       <li class="sidebar-section-title w-full px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:text-primary">
         Preview
       </li>

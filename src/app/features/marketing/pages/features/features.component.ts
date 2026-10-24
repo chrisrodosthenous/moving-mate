@@ -92,7 +92,6 @@ export class FeaturesComponent {
     { icon: 'map-pin', title: 'Real-time tracking', text: 'Watch your move progress live with accurate pickup and delivery ETAs.' },
     { icon: 'credit-card', title: 'Secure in-app payments', text: 'Funds are authorised up front and released only when the job is complete.' },
     { icon: 'package', title: 'Right-sized vehicles', text: 'Pickup, minivan, van or truck — pick the vehicle that matches your load.' },
-    { icon: 'message-square', title: 'Direct messaging', text: 'Coordinate access, floors and details with your driver through secure chat.' },
     { icon: 'bell', title: 'Smart notifications', text: 'Stay informed at every step with email and push updates you control.' },
     { icon: 'route', title: 'Optimised routes', text: 'Distance and pricing are calculated on real driving routes, not straight lines.' },
     { icon: 'star', title: 'Ratings & reviews', text: 'Rate each move so the community keeps quality high for everyone.' },
@@ -101,7 +100,7 @@ export class FeaturesComponent {
   readonly customerPoints = [
     'Book a move in minutes with an upfront price',
     'Choose extra loading help and floor/elevator options',
-    'Track your driver live and chat in-app',
+    'Track your driver live from pickup to drop-off',
     'Pay securely — released only after delivery',
     'Rate your driver and reorder in a tap',
   ];
@@ -109,7 +108,7 @@ export class FeaturesComponent {
   readonly driverPoints = [
     'Get matched with nearby jobs that fit your vehicle',
     'See clear earnings before you accept',
-    'Fair 80/20 payout split on completed jobs',
+    'Fair payouts that keep more of large jobs with the driver',
     'Manage tasks, navigation and status in one place',
     'Build your reputation with customer ratings',
   ];

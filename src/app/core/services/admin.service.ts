@@ -111,7 +111,6 @@ export interface AdminOrder {
 /** GET /api/admin/orders/:id */
 export interface AdminOrderDetailResponse {
   success?: boolean;
-  messageCount?: number;
   order: AdminOrder;
 }
 
@@ -128,6 +127,30 @@ export interface AdminAnalyticsPayload {
 
 export interface PendingVerificationsResponse {
   users: PendingVerificationUser[];
+}
+
+export interface AdminPricingPreview {
+  label: string;
+  vehicleType: string;
+  distanceKm: number;
+  total: number;
+  pricingBasis: string;
+  driverEarnings: number;
+  platformCommission: number;
+  commissionRate: number;
+}
+
+export interface AdminPricingConfig {
+  dieselPricePerLitreEur: number;
+  driverHourlyTargetEur: number;
+  helperHourlyRateEur: number;
+  commissionTiers: Array<{ upToEur: number | null; ratePercent: number }>;
+}
+
+export interface AdminPricingConfigResponse {
+  config: AdminPricingConfig;
+  version: number;
+  preview: AdminPricingPreview[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -203,5 +226,17 @@ export class AdminService {
       `${API_URL}/verify-user/${encodeURIComponent(id)}`,
       { status },
     );
+  }
+
+  getPricingConfig(): Observable<AdminPricingConfigResponse> {
+    return this.http.get<AdminPricingConfigResponse>(`${API_URL}/pricing-config`);
+  }
+
+  updatePricingConfig(body: { config: Partial<AdminPricingConfig> }): Observable<AdminPricingConfigResponse> {
+    return this.http.put<AdminPricingConfigResponse>(`${API_URL}/pricing-config`, body);
+  }
+
+  previewPricingConfig(body: { config: Partial<AdminPricingConfig> }): Observable<AdminPricingConfigResponse> {
+    return this.http.post<AdminPricingConfigResponse>(`${API_URL}/pricing-config/preview`, body);
   }
 }

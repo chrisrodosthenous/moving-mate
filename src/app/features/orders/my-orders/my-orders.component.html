@@ -1,4 +1,4 @@
-<div [class]="ordersOuterRootClass()" [attr.data-chat-drawer-open]="isChatDrawerOpen()">
+<div [class]="ordersOuterRootClass()">
   @if (!hideShell()) {
     <app-sidebar class="app-sidebar-host" />
   }
@@ -204,37 +204,6 @@
                         {{ cancellingId() === order._id ? 'Cancelling…' : 'Cancel order' }}
                       </ui-button>
                     }
-                    <div
-                      class="relative z-0 flex w-full flex-wrap items-center justify-end gap-2 overflow-visible md:flex-1 md:min-w-0 md:flex-nowrap"
-                    >
-                      @if (canChat(order)) {
-                        <!-- Same structure as driver My trips: native button + sibling badge; avoids stretched flex slot clipping -->
-                        <div class="relative inline-flex w-full shrink-0 align-top md:w-auto">
-                          <button
-                            type="button"
-                            [attr.data-testid]="'chat-open-' + order._id"
-                            title="Open chat"
-                            (click)="onOpenChat(order); $event.stopPropagation()"
-                            class="relative z-0 inline-flex min-h-[44px] w-full flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg bg-surface-track px-3 py-2.5 text-sm font-medium text-muted transition hover:bg-surface-track md:flex-none md:w-auto"
-                          >
-                            <span aria-hidden="true">💬</span>
-                            <span>Chat</span>
-                          </button>
-                          @if (chatService.badgeUnreadForOrder(order._id, order.unreadCount) > 0) {
-                            <span
-                              [attr.data-testid]="'chat-unread-badge-' + order._id"
-                              class="pointer-events-none absolute -right-[5px] -top-[5px] z-10 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-foreground ring-2 ring-card"
-                            >
-                              {{
-                                chatService.badgeUnreadForOrder(order._id, order.unreadCount) > 99
-                                  ? '99+'
-                                  : chatService.badgeUnreadForOrder(order._id, order.unreadCount)
-                              }}
-                            </span>
-                          }
-                        </div>
-                      }
-                    </div>
                   </div>
                 </div>
 
@@ -652,11 +621,4 @@
     </div>
   }
 
-  @if (chatOrder(); as order) {
-    <app-chat-side-drawer
-      [order]="order"
-      [currentUserId]="auth.user()?.id ?? ''"
-      (drawerClosed)="closeChat()"
-    />
-  }
 </div>

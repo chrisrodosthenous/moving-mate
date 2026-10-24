@@ -1,4 +1,4 @@
-<div [class]="tripsPageOuterClass()" [attr.data-chat-drawer-open]="isChatDrawerOpen()">
+<div [class]="tripsPageOuterClass()">
   @if (error()) {
     <div class="mb-6 alert-error px-4 py-3 text-sm">{{ error() }}</div>
   }
@@ -119,25 +119,6 @@
                   <div
                     class="flex w-full flex-wrap items-stretch justify-start gap-2 sm:w-auto sm:flex-1 sm:justify-end"
                   >
-                    <div class="relative inline-flex min-h-[44px] min-w-0 flex-1 sm:min-w-[120px] sm:flex-none">
-                      <button
-                        type="button"
-                        [attr.data-testid]="'chat-open-' + order._id"
-                        (click)="onOpenChat(order); $event.stopPropagation()"
-                        class="relative z-0 inline-flex h-full min-h-[44px] w-full flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#49769F]/40 bg-[#001224]/50 px-4 py-2.5 text-sm font-medium text-[#BDD8E9] shadow-sm transition hover:border-[#7BBDE8]/40 hover:bg-[#7BBDE8]/10"
-                      >
-                        <span aria-hidden="true">💬</span>
-                        <span>Chat</span>
-                      </button>
-                      @if (unreadCountNum(order) > 0) {
-                        <span
-                          [attr.data-testid]="'chat-unread-badge-' + order._id"
-                          class="pointer-events-none absolute -right-[5px] -top-[5px] z-10 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#7BBDE8] px-1 text-[10px] font-bold text-[#001D39] ring-2 ring-[#0A4174]"
-                        >
-                          {{ unreadCountNum(order) > 99 ? '99+' : unreadCountNum(order) }}
-                        </span>
-                      }
-                    </div>
                     @if (canShowMarkPickedUp(order)) {
                       <button
                         type="button"
@@ -311,8 +292,4 @@
 
 @if (cargoLightboxUrl(); as lbUrl) {
   <app-cargo-photo-lightbox [imageUrl]="lbUrl" (closed)="onCargoLightboxClosed()" />
-}
-
-@if (chatOrder(); as co) {
-  <app-chat-side-drawer [order]="co" [currentUserId]="userId()" (drawerClosed)="closeChat()" />
 }

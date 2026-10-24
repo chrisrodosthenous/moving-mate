@@ -2,7 +2,7 @@ import { HttpContext, HttpContextToken } from '@angular/common/http';
 
 /**
  * When true, {@link httpErrorInterceptor} does not show a ToastService message.
- * Use for: silent polling, NgRx-driven requests (store shows errors), background sync, chat polling.
+ * Use for: silent polling, NgRx-driven requests (store shows errors), and background sync.
  */
 export const SKIP_GLOBAL_HTTP_ERROR_TOAST = new HttpContextToken<boolean>(() => false);
 

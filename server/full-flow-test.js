@@ -25,10 +25,8 @@ const mongoose = require('mongoose');
 const { getMongoUri } = require('./config/env');
 const User = require('./models/User');
 const TransportOrder = require('./models/TransportOrder');
-const Message = require('./models/Message');
 const NotificationService = require('./services/notificationService');
 const PushNotificationService = require('./services/pushNotificationService');
-const { sendNewOrderToDriversPush, sendChatMessagePush } = PushNotificationService;
 const {
   runDriverAcceptedNotifications,
   runInTransitNotifications,
@@ -276,38 +274,6 @@ async function main() {
   }
   report.steps.push(step2);
   console.log('\n[E2E] Step 2 result:', JSON.stringify(step2, null, 2));
-
-  // —— Step 3 ——
-  const step3 = { name: 'Step 3 — Chat message push (driver → customer)' };
-  const chatDoc = await Message.create({
-    orderId: order._id,
-    senderId: driver._id,
-    receiverId: customer._id,
-    text: '[E2E] Test message from driver to customer',
-    read: false,
-  });
-  step3.messageId = String(chatDoc._id);
-  const custFresh = await User.findById(customer._id).select('fcmTokens').lean();
-  const customerTokens = activeFcmTokens(custFresh?.fcmTokens || []);
-  step3.targetCustomerTokenCount = customerTokens.length;
-  try {
-    const pushRes = await sendChatMessagePush({
-      receiverFcmToken: custFresh?.fcmTokens || [],
-      senderName: `${driver.firstName} ${driver.lastName}`.trim() || 'Driver',
-      orderId: String(order._id),
-      recipientUserId: String(customer._id),
-    });
-    step3.fcm = serializeFcmResult(pushRes);
-    step3.verifyTargetsCustomer = customerTokens.length > 0;
-    if (!step3.fcm.success) report.ok = false;
-  } catch (e) {
-    step3.error = e.message;
-    step3.success = false;
-    report.ok = false;
-  }
-  if (step3.success === undefined) step3.success = Boolean(step3.fcm?.success);
-  report.steps.push(step3);
-  console.log('\n[E2E] Step 3 result:', JSON.stringify(step3, null, 2));
 
   // —— Step 4 ——
   order.status = 'picked_up';

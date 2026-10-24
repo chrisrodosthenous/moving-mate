@@ -15,9 +15,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
-import { ChatSideDrawerComponent } from '../../../shared/components/chat-side-drawer/chat-side-drawer.component';
 import { CargoPhotoLightboxComponent } from '../../../shared/components/cargo-photo-lightbox/cargo-photo-lightbox.component';
-import { ChatService } from '../../../core/services/chat.service';
 import { customerOrderListStagger } from '../../../shared/components/customer/customer-animations';
 import * as CustomerActions from '../../customer/state/customer.actions';
 import {
@@ -53,11 +51,8 @@ import {
   paymentStatusLabel,
 } from '../../../shared/utils/order-payment.util';
 
-/** While “View route” is open, merge `driverLocation` from the API more often than the list poll. */
-const ROUTE_PREVIEW_SILENT_POLL_MS = 4000;
-const UNREAD_POLL_MS = 5000;
-/** Matches React `MyOrders` silent refresh interval. */
-const ORDERS_POLL_MS = 10_000;
+/** Safety refresh if a socket update is missed. Live status still arrives on `order_updated`. */
+const ORDERS_POLL_MS = 60_000;
 
 /**
  * Completed tab: terminal customer-visible outcomes (US + UK spelling for cancelled).
@@ -75,7 +70,6 @@ const COMPLETED_TAB_STATUSES = new Set(['delivered', 'completed', 'cancelled', '
     DecimalPipe,
     NgClass,
     SidebarComponent,
-    ChatSideDrawerComponent,
     CargoPhotoLightboxComponent,
     EmptyStateComponent,
     UiButtonComponent,
@@ -96,7 +90,6 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   private readonly socket = inject(SocketService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
-  chatService = inject(ChatService);
   auth = inject(AuthService);
   private readonly logger = inject(LoggerService);
   private readonly breakpointObserver = inject(BreakpointObserver);
@@ -229,13 +222,9 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   ratingStars = signal(0);
   reviewText = signal('');
   ratingSuccess = signal(false);
-  chatOrder = signal<TransportOrder | null>(null);
-  readonly isChatDrawerOpen = computed(() => this.chatOrder() !== null);
-
   /** Full URL for native `<dialog>` cargo preview (see `openCargoLightbox`). */
   readonly cargoLightboxUrl = signal<string | null>(null);
 
-  private unreadPollTimer: ReturnType<typeof setInterval> | null = null;
   private ordersPollTimer: ReturnType<typeof setInterval> | null = null;
 
   readonly hideShell = computed(() => this.router.url.includes('/customer/'));
@@ -343,16 +332,6 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
     this.store.dispatch(CustomerActions.loadCustomerOrders());
     this.socket.connect();
 
-    effect((onCleanup) => {
-      const open = this.routePreviewOrder();
-      if (!open || this.auth.user()?.role !== 'customer') return;
-      const t = window.setInterval(
-        () => this.store.dispatch(CustomerActions.loadCustomerOrdersSilent()),
-        ROUTE_PREVIEW_SILENT_POLL_MS,
-      );
-      onCleanup(() => window.clearInterval(t));
-    });
-
     effect(() => {
       const updated = this.socket.onOrderUpdated();
       if (!updated) return;
@@ -382,11 +361,6 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.chatService.getUnreadCounts().subscribe();
-    this.unreadPollTimer = setInterval(
-      () => this.chatService.getUnreadCounts().subscribe(),
-      UNREAD_POLL_MS,
-    );
     this.ordersPollTimer = setInterval(
       () => this.store.dispatch(CustomerActions.loadCustomerOrdersSilent()),
       ORDERS_POLL_MS,
@@ -394,10 +368,6 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.unreadPollTimer) {
-      clearInterval(this.unreadPollTimer);
-      this.unreadPollTimer = null;
-    }
     if (this.ordersPollTimer) {
       clearInterval(this.ordersPollTimer);
       this.ordersPollTimer = null;
@@ -593,27 +563,6 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
         this.completingId.set(null);
       },
     });
-  }
-
-  canChat(order: TransportOrder): boolean {
-    if (!['accepted', 'in_progress', 'picked_up', 'driver_is_on_the_way'].includes(order.status))
-      return false;
-    return !!(order.driverId && (typeof order.driverId === 'object' ? order.driverId._id : order.driverId));
-  }
-
-  onOpenChat(order: TransportOrder): void {
-    if (!this.canChat(order)) return;
-    const id = normalizeOrderId(order._id);
-    if (!id) return;
-    this.chatService.setChatDrawerOpenOrderId(id);
-    this.chatService.markMessagesAsRead(id).subscribe();
-    this.chatOrder.set(order);
-  }
-
-  closeChat(): void {
-    this.chatService.setChatDrawerOpenOrderId(null);
-    this.chatOrder.set(null);
-    this.chatService.getUnreadCounts().subscribe();
   }
 
   /** Same modal as My Trips (driver): directions polyline + live driver marker when applicable. */

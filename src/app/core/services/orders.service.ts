@@ -52,7 +52,6 @@ export interface TransportOrder {
   platformCommission?: number;
   commissionRate?: number;
   distanceKm?: number;
-  unreadCount?: number;
   hasReview?: boolean;
   insuranceStatus?: boolean;
   scheduledAt?: string;
@@ -99,6 +98,8 @@ export interface CreateOrderPayload extends OrderLogistics {
   largeBoxes: number;
   insuranceStatus?: boolean;
   scheduledAt?: string;
+  /** Signed server quote. When present, the server charges that price even if config changed. */
+  quoteToken?: string;
 }
 
 export interface OrderSummaryCustomer {
@@ -195,7 +196,7 @@ export class OrdersService {
 
   /**
    * GET /api/orders/mine — returns `{ orders, total }`.
-   * Pass `view: 'summary'` and `limit` / `offset` for list views; omit for full unbounded payload (driver/dashboard).
+   * Pass `view: 'summary'` and `limit` / `offset` for list views.
    */
   getMyOrders(opts?: GetMyOrdersOpts): Observable<MyOrdersListResponse> {
     const view = opts?.view;

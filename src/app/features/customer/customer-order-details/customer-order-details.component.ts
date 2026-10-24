@@ -4,9 +4,9 @@ import {
   computed,
   effect,
   inject,
-  OnDestroy,
   OnInit,
   signal,
+  untracked,
   ViewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -22,8 +22,7 @@ import { selectCustomerOrders, selectCustomerOrdersLoading } from '../state/cust
 import { SocketService } from '../../../core/services/socket.service';
 import { TrackingComponent } from './tracking/tracking.component';
 import { orderVehicleTypeDisplayLabel } from '../../../shared/utils/order-cargo-scoring.util';
-
-const LOCATION_POLL_MS = 25_000;
+import type { TransportOrder } from '../../../core/services/orders.service';
 
 @Component({
   selector: 'app-customer-order-details',
@@ -32,20 +31,22 @@ const LOCATION_POLL_MS = 25_000;
   templateUrl: './customer-order-details.component.html',
   styleUrl: './customer-order-details.component.css',
 })
-export class CustomerOrderDetailsComponent implements OnInit, OnDestroy {
+export class CustomerOrderDetailsComponent implements OnInit {
   readonly vehicleTypeLabel = orderVehicleTypeDisplayLabel;
   private readonly store = inject(Store);
   private readonly route = inject(ActivatedRoute);
   private readonly mapsLoader = inject(GoogleMapsLoaderService);
   private readonly logger = inject(LoggerService);
-  readonly socketConnectionState = inject(SocketService).socketConnectionState;
+  private readonly socket = inject(SocketService);
+  readonly socketConnectionState = this.socket.socketConnectionState;
 
   @ViewChild(GoogleMap) private staticOverviewMap?: GoogleMap;
 
   readonly mapsEmbedReady = signal(false);
   readonly customerLocation = signal<{ lat: number; lng: number } | null>(null);
 
-  private ordersPollTimer: ReturnType<typeof setInterval> | null = null;
+  /** Keeps this order on screen after it leaves the active list (delivered / cancelled). */
+  private readonly trackedOrder = signal<TransportOrder | null>(null);
 
   readonly orders = toSignal(this.store.select(selectCustomerOrders), { initialValue: [] });
   readonly loading = toSignal(this.store.select(selectCustomerOrdersLoading), { initialValue: true });
@@ -57,6 +58,8 @@ export class CustomerOrderDetailsComponent implements OnInit, OnDestroy {
   readonly order = computed(() => {
     const id = this.orderIdParam();
     if (!id) return null;
+    const tracked = this.trackedOrder();
+    if (tracked && String(tracked._id) === id) return tracked;
     return this.orders().find((o) => String(o._id) === id) ?? null;
   });
 
@@ -110,16 +113,37 @@ export class CustomerOrderDetailsComponent implements OnInit, OnDestroy {
   );
 
   constructor() {
-    effect((onCleanup) => {
-      const loading = this.loading();
-      const o = this.order();
-      if (loading || !o || !isCustomerLiveMapTrackingStatus(o.status)) {
-        this.stopOrdersPoll();
+    this.socket.connect();
+
+    effect(() => {
+      const id = this.orderIdParam();
+      const fromList = this.orders().find((o) => String(o._id) === id) ?? null;
+      if (!id) {
+        this.trackedOrder.set(null);
         return;
       }
+      if (fromList) {
+        this.trackedOrder.set(fromList);
+        return;
+      }
+      const current = untracked(() => this.trackedOrder());
+      if (current && String(current._id) !== id) {
+        this.trackedOrder.set(null);
+      }
+    });
 
-      this.startOrdersPoll();
-      onCleanup(() => this.stopOrdersPoll());
+    effect(() => {
+      const updated = this.socket.onOrderUpdated();
+      if (!updated) return;
+      this.applyLiveOrder(updated);
+      this.socket.clearOrderUpdate();
+    });
+
+    effect(() => {
+      const completed = this.socket.onOrderCompleted();
+      if (!completed) return;
+      this.applyLiveOrder(completed);
+      this.socket.clearOrderCompleted();
     });
   }
 
@@ -146,10 +170,6 @@ export class CustomerOrderDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  ngOnDestroy(): void {
-    this.stopOrdersPoll();
-  }
-
   /** Non-live Angular map only — live route uses imperative {@link TrackingComponent}. */
   onStaticMapInitialized(): void {
     this.triggerStaticResize();
@@ -163,17 +183,11 @@ export class CustomerOrderDetailsComponent implements OnInit, OnDestroy {
     }, 0);
   }
 
-  private startOrdersPoll(): void {
-    this.stopOrdersPoll();
-    this.ordersPollTimer = setInterval(() => {
-      this.store.dispatch(CustomerActions.loadCustomerOrdersSilent());
-    }, LOCATION_POLL_MS);
-  }
-
-  private stopOrdersPoll(): void {
-    if (this.ordersPollTimer) {
-      clearInterval(this.ordersPollTimer);
-      this.ordersPollTimer = null;
+  private applyLiveOrder(incoming: TransportOrder): void {
+    const id = this.orderIdParam();
+    if (id && String(incoming._id) === id) {
+      this.trackedOrder.update((cur) => (cur && String(cur._id) === id ? { ...cur, ...incoming } : incoming));
     }
+    this.store.dispatch(CustomerActions.applyCustomerOrderPatch({ order: incoming }));
   }
 }

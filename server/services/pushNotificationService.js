@@ -333,18 +333,6 @@ async function sendRatingRequestPush(orderData) {
   );
 }
 
-async function sendChatMessagePush({ receiverFcmToken, senderName, orderId, recipientUserId }) {
-  const name = String(senderName || '').trim() || 'Someone';
-  const oid  = String(orderId || '');
-  return sendPush(
-    receiverFcmToken,
-    `New message from ${name}`,
-    'Open the app to read and reply.',
-    { orderId: oid, type: 'chat_message', url: `/chat/${oid}` },
-    { eventKey: 'push_new_chat_message', fcmDebugUserId: recipientUserId }
-  );
-}
-
 /**
  * Notify verified drivers whose district AND vehicle tier match the order.
  */
@@ -493,7 +481,6 @@ module.exports = {
   send30MinReminderPush,
   sendStartTripPush,
   sendRatingRequestPush,
-  sendChatMessagePush,
   sendNewOrderToDriversPush,
   sendVerificationRequestToAdminsPush,
 };

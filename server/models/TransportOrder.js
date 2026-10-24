@@ -51,11 +51,11 @@ const transportOrderSchema = new mongoose.Schema(
       required: [true, 'Price is required'],
       min: [0, 'Price must be zero or positive'],
     },
-    /** Driver net payout (80% of price) — set when status → delivered. */
+    /** Driver net payout — stamped at creation from the marginal commission bands. */
     driverEarnings: { type: Number, default: 0, min: 0 },
-    /** Platform commission (20% of price) — set when status → delivered. */
+    /** Platform commission — stamped at creation from the marginal commission bands. */
     platformCommission: { type: Number, default: 0, min: 0 },
-    /** Commission percentage applied at completion (default 20). */
+    /** Effective blended commission percentage (display); split amounts are authoritative. */
     commissionRate: { type: Number, default: 20, min: 0, max: 100 },
     /** Customer payment lifecycle (mirrors PaymentIntent for list UI). */
     paymentStatus: {

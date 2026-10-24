@@ -2,8 +2,7 @@ import { ErrorHandler, Injectable, inject, isDevMode } from '@angular/core';
 import { LoggerService } from '../services/logger.service';
 import { ToastService } from '../services/toast.service';
 
-const GENERIC_CLIENT_ERROR =
-  'Something went wrong. Please refresh the page and try again.';
+const GENERIC_CLIENT_ERROR = 'Something went wrong. Please try again.';
 
 /** Throttle repeated toasts from error storms (e.g. repeated change-detection throws). */
 let lastGlobalToastAt = 0;

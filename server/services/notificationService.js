@@ -357,14 +357,14 @@ async function sendTemplateEmail({
         disableClickTracking,
       });
     } else {
-      const transport = await getTransporter();
+    const transport = await getTransporter();
       info = await transport.sendMail({
-        from: defaultFrom,
-        to: String(to).trim(),
-        subject,
-        text: text || '',
-        html,
-      });
+      from: defaultFrom,
+      to: String(to).trim(),
+      subject,
+      text: text || '',
+      html,
+    });
     }
 
     if (process.env.NODE_ENV === 'development') {

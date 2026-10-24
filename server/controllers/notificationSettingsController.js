@@ -25,14 +25,6 @@ function pushTestCopyForEvent(eventName, label) {
       title: 'Order delivered (test)',
       body: 'Sample: how was your experience? Tap to rate your driver.',
     },
-    push_chat_message: {
-      title: 'New chat message (test)',
-      body: 'Sample: open the app to read and reply.',
-    },
-    push_new_chat_message: {
-      title: 'New chat message (test)',
-      body: 'Sample: open the app to read and reply.',
-    },
     push_verification_request: {
       title: 'Driver verification request (test)',
       body: 'Sample: a driver has submitted documents for review.',

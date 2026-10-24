@@ -23,9 +23,7 @@ const { ALLOWED_ORIGINS, ALLOWED_HEADERS, ALLOWED_METHODS } = require('./config/
 const { buildHelmetOptions } = require('./config/helmetConfig');
 const { globalApiLimiter } = require('./middleware/rateLimiters');
 const { joinUserSocketRooms, attachDriverLocationHandlers } = require('./services/realtimeService');
-const { attachChatPresenceToSocket } = require('./services/chatPresenceService');
 const { attachSocketPresenceToSocket } = require('./services/socketPresenceService');
-const { attachChatSocketHandlers } = require('./services/chatSocketHandlers');
 const { activeFcmTokens } = require('./utils/fcmTokens');
 const { validateGoogleMapsApiKeyAtStartup } = require('./config/mapsEnv');
 
@@ -50,6 +48,11 @@ try {
 validateGoogleMapsApiKeyAtStartup();
 
 const app = express();
+// Render terminates TLS and forwards the client address in X-Forwarded-For.
+// One hop so each visitor has their own rate-limit bucket. `true` would trust any hop.
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
@@ -80,9 +83,7 @@ io.on('connection', (socket) => {
   console.log(
     `[Socket] connected id=${socket.id} userId=${socket.userId} role=${socket.role ?? ''}`
   );
-  attachChatPresenceToSocket(socket);
   attachSocketPresenceToSocket(socket);
-  attachChatSocketHandlers(socket, io);
   attachDriverLocationHandlers(socket, io);
   joinUserSocketRooms(socket).catch((err) => {
     console.warn('[Socket] joinUserSocketRooms failed:', err.message);
@@ -415,7 +416,6 @@ if (testRoutesEnabled) {
 const authRoutes = require('./routes/auth.routes');
 const ordersRoutes = require('./routes/orders');
 const usersRoutes = require('./routes/users');
-const chatRoutes = require('./routes/chat.routes');
 const reviewsRoutes = require('./routes/reviews.routes');
 const adminRoutes = require('./routes/admin.routes');
 const { authMiddleware } = require('./middleware/auth');
@@ -427,7 +427,6 @@ app.use('/api/wallet', require('./routes/wallet.routes'));
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/users', usersRoutes);
-app.use('/api/chat', chatRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/contact', require('./routes/contact.routes'));
 /** Explicit POST so path is always POST /api/admin/notifications/test (auth + admin, same as admin router). */

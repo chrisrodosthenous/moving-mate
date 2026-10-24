@@ -3,8 +3,6 @@ import { io, Socket } from 'socket.io-client';
 import { AuthStore } from '../../store/auth.store';
 import type { TransportOrder } from './orders.service';
 
-export type ChatMessagesReadPayload = { orderId: string; readByUserId: string };
-
 /** Server `customer_location_update` payload (driver live position). */
 export type CustomerLocationPayload = {
   lat: number;
@@ -62,7 +60,6 @@ export class SocketService implements OnDestroy {
     this.socket.on('new_order_available', () => {
       this.newOrderAvailableTick.update((n) => n + 1);
     });
-    this.attachChatReadListener();
   }
 
   private attachSocketLifecycle(s: Socket): void {
@@ -85,63 +82,6 @@ export class SocketService implements OnDestroy {
         s.emit('join_order_tracking', { orderId: oid });
       }
     });
-  }
-
-  private attachChatReadListener(): void {
-    const s = this.socket;
-    if (!s || (s as unknown as { _chatReadAttached?: boolean })._chatReadAttached) return;
-    (s as unknown as { _chatReadAttached?: boolean })._chatReadAttached = true;
-    s.on('chat_messages_read', (payload: ChatMessagesReadPayload) => {
-      for (const fn of this.chatReadCallbacks) {
-        try {
-          fn(payload);
-        } catch {
-          /* ignore */
-        }
-      }
-    });
-  }
-
-  private chatReadCallbacks = new Set<(payload: ChatMessagesReadPayload) => void>();
-
-  /** Subscribe to read receipts (receiver marked messages read). Returns unsubscribe. */
-  onChatMessagesRead(handler: (payload: ChatMessagesReadPayload) => void): () => void {
-    this.connect();
-    this.attachChatReadListener();
-    this.chatReadCallbacks.add(handler);
-    return () => this.chatReadCallbacks.delete(handler);
-  }
-
-  /** Tell the server this user has the chat UI open for this order (suppresses chat FCM for this recipient). */
-  emitViewingChat(orderId: string): void {
-    if (typeof window === 'undefined') return;
-    const oid = String(orderId || '').trim();
-    if (!oid) return;
-    this.connect();
-    const s = this.socket;
-    if (!s) return;
-    const payload = { orderId: oid };
-    if (s.connected) {
-      s.emit('viewing_chat', payload);
-    } else {
-      s.once('connect', () => s.emit('viewing_chat', payload));
-    }
-  }
-
-  /** Mark messages read for this order (same as PATCH /api/chat/mark-read/:orderId). */
-  emitMarkMessagesRead(orderId: string): void {
-    if (typeof window === 'undefined') return;
-    const oid = String(orderId || '').trim();
-    if (!oid) return;
-    this.connect();
-    const s = this.socket;
-    if (!s) return;
-    const payload = { orderId: oid };
-    if (s.connected) {
-      s.emit('mark_messages_read', payload);
-    } else {
-      s.once('connect', () => s.emit('mark_messages_read', payload));
-    }
   }
 
   /**
@@ -230,15 +170,6 @@ export class SocketService implements OnDestroy {
    */
   onCustomerLocationUpdate(handler: (payload: CustomerLocationPayload) => void): () => void {
     return this.listenToLocationUpdates(handler);
-  }
-
-  emitLeftChat(orderId: string): void {
-    if (typeof window === 'undefined') return;
-    const oid = String(orderId || '').trim();
-    if (!oid) return;
-    const s = this.socket;
-    if (!s?.connected) return;
-    s.emit('left_chat', { orderId: oid });
   }
 
   disconnect(): void {

@@ -195,11 +195,6 @@ export class HomeComponent {
       title: 'Any load size',
       text: 'From a pickup truck to a full moving truck — choose the vehicle that fits your move.',
     },
-    {
-      icon: 'message-square',
-      title: 'In-app chat',
-      text: 'Coordinate details directly with your driver through built-in secure messaging.',
-    },
   ];
 
   readonly steps: Step[] = [

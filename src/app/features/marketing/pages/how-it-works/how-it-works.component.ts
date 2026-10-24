@@ -115,7 +115,7 @@ export class HowItWorksComponent {
   readonly steps: Step[] = [
     { icon: 'map-pin', title: 'Enter your move details', text: 'Add pickup and drop-off addresses, choose a vehicle tier and any extras such as loading help or floors.' },
     { icon: 'zap', title: 'Get an instant quote', text: 'We calculate a transparent price from the real driving route, vehicle rate and add-ons — no hidden fees.' },
-    { icon: 'shield-check', title: 'Get matched with a driver', text: 'A nearby verified driver accepts your job. Chat in-app to confirm any details before pickup.' },
+    { icon: 'shield-check', title: 'Get matched with a driver', text: 'A nearby verified driver accepts your job and heads to the pickup address.' },
     { icon: 'credit-card', title: 'Track, deliver, pay', text: 'Follow the move live. Your secure payment is released to the driver only once everything arrives.' },
   ];
 

@@ -1,7 +1,7 @@
 /**
  * COMPLETE DATABASE CLEANUP + SEED ADMIN USER
  *
- * Deletes all documents from: Users, TransportOrders (orders), Messages, Reviews.
+ * Deletes all documents from: Users, TransportOrders (orders), Reviews.
  * Then creates a single admin user from env vars.
  *
  * Usage (run from project root):
@@ -20,7 +20,6 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
 const TransportOrder = require('../models/TransportOrder');
-const Message = require('../models/Message');
 const Review = require('../models/Review');
 
 const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/moving-mate';
@@ -39,7 +38,6 @@ async function main() {
 
   await mongoose.connect(MONGODB_URI);
 
-  const messagesDeleted = (await Message.deleteMany({})).deletedCount;
   const reviewsDeleted = (await Review.deleteMany({})).deletedCount;
   const ordersDeleted = (await TransportOrder.deleteMany({})).deletedCount;
   const usersDeleted = (await User.deleteMany({})).deletedCount;
@@ -63,8 +61,6 @@ async function main() {
   console.log('Database cleared successfully.');
   console.log(
     'Deleted:',
-    messagesDeleted,
-    'messages,',
     reviewsDeleted,
     'reviews,',
     ordersDeleted,

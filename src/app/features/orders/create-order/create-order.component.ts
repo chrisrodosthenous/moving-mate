@@ -4,8 +4,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
-import { merge, of, fromEvent } from 'rxjs';
-import { debounceTime, finalize, map, take } from 'rxjs/operators';
+import { merge, of, fromEvent, BehaviorSubject } from 'rxjs';
+import { catchError, debounceTime, finalize, map, switchMap, take } from 'rxjs/operators';
 import { LucideAngularModule } from 'lucide-angular';
 import { MapDirectionsService } from '@angular/google-maps';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
@@ -26,6 +26,7 @@ import {
   normalizeCargoQuantity,
 } from '../../../shared/utils/order-cargo-scoring.util';
 import { calculateOrderPrice, type OrderPriceBreakdown } from '../../../shared/utils/order-pricing.util';
+import { OrderQuoteService, type OrderQuote } from '../../../core/services/order-quote.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { LoggerService } from '../../../core/services/logger.service';
 import type { PlaceResult } from '../../../shared/directives/places-autocomplete.directive';
@@ -102,7 +103,31 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
   private readonly directionsService = inject(MapDirectionsService);
   private readonly ordersService = inject(OrdersService);
   private readonly router = inject(Router);
+  private readonly quotes = inject(OrderQuoteService);
   private readonly toast = inject(ToastService);
+  private readonly quoteTick = new BehaviorSubject<string>('');
+  /** Latest signed quote whose inputs still match the form. */
+  private readonly serverQuote = signal<{ key: string; quote: OrderQuote } | null>(null);
+  private readonly watchQuoteInputs = effect(() => {
+    this.quoteTick.next(this.quoteInputKey());
+  });
+
+  readonly quoteInputKey = computed(() => {
+    const km = this.distanceKm();
+    const cargo = this.cargoInventory();
+    const logistics = this.logisticsValues();
+    return [
+      km == null ? '' : km.toFixed(2),
+      cargo.boxes,
+      cargo.mediumItems,
+      cargo.largeFurniture,
+      cargo.heavyAppliances,
+      logistics.pickupFloor,
+      logistics.destinationFloor,
+      logistics.hasElevator ? '1' : '0',
+      logistics.laborRequired,
+    ].join('|');
+  });
   private readonly logger = inject(LoggerService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
@@ -147,14 +172,17 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
     { initialValue: this.logisticsForm.getRawValue() },
   );
 
-  /** Live tier-based pricing — mirrors server `orderPricing.js`. */
+  /** Live price. A signed server quote replaces the local mirror as soon as it matches the form. */
   readonly pricingBreakdown = computed((): OrderPriceBreakdown | null => {
+    const quoted = this.serverQuote();
+    if (quoted && quoted.key === this.quoteInputKey()) return quoted.quote.breakdown;
     const km = this.distanceKm();
     if (km == null) return null;
     const logistics = this.logisticsValues();
     return calculateOrderPrice({
       vehicleType: this.assignedVehicleType(),
       distanceKm: km,
+      cargoInventory: this.cargoInventory(),
       pickupFloor: logistics.pickupFloor,
       destinationFloor: logistics.destinationFloor,
       hasElevator: logistics.hasElevator,
@@ -347,6 +375,35 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
         const m = this.mapInstance;
         if (m) google.maps.event.trigger(m, 'resize');
       });
+
+    this.quoteTick
+      .pipe(
+        debounceTime(300),
+        switchMap((key) => {
+          const km = this.distanceKm();
+          const cargo = this.cargoInventory();
+          const logistics = this.logisticsValues();
+          if (km == null || this.totalCargoItems() <= 0) return of(null);
+          return this.quotes.quote({
+            distanceKm: km,
+            cargoInventory: { ...cargo },
+            pickupFloor: logistics.pickupFloor,
+            destinationFloor: logistics.destinationFloor,
+            hasElevator: logistics.hasElevator,
+            laborRequired: logistics.laborRequired,
+          }).pipe(
+            map((quote) => ({ key, quote })),
+            catchError(() => of(null)),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((hit) => {
+        if (!hit || hit.key !== this.quoteInputKey()) return;
+        this.serverQuote.set(hit);
+        this.logisticsForm.controls.vehicleType.setValue(hit.quote.vehicleType, { emitEvent: false });
+      });
+
   }
 
   ngOnDestroy(): void {
@@ -732,17 +789,20 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
     const inventory = this.cargoInventory();
     const km = this.distanceKm();
     const logistics = this.logisticsForm.getRawValue();
+    const quoted = this.serverQuote();
+    const quoteMatches = quoted != null && quoted.key === this.quoteInputKey();
     const payload: CreateOrderPayload = {
       pickupLocation: { address: p.address, lat: p.lat, lng: p.lng },
       dropoffLocation: { address: d.address, lat: d.lat, lng: d.lng },
       pickupDistrict: district,
-      price: Number(pr.toFixed(2)),
+      price: quoteMatches ? quoted.quote.breakdown.total : Number(pr.toFixed(2)),
+      ...(quoteMatches ? { quoteToken: quoted.quote.quoteToken } : {}),
       ...(km != null && { distanceKm: Number(km.toFixed(2)) }),
       cargoInventory: { ...inventory },
       smallBoxes: inventory.boxes,
       mediumBoxes: inventory.mediumItems,
       largeBoxes: inventory.largeFurniture + inventory.heavyAppliances,
-      vehicleType: logistics.vehicleType,
+      vehicleType: quoteMatches ? quoted.quote.vehicleType : logistics.vehicleType,
       pickupFloor: logistics.pickupFloor,
       destinationFloor: logistics.destinationFloor,
       hasElevator: logistics.hasElevator,

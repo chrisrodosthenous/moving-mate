@@ -1,6 +1,7 @@
 import {
   Component,
   DestroyRef,
+  effect,
   inject,
   signal,
   OnInit,
@@ -56,7 +57,8 @@ import {
 } from '../../../core/constants/statuses';
 import { isPdfDocumentPath, resolveUploadUrl } from '../../../shared/utils/document-url';
 
-const ADMIN_OVERVIEW_POLL_MS = 30_000;
+/** Backup refresh. Order changes also reload from `order_updated`. */
+const ADMIN_OVERVIEW_POLL_MS = 120_000;
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -152,6 +154,15 @@ export class AdminDashboardComponent implements OnInit {
 
   get totalDriversCount(): number {
     return this.users().filter((u) => u.role === 'driver').length;
+  }
+
+  constructor() {
+    effect(() => {
+      const updated = this.socket.onOrderUpdated();
+      if (!updated) return;
+      this.loadOverview({ silent: true });
+      this.socket.clearOrderUpdate();
+    });
   }
 
   ngOnInit(): void {

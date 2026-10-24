@@ -8,12 +8,17 @@ const IS_RELAXED_TEST_MODE =
   process.env.NODE_ENV !== 'production' ||
   process.env.E2E_TEST === 'true';
 
-/** Global cap hits fast during Playwright; skip in non-production (same as login/order relax). */
+/**
+ * Browsing cap. List polls are about 6–12 calls a minute on one tab,
+ * so 100 per 15 minutes locked a normal session. Login, reset, and order creation stay strict.
+ * Skipped outside production (same as those stricter limiters).
+ */
+const GLOBAL_API_MAX = 1000;
 const globalApiLimiter = IS_RELAXED_TEST_MODE
   ? (req, res, next) => next()
   : rateLimit({
       windowMs: WINDOW_MS,
-      max: 100,
+      max: GLOBAL_API_MAX,
       message: { message: 'Too many requests from this IP, please try again after 15 minutes.' },
       standardHeaders: true,
       legacyHeaders: false,

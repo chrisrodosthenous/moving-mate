@@ -47,11 +47,16 @@ function logisticsPayloadForTier(tier = 'pickup') {
   };
 }
 
-/** Server-valid price for API-created test orders (matches tier-based pricing engine). */
+/**
+ * Server-valid price for API-created test orders.
+ * Defaults the cargo inventory to the tier preset so the price matches the payload sent with it.
+ */
 function testOrderPrice(distanceKm, tier = 'pickup', opts = {}) {
+  const preset = TIER_LOGISTICS_PRESETS[tier] ?? TIER_LOGISTICS_PRESETS.pickup;
   return calculateOrderPrice({
     vehicleType: tier,
     distanceKm,
+    cargoInventory: opts.cargoInventory ?? preset.cargoInventory,
     pickupFloor: opts.pickupFloor ?? '0',
     destinationFloor: opts.destinationFloor ?? '0',
     hasElevator: opts.hasElevator ?? false,

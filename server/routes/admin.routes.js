@@ -15,6 +15,11 @@ const {
   postAdminTestSendEmail,
 } = require('../controllers/notificationSettingsController');
 const { getPlatformWallet, postPlatformWithdraw } = require('../controllers/walletController');
+const {
+  getPricingConfig,
+  putPricingConfig,
+  postPricingConfigPreview,
+} = require('../controllers/pricingConfigController');
 
 const router = express.Router();
 
@@ -41,5 +46,8 @@ router.patch('/verify-driver/:id', (req, res, next) => {
 
 router.get('/wallet', getPlatformWallet);
 router.post('/wallet/withdraw', postPlatformWithdraw);
+router.get('/pricing-config', getPricingConfig);
+router.put('/pricing-config', putPricingConfig);
+router.post('/pricing-config/preview', postPricingConfigPreview);
 
 module.exports = router;

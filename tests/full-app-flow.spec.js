@@ -1,6 +1,6 @@
 /**
  * End-to-end "grand tour": customer + driver auth, license upload → pending,
- * admin bypass verify, order → accept → chat (2 msgs) → complete → 5★ review.
+ * admin bypass verify, order → accept → complete → 5★ review.
  */
 const { test, expect, request } = require('@playwright/test')
 const { DEFAULT_LOGISTICS_PAYLOAD, testOrderPrice } = require('./helpers/order-logistics-payload')
@@ -30,15 +30,12 @@ async function loginWithBase(page, baseURL, entry, password) {
   await loginResponsePromise
 }
 
-test('full app flow: license pending → verify → order → chat → complete → review', async ({ browser, baseURL }) => {
+test('full app flow: license pending → verify → order → complete → review', async ({ browser, baseURL }) => {
   test.setTimeout(420000)
   const runId = uniqueRunId()
   const backend = await request.newContext({ baseURL: 'http://127.0.0.1:3000' })
   const tourDriverEmail = `e2e-tour-driver-${runId}@movingmate.test`
   const tourDriverPassword = 'TourGrandPass1!'
-  const driverMsg = 'Grand tour: driver message.'
-  const customerReply = 'Grand tour: customer reply.'
-
   try {
     const bootstrapRes = await backend.post('/api/test/e2e/bootstrap', { data: { runId } })
     expect(bootstrapRes.ok()).toBeTruthy()
@@ -138,33 +135,6 @@ test('full app flow: license pending → verify → order → chat → complete 
 
     await driverPage.getByRole('link', { name: /my trips/i }).click()
     await expect(driverPage).toHaveURL(/\/driver\/tasks$/)
-
-    await driverPage.getByTestId(`chat-open-${orderId}`).click()
-    await expect(driverPage.getByTestId('order-chat-drawer')).toBeVisible()
-
-    const sendDriverP = driverPage.waitForResponse(
-      (resp) => resp.url().includes('/api/chat/send') && resp.request().method() === 'POST'
-    )
-    await driverPage.getByTestId('chat-message-input').fill(driverMsg)
-    await driverPage.getByTestId('chat-send-button').click()
-    expect((await sendDriverP).status()).toBe(201)
-
-    await customerPage.goto(`${baseURL}/customer/my-orders`)
-    await customerPage.getByTestId(`chat-open-${orderId}`).click()
-    await expect(customerPage.getByTestId('order-chat-drawer')).toBeVisible()
-    await expect(customerPage.getByTestId('chat-messages')).toContainText(driverMsg, { timeout: 20000 })
-
-    const sendCustP = customerPage.waitForResponse(
-      (resp) => resp.url().includes('/api/chat/send') && resp.request().method() === 'POST'
-    )
-    await customerPage.getByTestId('chat-message-input').fill(customerReply)
-    await customerPage.getByTestId('chat-send-button').click()
-    expect((await sendCustP).status()).toBe(201)
-
-    await expect(driverPage.getByTestId('chat-messages')).toContainText(customerReply, { timeout: 25000 })
-
-    await driverPage.getByTestId('chat-close-button').click()
-    await expect(driverPage.getByTestId('order-chat-drawer')).toBeHidden({ timeout: 5000 })
 
     const startP = driverPage.waitForResponse(
       (resp) => resp.url().includes(`/api/orders/${orderId}/status`) && resp.request().method() === 'PATCH'

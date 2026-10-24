@@ -8,9 +8,7 @@ import { map } from 'rxjs/operators';
 import { TransportOrder, ORDERS_API_BASE } from '../../../core/services/orders.service';
 import { AuthStore } from '../../../store/auth.store';
 import { CargoPhotoLightboxComponent } from '../cargo-photo-lightbox/cargo-photo-lightbox.component';
-import { ChatSideDrawerComponent } from '../chat-side-drawer/chat-side-drawer.component';
 import { OrderRoutePreviewDialogComponent } from '../order-route-preview-dialog/order-route-preview-dialog.component';
-import { ChatService } from '../../../core/services/chat.service';
 import { LoggerService } from '../../../core/services/logger.service';
 import * as DriverActions from '../../../features/driver/state/driver.actions';
 import {
@@ -35,7 +33,6 @@ import { DriverJobCardComponent } from './driver-job-card/driver-job-card.compon
 import { DRIVER_JOB_CTA_CLASS } from './driver-job-card/driver-job-card.theme';
 
 const POLL_MS = 10_000;
-const CHAT_UNREAD_POLL_MS = 5000;
 
 import {
   ROUTE_PREVIEW_SPLIT_BREAKPOINT,
@@ -88,7 +85,6 @@ const DRIVER_ROUTE_PREVIEW_PROMINENT_STATUSES = new Set<string>([
     DatePipe,
     NgClass,
     CargoPhotoLightboxComponent,
-    ChatSideDrawerComponent,
     UiButtonComponent,
     DriverJobCardComponent,
     OrderRoutePreviewDialogComponent,
@@ -103,7 +99,6 @@ export class DriverMyTasksComponent {
   private readonly store = inject(Store);
   private readonly auth = inject(AuthStore);
   private readonly logger = inject(LoggerService);
-  readonly chatService = inject(ChatService);
   private readonly breakpointObserver = inject(BreakpointObserver);
   readonly isRoutePreviewSplitUp = toSignal(
     this.breakpointObserver.observe(ROUTE_PREVIEW_SPLIT_BREAKPOINT).pipe(map((r) => r.matches)),
@@ -231,18 +226,11 @@ export class DriverMyTasksComponent {
     return id.length <= 8 ? id.toUpperCase() : id.slice(-8).toUpperCase();
   }
 
-  chatOrder = signal<TransportOrder | null>(null);
-  readonly isChatDrawerOpen = computed(() => this.chatOrder() !== null);
-
   constructor() {
     this.store.dispatch(DriverActions.loadDriverActiveTrips({}));
-    this.chatService.getUnreadCounts().subscribe();
     interval(POLL_MS)
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.store.dispatch(DriverActions.loadDriverActiveTrips({ silent: true })));
-    interval(CHAT_UNREAD_POLL_MS)
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.chatService.getUnreadCounts().subscribe());
   }
 
   customerName(order: TransportOrder): string {
@@ -281,24 +269,6 @@ export class DriverMyTasksComponent {
 
   onCargoLightboxClosed(): void {
     this.cargoLightboxUrl.set(null);
-  }
-
-  onOpenChat(order: TransportOrder): void {
-    const cid = normalizeOrderId(order.customerId);
-    const did = normalizeOrderId(order.driverId);
-    if (!cid || !did) return;
-    const id = normalizeOrderId(order._id);
-    if (!id) return;
-    this.chatService.setChatDrawerOpenOrderId(id);
-    this.chatService.markMessagesAsRead(id).subscribe();
-    this.chatOrder.set(order);
-  }
-
-  closeChat(): void {
-    this.chatService.setChatDrawerOpenOrderId(null);
-    this.chatOrder.set(null);
-    this.store.dispatch(DriverActions.loadDriverActiveTrips({ silent: true }));
-    this.chatService.getUnreadCounts().subscribe();
   }
 
   viewRoute(order: TransportOrder, event?: Event): void {
@@ -372,10 +342,6 @@ export class DriverMyTasksComponent {
 
   isTripBusy(id: string): boolean {
     return this.tripBusyId() === id;
-  }
-
-  unreadCountNum(order: TransportOrder): number {
-    return this.chatService.badgeUnreadForOrder(order._id, order.unreadCount);
   }
 
   trackByTripId(_index: number, order: TransportOrder): string {

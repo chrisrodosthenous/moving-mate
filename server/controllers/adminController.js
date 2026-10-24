@@ -3,7 +3,6 @@ const { emitVerificationStatusUpdated } = require('../services/realtimeService')
 const { normalizedDriverDistricts } = require('../constants/cyprusDistricts');
 const User = require('../models/User');
 const TransportOrder = require('../models/TransportOrder');
-const Message = require('../models/Message');
 const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
@@ -274,7 +273,7 @@ async function getOverview(req, res, next) {
 }
 
 /**
- * GET /api/admin/orders/:id — Full order detail for admin modal (message count included).
+ * GET /api/admin/orders/:id — Full order detail for the admin modal.
  * Populates ref fields `customerId` & `driverId` on TransportOrder (aliases `customer` / `driver` in JSON).
  */
 async function getAdminOrderDetail(req, res, next) {
@@ -291,10 +290,8 @@ async function getAdminOrderDetail(req, res, next) {
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
-    const messageCount = await Message.countDocuments({ orderId: orderId });
     res.json({
       success: true,
-      messageCount,
       order: shapeOrderDocForClient(order),
     });
   } catch (err) {

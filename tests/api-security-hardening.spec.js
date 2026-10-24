@@ -222,4 +222,105 @@ test.describe('API security hardening', () => {
       await backend.dispose();
     }
   });
+
+  test('unauthenticated POST /api/orders is 401', async () => {
+    const backend = await request.newContext({ baseURL: API_BASE });
+    try {
+      const res = await backend.post('/api/orders', { data: { price: 1 } });
+      expect(res.status()).toBe(401);
+    } finally {
+      await backend.dispose();
+    }
+  });
+
+  test('signed quote is required to match the job; a later config edit does not change it', async () => {
+    const runId = uniqueRunId();
+    const backend = await request.newContext({ baseURL: API_BASE });
+
+    try {
+      const bootstrapRes = await backend.post('/api/test/e2e/bootstrap', { data: { runId } });
+      expect(bootstrapRes.ok()).toBeTruthy();
+      const bootstrap = await bootstrapRes.json();
+      const customerToken = await loginToken(
+        backend,
+        bootstrap.customer.email,
+        bootstrap.customer.password,
+      );
+      const adminToken = await loginToken(backend, bootstrap.admin.email, bootstrap.admin.password);
+
+      const denied = await backend.get('/api/admin/pricing-config', {
+        headers: authHeaders(customerToken),
+      });
+      expect(denied.status()).toBe(403);
+
+      const logistics = {
+        distanceKm: 18,
+        cargoInventory: { boxes: 20, mediumItems: 6, largeFurniture: 5, heavyAppliances: 2 },
+        pickupFloor: '3',
+        destinationFloor: '0',
+        hasElevator: false,
+        laborRequired: 'driver_plus_helper',
+      };
+
+      const missing = await backend.post('/api/orders/quote', {
+        headers: authHeaders(customerToken),
+        data: { distanceKm: 18 },
+      });
+      expect(missing.status()).toBe(400);
+
+      const quoteRes = await backend.post('/api/orders/quote', {
+        headers: authHeaders(customerToken),
+        data: logistics,
+      });
+      expect(quoteRes.status()).toBe(200);
+      const quote = await quoteRes.json();
+      expect(quote.vehicleType).toBe('truck');
+      expect(typeof quote.quoteToken).toBe('string');
+      expect(quote.breakdown.total).toBeGreaterThan(0);
+
+      const orderBody = {
+        pickupDistrict: 'Nicosia',
+        pickupLocation: { address: `Quote pickup ${runId}`, lat: 35.1856, lng: 33.3823 },
+        dropoffLocation: { address: `Quote drop ${runId}`, lat: 35.19, lng: 33.39 },
+        vehicleType: quote.vehicleType,
+        smallBoxes: 20,
+        mediumBoxes: 6,
+        largeBoxes: 7,
+        scheduledAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+        ...logistics,
+      };
+
+      const changed = await backend.post('/api/orders', {
+        headers: authHeaders(customerToken),
+        data: { ...orderBody, laborRequired: 'none', quoteToken: quote.quoteToken },
+      });
+      expect(changed.status()).toBe(400);
+      expect((await changed.json()).message).toMatch(/changed/i);
+
+      const forged = await backend.post('/api/orders', {
+        headers: authHeaders(customerToken),
+        data: { ...orderBody, quoteToken: `${quote.quoteToken.slice(0, -4)}aaaa` },
+      });
+      expect(forged.status()).toBe(400);
+
+      const created = await backend.post('/api/orders', {
+        headers: authHeaders(customerToken),
+        data: { ...orderBody, quoteToken: quote.quoteToken },
+      });
+      expect(created.status()).toBe(201);
+      const createdBody = await created.json();
+      expect(createdBody.price).toBe(quote.breakdown.total);
+      expect(createdBody.driverEarnings).toBe(quote.driverEarnings);
+
+      const preview = await backend.get('/api/admin/pricing-config', {
+        headers: authHeaders(adminToken),
+      });
+      expect(preview.status()).toBe(200);
+      const previewJson = await preview.json();
+      expect(previewJson.preview.length).toBe(4);
+    } finally {
+      await backend.post('/api/test/e2e/cleanup', { data: { runId } }).catch(() => {});
+      await backend.dispose();
+    }
+  });
 });

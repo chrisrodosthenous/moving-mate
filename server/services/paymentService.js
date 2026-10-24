@@ -237,11 +237,12 @@ async function creditBalancesOnDelivery(orderDoc) {
   const driverId = orderDoc.driverId;
   if (!driverId) return { ok: false, message: 'No driver on order' };
 
+  const split = computeOrderCommission(orderDoc.price);
   const driverCredit = roundMoney(
-    orderDoc.driverEarnings ?? computeOrderCommission(orderDoc.price, orderDoc.commissionRate).driverEarnings,
+    Number(orderDoc.driverEarnings) > 0 ? orderDoc.driverEarnings : split.driverEarnings,
   );
   const platformCredit = roundMoney(
-    orderDoc.platformCommission ?? computeOrderCommission(orderDoc.price, orderDoc.commissionRate).platformCommission,
+    Number(orderDoc.platformCommission) > 0 ? orderDoc.platformCommission : split.platformCommission,
   );
 
   if (driverCredit > 0) {

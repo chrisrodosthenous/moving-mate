@@ -1,0 +1,98 @@
+<section class="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-6" data-testid="admin-pricing">
+  <div class="flex flex-col gap-1">
+    <p class="text-sm text-muted-foreground">
+      Fuel and wages feed the driver cost floor. Commission stays 20% on the first €100, then steps down.
+      Changing these numbers reprices new quotes only.
+    </p>
+    <p class="text-xs text-muted-foreground">Config version {{ version() }}</p>
+  </div>
+
+  @if (loading()) {
+    <p class="text-sm text-muted-foreground">Loading pricing…</p>
+  } @else {
+    <form class="grid grid-cols-1 gap-4 sm:grid-cols-3" [formGroup]="form" (ngSubmit)="save()">
+      <label class="flex flex-col gap-1 text-sm">
+        <span class="text-muted-foreground">Diesel € / litre</span>
+        <input
+          type="number"
+          step="0.001"
+          min="0"
+          formControlName="dieselPricePerLitreEur"
+          class="min-h-11 rounded-lg border border-border bg-card px-3"
+          data-testid="pricing-diesel"
+        />
+      </label>
+      <label class="flex flex-col gap-1 text-sm">
+        <span class="text-muted-foreground">Driver target € / hour</span>
+        <input
+          type="number"
+          step="0.5"
+          min="0"
+          formControlName="driverHourlyTargetEur"
+          class="min-h-11 rounded-lg border border-border bg-card px-3"
+          data-testid="pricing-driver-hourly"
+        />
+      </label>
+      <label class="flex flex-col gap-1 text-sm">
+        <span class="text-muted-foreground">Helper € / hour</span>
+        <input
+          type="number"
+          step="0.5"
+          min="0"
+          formControlName="helperHourlyRateEur"
+          class="min-h-11 rounded-lg border border-border bg-card px-3"
+          data-testid="pricing-helper-hourly"
+        />
+      </label>
+      <div class="flex flex-col gap-2 sm:col-span-3 sm:flex-row">
+        <button
+          type="button"
+          class="min-h-11 rounded-lg border border-border px-4 text-sm font-medium"
+          (click)="refreshPreview()"
+        >
+          Preview
+        </button>
+        <button
+          type="submit"
+          class="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground"
+          [disabled]="saving()"
+          data-testid="pricing-save"
+        >
+          {{ saving() ? 'Saving…' : 'Save' }}
+        </button>
+      </div>
+    </form>
+
+    @if (message()) {
+      <p class="text-sm text-foreground" role="status">{{ message() }}</p>
+    }
+    @if (error()) {
+      <p class="text-sm text-destructive-foreground" role="alert">{{ error() }}</p>
+    }
+
+    <div class="overflow-x-auto rounded-xl border border-border">
+      <table class="w-full min-w-[36rem] text-left text-sm">
+        <thead class="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+          <tr>
+            <th class="px-3 py-2 font-medium">Sample job</th>
+            <th class="px-3 py-2 font-medium">Customer</th>
+            <th class="px-3 py-2 font-medium">Driver</th>
+            <th class="px-3 py-2 font-medium">Platform</th>
+            <th class="px-3 py-2 font-medium">Basis</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of preview(); track row.label) {
+            <tr class="border-t border-border/60">
+              <td class="px-3 py-2">{{ row.label }}</td>
+              <td class="px-3 py-2 tabular-nums">€{{ row.total | number: '1.2-2' }}</td>
+              <td class="px-3 py-2 tabular-nums">€{{ row.driverEarnings | number: '1.2-2' }}</td>
+              <td class="px-3 py-2 tabular-nums">€{{ row.platformCommission | number: '1.2-2' }}</td>
+              <td class="px-3 py-2">{{ row.pricingBasis }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

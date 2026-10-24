@@ -213,6 +213,14 @@ export const routes: Routes = [
             (m) => m.NotificationSettingsPageComponent,
           ),
       },
+      {
+        path: 'settings/pricing',
+        data: { pageTitle: 'Pricing' },
+        loadComponent: () =>
+          import('./features/admin/admin-pricing/admin-pricing.component').then(
+            (m) => m.AdminPricingComponent,
+          ),
+      },
     ],
   },
   { path: 'admin/dashboard', redirectTo: 'admin', pathMatch: 'full' },
@@ -230,8 +238,6 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   { path: 'available-orders', redirectTo: 'driver/available', pathMatch: 'full' },
-  /** Deep links: role-aware destination via `MyOrdersRedirectComponent` (`/my-orders` route). */
-  { path: 'chat/:id', redirectTo: 'my-orders', pathMatch: 'full' },
   { path: 'admin/verify-drivers', redirectTo: 'admin', pathMatch: 'full' },
 
   /* ── Catch-all: role dashboard if logged in, else login (React parity) ─ */

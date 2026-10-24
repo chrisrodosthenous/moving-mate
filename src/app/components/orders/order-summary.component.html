@@ -21,14 +21,28 @@
         <div class="flex flex-col gap-0.5 xs:flex-row xs:items-start xs:justify-between xs:gap-3 text-[#BDD8E9]/90 md:col-span-2 lg:col-span-1">
           <dt class="shrink-0">Route Cost</dt>
           <dd class="min-w-0 tabular-nums break-words xs:text-right">
-            {{ breakdown.distanceKm | number: '1.1-1' }} km × €{{ breakdown.ratePerKm | number: '1.2-2' }}
+            {{ breakdown.distanceKm | number: '1.1-1' }} km
             <span class="text-[#BDD8E9]"> = €{{ breakdown.distanceCost | number: '1.2-2' }}</span>
           </dd>
         </div>
-        <div class="flex flex-col gap-0.5 xs:flex-row xs:items-center xs:justify-between xs:gap-3 text-[#BDD8E9]/90">
-          <dt>Add-ons (Labor/Floors)</dt>
-          <dd class="tabular-nums xs:text-right">€{{ breakdown.addonsTotal | number: '1.2-2' }}</dd>
-        </div>
+        @if (breakdown.crewCost > 0) {
+          <div
+            class="flex flex-col gap-0.5 xs:flex-row xs:items-center xs:justify-between xs:gap-3 text-[#BDD8E9]/90"
+            data-testid="order-summary-handling"
+          >
+            <dt>Loading &amp; Unloading</dt>
+            <dd class="tabular-nums xs:text-right">€{{ breakdown.crewCost | number: '1.2-2' }}</dd>
+          </div>
+        }
+        @if (breakdown.accessCost > 0) {
+          <div
+            class="flex flex-col gap-0.5 xs:flex-row xs:items-center xs:justify-between xs:gap-3 text-[#BDD8E9]/90"
+            data-testid="order-summary-access"
+          >
+            <dt>Stairs (no lift)</dt>
+            <dd class="tabular-nums xs:text-right">€{{ breakdown.accessCost | number: '1.2-2' }}</dd>
+          </div>
+        }
         <div
           class="flex flex-col gap-1 border-t border-[#49769F]/35 pt-2 text-sm font-bold text-[#BDD8E9] xs:flex-row xs:items-center xs:justify-between xs:gap-3 xs:text-base md:col-span-2 lg:col-span-1"
         >
@@ -38,6 +52,19 @@
           </dd>
         </div>
       </dl>
+
+      @if (breakdown.pricingBasis !== 'rate_card') {
+        <p
+          class="text-[10px] leading-snug text-[#BDD8E9]/70 xs:text-[11px] md:col-span-full md:text-xs"
+          data-testid="order-summary-pricing-basis"
+        >
+          @if (breakdown.pricingBasis === 'minimum_fare') {
+            Minimum fare for this vehicle applies.
+          } @else {
+            Adjusted for the travel distance of this trip.
+          }
+        </p>
+      }
     </div>
   }
 
