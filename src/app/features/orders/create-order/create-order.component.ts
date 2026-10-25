@@ -281,6 +281,8 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
 
   readonly pickupMarkerOptions = routeEndpointMarkerOptions('pickup');
   readonly dropoffMarkerOptions = routeEndpointMarkerOptions('dropoff');
+  /** Route line only. Google's pins stay off; A/B markers are drawn separately. */
+  readonly directionsRendererOptions = routeLineRendererOptions();
 
   readonly totalBoxes = computed(() => this.totalCargoItems());
 
