@@ -26,6 +26,7 @@ import {
   normalizeCargoQuantity,
 } from '../../../shared/utils/order-cargo-scoring.util';
 import { calculateOrderPrice, type OrderPriceBreakdown } from '../../../shared/utils/order-pricing.util';
+import { routeEndpointMarkerOptions, routeLineRendererOptions } from '../../../shared/utils/route-map-markers';
 import { OrderQuoteService, type OrderQuote } from '../../../core/services/order-quote.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { LoggerService } from '../../../core/services/logger.service';
@@ -278,27 +279,8 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
   readonly pickupGeocoding = signal(false);
   readonly dropoffGeocoding = signal(false);
 
-  /** Green markers for Pickup (A) and Destination (B) — circle path works before google.maps load */
-  readonly pickupMarkerOptions: google.maps.MarkerOptions = {
-    icon: {
-      path: 'M 0,0 m -8,0 a 8,8 0 1,1 16,0 a 8,8 0 1,1 -16,0',
-      scale: 2,
-      fillColor: '#22C55E',
-      fillOpacity: 1,
-      strokeColor: '#F0EDE6',
-      strokeWeight: 2,
-    },
-  };
-  readonly dropoffMarkerOptions: google.maps.MarkerOptions = {
-    icon: {
-      path: 'M 0,0 m -8,0 a 8,8 0 1,1 16,0 a 8,8 0 1,1 -16,0',
-      scale: 2,
-      fillColor: '#16A34A',
-      fillOpacity: 1,
-      strokeColor: '#F0EDE6',
-      strokeWeight: 2,
-    },
-  };
+  readonly pickupMarkerOptions = routeEndpointMarkerOptions('pickup');
+  readonly dropoffMarkerOptions = routeEndpointMarkerOptions('dropoff');
 
   readonly totalBoxes = computed(() => this.totalCargoItems());
 

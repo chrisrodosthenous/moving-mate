@@ -17,6 +17,10 @@ import { GoogleMap, MapDirectionsRenderer, MapMarker, MapDirectionsService } fro
 
 import type { TransportOrder } from '../../../core/services/orders.service';
 import { GoogleMapsLoaderService } from '../../../core/services/google-maps-loader.service';
+import {
+  routeEndpointMarkerOptions,
+  routeLineRendererOptions,
+} from '../../utils/route-map-markers';
 import { LoggerService } from '../../../core/services/logger.service';
 import { SocketService } from '../../../core/services/socket.service';
 import { AuthStore } from '../../../store/auth.store';
@@ -178,8 +182,7 @@ export class OrderRoutePreviewDialogComponent {
   /** Avoid re-applying identical DB pings when merged order updates repeatedly. */
   private lastHydratedDriverDbKey = '';
 
-  readonly directionsRendererOptions: google.maps.DirectionsRendererOptions = {
-    suppressMarkers: false,
+  readonly directionsRendererOptions: google.maps.DirectionsRendererOptions = routeLineRendererOptions({
     /** Manual `applyThreePointBounds` + optional driver follow; renderer must not also auto-fit. */
     preserveViewport: true,
     polylineOptions: {
@@ -187,7 +190,7 @@ export class OrderRoutePreviewDialogComponent {
       strokeOpacity: 0.92,
       strokeWeight: 5,
     },
-  };
+  });
 
   readonly mapBaselineZoom = 11;
 
@@ -231,17 +234,8 @@ export class OrderRoutePreviewDialogComponent {
     };
   });
 
-  readonly simpleFallbackMarkers = computed(() => !this.directionsResult());
-
-  readonly pickupMarkerOptions: google.maps.MarkerOptions = {
-    label: { text: 'A', color: '#F0EDE6' },
-    title: 'Pickup',
-  };
-
-  readonly dropoffMarkerOptions: google.maps.MarkerOptions = {
-    label: { text: 'B', color: '#F0EDE6' },
-    title: 'Dropoff',
-  };
+  readonly pickupMarkerOptions = routeEndpointMarkerOptions('pickup');
+  readonly dropoffMarkerOptions = routeEndpointMarkerOptions('dropoff');
 
   /** When Mongo `driverLocation` changes (silent list reload), hydrate the interpolated marker — separate from sockets. */
   readonly driverHydrateKey = computed(() => {

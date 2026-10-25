@@ -15,6 +15,7 @@ import type { AuthUser } from '../../../store/auth.store';
 import * as DriverActions from '../../../features/driver/state/driver.actions';
 import { DriverJobCardComponent } from './driver-job-card/driver-job-card.component';
 import { DRIVER_JOB_CTA_CLASS } from './driver-job-card/driver-job-card.theme';
+import { routeEndpointMarkerOptions, routeLineRendererOptions } from '../../utils/route-map-markers';
 import { UiButtonComponent } from '@/components/ui/button';
 import {
   selectDriverAcceptBusyId,
@@ -139,8 +140,7 @@ export class DriverAvailableOrdersComponent {
       ? { scrollwheel: false, gestureHandling: 'cooperative' as const }
       : { scrollwheel: true, gestureHandling: 'greedy' as const }),
   }));
-  readonly directionsRendererOptions: google.maps.DirectionsRendererOptions = {
-    suppressMarkers: true,
+  readonly directionsRendererOptions = routeLineRendererOptions({
     /** We call `fitBounds` ourselves; default `false` makes the renderer pan/zoom too — double viewport updates read as flicker. */
     preserveViewport: true,
     polylineOptions: {
@@ -148,7 +148,9 @@ export class DriverAvailableOrdersComponent {
       strokeOpacity: 1,
       strokeWeight: 5,
     },
-  };
+  });
+  readonly pickupMarkerOptions = routeEndpointMarkerOptions('pickup');
+  readonly dropoffMarkerOptions = routeEndpointMarkerOptions('dropoff');
 
   readonly pickupPosition = computed(() => {
     const o = this.selectedOrder();

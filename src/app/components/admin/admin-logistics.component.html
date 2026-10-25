@@ -75,7 +75,20 @@
   <section class="map-area">
     <google-map height="100%" width="100%" [center]="mapCenter()" [zoom]="mapZoom()" [options]="mapOptions">
       @if (directionsResult(); as result) {
-        <map-directions-renderer [directions]="result"></map-directions-renderer>
+        <map-directions-renderer
+          [directions]="result"
+          [options]="directionsRendererOptions"
+        ></map-directions-renderer>
+      }
+      @if (selectedOrder(); as order) {
+        <map-marker
+          [position]="{ lat: order.pickupLocation.lat, lng: order.pickupLocation.lng }"
+          [options]="pickupMarkerOptions"
+        ></map-marker>
+        <map-marker
+          [position]="{ lat: order.dropoffLocation.lat, lng: order.dropoffLocation.lng }"
+          [options]="dropoffMarkerOptions"
+        ></map-marker>
       }
       @if (selectedOrder()?.driverLocation; as dl) {
         @if (dl.lat != null && dl.lng != null) {

@@ -23,10 +23,10 @@
           <map-directions-renderer [directions]="dirs" [options]="directionsRendererOptions" />
         }
         @if (pickupPosition(); as pp) {
-          <map-marker [position]="pp" label="A" title="Pickup" />
+          <map-marker [position]="pp" [options]="pickupMarkerOptions" />
         }
         @if (dropoffPosition(); as dp) {
-          <map-marker [position]="dp" label="B" title="Dropoff" />
+          <map-marker [position]="dp" [options]="dropoffMarkerOptions" />
         }
       </google-map>
     </div>

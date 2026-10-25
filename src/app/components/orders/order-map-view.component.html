@@ -21,7 +21,10 @@
           <map-marker [position]="{ lat: d.lat, lng: d.lng }" [options]="dropoffMarkerOptions()" title="Destination (B)"></map-marker>
         }
         @if (directionsResult(); as dirs) {
-          <map-directions-renderer [directions]="dirs"></map-directions-renderer>
+          <map-directions-renderer
+            [directions]="dirs"
+            [options]="directionsRendererOptions()"
+          ></map-directions-renderer>
         }
       </google-map>
     }

@@ -20,6 +20,7 @@ import { CargoPhotoLightboxComponent } from '../../../shared/components/cargo-ph
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
+import { routeEndpointMarkerOptions, routeLineRendererOptions } from '../../../shared/utils/route-map-markers';
 
 const CYPRUS_CENTER = { lat: 35.1264, lng: 33.4299 };
 /** Auto-refresh interval for the available list (no full page reload). */
@@ -84,16 +85,17 @@ export class AvailableOrdersComponent implements OnInit {
     maxZoom: 18,
     minZoom: 4,
   };
-  /** Blue route line, no default markers (we use A/B markers) */
-  readonly directionsRendererOptions: google.maps.DirectionsRendererOptions = {
-    suppressMarkers: true,
+  /** Green route line. Google pins stay off; A/B dots are ours. */
+  readonly directionsRendererOptions = routeLineRendererOptions({
     preserveViewport: true,
     polylineOptions: {
       strokeColor: '#22C55E',
       strokeOpacity: 1,
       strokeWeight: 5,
     },
-  };
+  });
+  readonly pickupMarkerOptions = routeEndpointMarkerOptions('pickup');
+  readonly dropoffMarkerOptions = routeEndpointMarkerOptions('dropoff');
 
   readonly pickupPosition = computed(() => {
     const o = this.selectedOrder();

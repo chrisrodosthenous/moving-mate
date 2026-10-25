@@ -9,6 +9,7 @@ import { catchError, map, throttleTime } from 'rxjs/operators';
 import { LoggerService } from '../../../core/services/logger.service';
 import { SocketService } from '../../../core/services/socket.service';
 import { isDriverMapTrackingStatus } from '../../../shared/utils/order-tracking';
+import { routeEndpointMarkerOptions, routeLineRendererOptions } from '../../../shared/utils/route-map-markers';
 import * as DriverActions from '../state/driver.actions';
 import { selectDriverMyLoading, selectDriverMyOrders } from '../state/driver.selectors';
 const LOCATION_THROTTLE_MS = 8000;
@@ -59,15 +60,16 @@ export class DriverActiveDeliveryComponent implements OnDestroy {
 
   readonly directionsResult = signal<google.maps.DirectionsResult | null>(null);
 
-  readonly directionsRendererOptions: google.maps.DirectionsRendererOptions = {
-    suppressMarkers: true,
+  readonly directionsRendererOptions = routeLineRendererOptions({
     preserveViewport: true,
     polylineOptions: {
       strokeColor: '#22C55E',
       strokeOpacity: 0.92,
       strokeWeight: 5,
     },
-  };
+  });
+  readonly pickupMarkerOptions = routeEndpointMarkerOptions('pickup');
+  readonly dropoffMarkerOptions = routeEndpointMarkerOptions('dropoff');
 
   readonly mapOptions: google.maps.MapOptions = {
     mapTypeControl: true,

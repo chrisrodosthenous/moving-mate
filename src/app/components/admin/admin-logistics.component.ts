@@ -24,6 +24,7 @@ import {
 import { UiBadgeComponent } from '@/components/ui/badge';
 import { UiButtonComponent } from '@/components/ui/button';
 import { ADMIN_LOGISTICS_TAB, type AdminLogisticsTabId } from '../../core/constants/statuses';
+import { routeEndpointMarkerOptions, routeLineRendererOptions } from '../../shared/utils/route-map-markers';
 
 const CYPRUS_CENTER = { lat: 35.1264, lng: 33.4299 };
 
@@ -59,6 +60,10 @@ export class AdminLogisticsComponent implements AfterViewInit {
     maxZoom: 18,
     minZoom: 4,
   };
+
+  readonly directionsRendererOptions = routeLineRendererOptions();
+  readonly pickupMarkerOptions = routeEndpointMarkerOptions('pickup');
+  readonly dropoffMarkerOptions = routeEndpointMarkerOptions('dropoff');
 
   /** Live driver GPS from server (when order is active and coordinates exist). */
   readonly driverLiveMarkerOptions: google.maps.MarkerOptions = {

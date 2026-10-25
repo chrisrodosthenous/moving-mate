@@ -44,13 +44,11 @@
                   [options]="directionsRendererOptions"
                 />
               }
-              @if (simpleFallbackMarkers()) {
-                @if (embedPickupLatLngSig(); as pick) {
-                  <map-marker [position]="pick" [options]="pickupMarkerOptions" />
-                }
-                @if (embedDropoffLatLngSig(); as drop) {
-                  <map-marker [position]="drop" [options]="dropoffMarkerOptions" />
-                }
+              @if (embedPickupLatLngSig(); as pick) {
+                <map-marker [position]="pick" [options]="pickupMarkerOptions" />
+              }
+              @if (embedDropoffLatLngSig(); as drop) {
+                <map-marker [position]="drop" [options]="dropoffMarkerOptions" />
               }
               @if (showDriverMarker() && driverMarkerPosition(); as drv) {
                 <map-marker [position]="drv" [options]="driverMarkerOptions()" />
@@ -107,13 +105,11 @@
                 [options]="directionsRendererOptions"
               />
             }
-            @if (simpleFallbackMarkers()) {
-              @if (embedPickupLatLngSig(); as pick) {
-                <map-marker [position]="pick" [options]="pickupMarkerOptions" />
-              }
-              @if (embedDropoffLatLngSig(); as drop) {
-                <map-marker [position]="drop" [options]="dropoffMarkerOptions" />
-              }
+            @if (embedPickupLatLngSig(); as pick) {
+              <map-marker [position]="pick" [options]="pickupMarkerOptions" />
+            }
+            @if (embedDropoffLatLngSig(); as drop) {
+              <map-marker [position]="drop" [options]="dropoffMarkerOptions" />
             }
             @if (showDriverMarker() && driverMarkerPosition(); as drv) {
               <map-marker [position]="drv" [options]="driverMarkerOptions()" />

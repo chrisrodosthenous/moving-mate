@@ -164,10 +164,10 @@
                 ></map-directions-renderer>
               }
               @if (pickupPosition(); as pos) {
-                <map-marker [position]="pos" label="A" title="Pickup"></map-marker>
+                <map-marker [position]="pos" [options]="pickupMarkerOptions"></map-marker>
               }
               @if (dropoffPosition(); as pos) {
-                <map-marker [position]="pos" label="B" title="Dropoff"></map-marker>
+                <map-marker [position]="pos" [options]="dropoffMarkerOptions"></map-marker>
               }
             </google-map>
           </div>
