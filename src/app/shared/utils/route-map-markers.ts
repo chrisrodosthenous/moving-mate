@@ -55,11 +55,22 @@ type LatLngLike = {
   lng: number | (() => number);
 };
 
+type DirectionsLegMetrics = {
+  distance?: { value?: number | null } | null;
+  duration?: { text?: string | null } | null;
+  steps?: Array<{ path?: unknown }> | null;
+};
+
 export interface RouteDirectionsPath {
   routes?: Array<{
-    legs?: Array<{ steps?: Array<{ path?: unknown }> | null }> | null;
+    legs?: Array<DirectionsLegMetrics | null> | null;
     overview_path?: unknown;
   }> | null;
+}
+
+export interface RouteLegMetrics {
+  distanceKm: number;
+  durationText: string;
 }
 
 function isLatLngLike(value: unknown): value is LatLngLike {
@@ -128,6 +139,17 @@ export function routePathFromDirections(
   }
   if (detailed.length >= 2) return detailed;
   return pointsFrom(route.overview_path);
+}
+
+/** Driving kilometres and duration from the first leg. Null when that leg has no distance. */
+export function routeMetricsFromDirections(
+  result: RouteDirectionsPath | null | undefined,
+): RouteLegMetrics | null {
+  const leg = result?.routes?.[0]?.legs?.[0];
+  const meters = leg?.distance?.value;
+  if (typeof meters !== 'number' || !Number.isFinite(meters) || meters <= 0) return null;
+  const durationText = typeof leg?.duration?.text === 'string' ? leg.duration.text.trim() : '';
+  return { distanceKm: meters / 1000, durationText };
 }
 
 /** Line only. Callers cannot turn Google's pins back on. */

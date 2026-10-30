@@ -26,7 +26,11 @@ import {
   normalizeCargoQuantity,
 } from '../../../shared/utils/order-cargo-scoring.util';
 import { calculateOrderPrice, type OrderPriceBreakdown } from '../../../shared/utils/order-pricing.util';
-import { routeEndpointMarkerOptions, routePathFromDirections } from '../../../shared/utils/route-map-markers';
+import {
+  routeEndpointMarkerOptions,
+  routeMetricsFromDirections,
+  routePathFromDirections,
+} from '../../../shared/utils/route-map-markers';
 import { OrderQuoteService, type OrderQuote } from '../../../core/services/order-quote.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { LoggerService } from '../../../core/services/logger.service';
@@ -196,6 +200,8 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
   readonly price = computed(() => this.pricingBreakdown()?.total ?? 0);
 
   private mapInstance: google.maps.Map | null = null;
+  /** Drops a directions response that belongs to an older pickup/destination pair. */
+  private routeRequestId = 0;
   private districtPanIdleListener: google.maps.MapsEventListener | null = null;
 
   readonly cyprusPickupDistricts = [...CYPRUS_PICKUP_DISTRICTS];
@@ -676,33 +682,59 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
     const d = this.dropoff();
     if (!p || !d) return;
 
+    const requestId = ++this.routeRequestId;
     this.loading.set(true);
     this.directionsResult.set(null);
+    this.error.set('');
 
-    this.mapService.getDistanceAndDuration(this.routeEndpoint(p), this.routeEndpoint(d)).subscribe({
-      next: (res) => {
-        const km = res.distance.value / 1000;
-        this.distanceKm.set(km);
-        this.durationText.set(res.duration.text);
-        this.loading.set(false);
-        this.fetchDirections();
-      },
-      error: (err) => {
-        const fallbackKm = this.fallbackDistanceKmFromCoordinates();
-        if (fallbackKm != null) {
-          this.distanceKm.set(fallbackKm);
-          // Conservative fallback ETA for map/routing outages (~40km/h average urban pace).
-          const approxMinutes = Math.max(1, Math.round((fallbackKm / 40) * 60));
-          this.durationText.set(`~${approxMinutes} min`);
-          this.error.set('');
-          this.loading.set(false);
-          this.toast.show('Using estimated distance while route service is unavailable.', 'info');
-          return;
-        }
-        this.loading.set(false);
-        this.error.set(err?.message || 'Could not calculate route.');
-      },
-    });
+    if (typeof google === 'undefined' || !google.maps?.TravelMode) {
+      this.applyStraightLineEstimate(requestId);
+      return;
+    }
+
+    this.directionsService
+      .route({
+        origin: this.routeEndpoint(p),
+        destination: this.routeEndpoint(d),
+        travelMode: google.maps.TravelMode.DRIVING,
+      })
+      .pipe(take(1))
+      .subscribe({
+        next: ({ result, status }) => {
+          if (requestId !== this.routeRequestId) return;
+          const metrics =
+            status === google.maps.DirectionsStatus.OK ? routeMetricsFromDirections(result) : null;
+          if (result && metrics) {
+            this.directionsResult.set(result);
+            this.distanceKm.set(metrics.distanceKm);
+            this.durationText.set(metrics.durationText);
+            this.loading.set(false);
+            this.fitRouteToPath();
+            return;
+          }
+          this.applyStraightLineEstimate(requestId);
+        },
+        error: () => this.applyStraightLineEstimate(requestId),
+      });
+  }
+
+  /** Straight-line kilometres when Directions cannot return a road. */
+  private applyStraightLineEstimate(requestId: number): void {
+    if (requestId !== this.routeRequestId) return;
+    const fallbackKm = this.fallbackDistanceKmFromCoordinates();
+    this.directionsResult.set(null);
+    if (fallbackKm != null) {
+      this.distanceKm.set(fallbackKm);
+      // Conservative fallback ETA for map/routing outages (~40km/h average urban pace).
+      const approxMinutes = Math.max(1, Math.round((fallbackKm / 40) * 60));
+      this.durationText.set(`~${approxMinutes} min`);
+      this.error.set('');
+      this.loading.set(false);
+      this.toast.show('Using estimated distance while route service is unavailable.', 'info');
+      return;
+    }
+    this.loading.set(false);
+    this.error.set('Could not calculate route.');
   }
 
   private fallbackDistanceKmFromCoordinates(): number | null {
@@ -725,28 +757,6 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const km = earthKm * c;
     return Number.isFinite(km) && km > 0 ? Number(km.toFixed(2)) : null;
-  }
-
-  private fetchDirections(): void {
-    const p = this.pickup();
-    const d = this.dropoff();
-    if (!p || !d) return;
-
-    this.directionsService
-      .route({
-        origin: this.routeEndpoint(p),
-        destination: this.routeEndpoint(d),
-        travelMode: google.maps.TravelMode.DRIVING,
-      })
-      .pipe(take(1))
-      .subscribe({
-        next: ({ result, status }) => {
-          if (status === google.maps.DirectionsStatus.OK && result) {
-            this.directionsResult.set(result);
-            this.fitRouteToPath();
-          }
-        },
-      });
   }
 
   onCargoFileChange(event: Event): void {

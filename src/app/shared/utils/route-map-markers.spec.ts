@@ -2,6 +2,7 @@ import {
   routeEndpointMarkerOptions,
   routeLinePolylineOptions,
   routeLineRendererOptions,
+  routeMetricsFromDirections,
   routePathFromDirections,
 } from './route-map-markers';
 
@@ -108,5 +109,30 @@ describe('route-map-markers', () => {
   it('returns no road when directions are missing', () => {
     expect(routePathFromDirections(null)).toEqual([]);
     expect(routePathFromDirections({ routes: [] })).toEqual([]);
+  });
+
+  it('reads driving distance and duration from the first leg', () => {
+    expect(
+      routeMetricsFromDirections({
+        routes: [
+          {
+            legs: [
+              {
+                distance: { value: 7534 },
+                duration: { text: ' 12 mins ' },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toEqual({ distanceKm: 7.534, durationText: '12 mins' });
+  });
+
+  it('returns no metrics when the driving distance is missing', () => {
+    expect(routeMetricsFromDirections(null)).toBeNull();
+    expect(routeMetricsFromDirections({ routes: [{ legs: [{ duration: { text: '1 min' } }] }] })).toBeNull();
+    expect(
+      routeMetricsFromDirections({ routes: [{ legs: [{ distance: { value: 0 }, duration: { text: '0 min' } }] }] }),
+    ).toBeNull();
   });
 });
