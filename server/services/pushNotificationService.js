@@ -14,8 +14,6 @@ const {
 const User = require('../models/User');
 const { sanitizeFcmTokens, activeFcmTokens, logFcmDebug } = require('../utils/fcmTokens');
 const { buildDedupeKey, tryAcquireNotification } = require('../utils/notificationDedupe');
-const { isUserSocketConnected } = require('./socketPresenceService');
-
 let initialized = false;
 let missingConfigWarned = false;
 
@@ -75,9 +73,9 @@ function sanitizeText(value, maxLen) {
 
 /**
  * Build the platform blocks shared by every message (no token/tokens field).
- * No root `notification` key: on Web, FCM + the browser would show a system notification and our
- * firebase-messaging-sw.js `push` handler would call showNotification() again → duplicates.
- * Android/iOS use platform-specific notification blocks; Web relies on `data` + SW / foreground onMessage.
+ * No root `notification` key: the browser would show its own banner and the service
+ * worker would show a second one. The worker shows the single system banner.
+ * An open tab also shows an in-app toast from the page listener.
  */
 function buildMessagePayload(safeTitle, safeBody, safeData) {
   const TTL_SECONDS = 4 * 7 * 24 * 60 * 60; // 2 419 200 s — 4 weeks
@@ -252,12 +250,6 @@ async function sendPush(tokenOrTokens, title, body, data = {}, options = {}) {
 async function sendOrderAcceptedPush(orderData) {
   const orderId = String(orderData?.orderId || '');
   const customerUserId = String(orderData?.customerUserId || '');
-  if (customerUserId && isUserSocketConnected(customerUserId)) {
-    console.log(
-      `[Push] Suppressed order_accepted for online customer ${customerUserId} orderId=${orderId} (socket handles in-app)`,
-    );
-    return null;
-  }
   const title = 'Order accepted';
   const body = 'Your order has been accepted by a driver.';
   return sendPush(
@@ -290,12 +282,6 @@ async function send30MinReminderPush(orderData) {
 async function sendStartTripPush(orderData) {
   const orderId = String(orderData?.orderId || '');
   const customerUserId = String(orderData?.customerUserId || '');
-  if (customerUserId && isUserSocketConnected(customerUserId)) {
-    console.log(
-      `[Push] Suppressed order_in_transit for online customer ${customerUserId} orderId=${orderId} (socket handles in-app)`,
-    );
-    return null;
-  }
   const title = 'Driver on the way';
   const body = 'The driver is now on the way to your location.';
   return sendPush(
@@ -314,12 +300,6 @@ async function sendStartTripPush(orderData) {
 async function sendRatingRequestPush(orderData) {
   const oid = String(orderData?.orderId || '');
   const customerUserId = String(orderData?.customerUserId || '');
-  if (customerUserId && isUserSocketConnected(customerUserId)) {
-    console.log(
-      `[Push] Suppressed rating_request for online customer ${customerUserId} orderId=${oid} (socket handles in-app)`,
-    );
-    return null;
-  }
   return sendPush(
     orderData?.customerFcmToken,
     'Order Completed',
@@ -360,31 +340,16 @@ async function sendNewOrderToDriversPush({ orderId, district, vehicleType }) {
     .lean();
 
   const drivers = filterDriversEligibleForOrder(candidates, canon, orderVehicle);
-
-  const offlineDrivers = [];
-  let onlineSuppressed = 0;
-  for (const driver of drivers) {
-    const driverId = String(driver._id);
-    if (isUserSocketConnected(driverId)) {
-      onlineSuppressed += 1;
-      console.log(
-        `[Push][NewOrder] skip FCM for online driver ${driverId} orderId=${oid} (socket already delivered)`,
-      );
-      continue;
-    }
-    offlineDrivers.push(driver);
-  }
-
-  const tokenList = activeFcmTokens(offlineDrivers.flatMap((d) => d.fcmTokens || []));
+  const tokenList = activeFcmTokens(drivers.flatMap((d) => d.fcmTokens || []));
 
   console.log(
-    `[Push][NewOrder] after district+vehicle filter: driversMatched=${drivers.length} onlineSuppressed=${onlineSuppressed} offlineWithTokens=${offlineDrivers.length} uniqueFcmTokens=${tokenList.length} orderVehicle=${orderVehicle}`,
+    `[Push][NewOrder] after district+vehicle filter: driversMatched=${drivers.length} uniqueFcmTokens=${tokenList.length} orderVehicle=${orderVehicle}`,
   );
   tokenList.forEach((t, i) => console.log(`[Push][NewOrder]   token[${i}] …${t.slice(-12)}`));
 
   if (!tokenList.length) {
     console.log(
-      `[Push][NewOrder] no offline eligible drivers with FCM tokens in district "${canon}" for order ${oid} (vehicle=${orderVehicle})`,
+      `[Push][NewOrder] no eligible drivers with FCM tokens in district "${canon}" for order ${oid} (vehicle=${orderVehicle})`,
     );
     return null;
   }

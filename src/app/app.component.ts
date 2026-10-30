@@ -52,6 +52,9 @@ export class AppComponent implements OnDestroy {
   );
 
   constructor() {
+    // Keep the in-app listener up for every role, including after logout, while this tab is open.
+    void this.fcm.subscribeForeground().catch(() => {});
+
     // React FcmRegistration: re-attempt token registration on every navigation while logged in.
     this.router.events
       .pipe(
@@ -59,6 +62,7 @@ export class AppComponent implements OnDestroy {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(() => {
+        void this.fcm.subscribeForeground().catch(() => {});
         if (!this.authStore.token()) return;
         void this.fcm.registerToken().catch(() => {});
         void this.fcm.syncStoredTokenToBackend();
@@ -69,18 +73,15 @@ export class AppComponent implements OnDestroy {
         }
       });
 
-    // FCM when JWT exists only (avoid re-running on profile/user object updates).
+    // Save the device token only while a session exists. Logout must not drop the listener.
     effect(() => {
       const token = this.authStore.token();
       if (token) {
         void this.fcm.registerToken().catch(() => {});
-        void this.fcm.subscribeForeground().catch(() => {});
-      } else {
-        this.fcm.unsubscribeForeground();
       }
     });
 
-    // Foreground push → in-app toast (SW skips OS notification when a tab is focused).
+    // Foreground push → in-app toast. The service worker also shows the browser banner.
     effect(() => {
       const push = this.notificationStore.latestPush();
       if (push) {

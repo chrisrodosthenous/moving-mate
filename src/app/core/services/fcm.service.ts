@@ -1,4 +1,4 @@
-import { Injectable, inject, NgZone, Injector } from '@angular/core';
+import { Injectable, inject, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { initializeApp, FirebaseApp } from 'firebase/app';
@@ -13,7 +13,6 @@ import {
 import { environment } from '../../../environments/environment';
 import { NotificationStore, PushPayload } from '../../store/notification.store';
 import { AuthStore } from '../../store/auth.store';
-import { SocketService } from './socket.service';
 import { httpOptionsSkipGlobalErrorToast } from '../http/http-error-context';
 import { LoggerService } from './logger.service';
 
@@ -45,7 +44,6 @@ export class FcmService {
   private readonly zone = inject(NgZone);
   private readonly notificationStore = inject(NotificationStore);
   private readonly authStore = inject(AuthStore);
-  private readonly injector = inject(Injector);
   private readonly logger = inject(LoggerService);
 
   private app: FirebaseApp | null = null;
@@ -240,29 +238,11 @@ export class FcmService {
     }
 
     try {
-      // Ensure SW is registered and activated.
-      const existing = await navigator.serviceWorker.getRegistration('/');
-      if (existing?.active && new URL(existing.active.scriptURL).pathname !== '/firebase-messaging-sw.js') {
-        await existing.unregister();
+      const registration = await this.ensureFirebaseMessagingWorker();
+      if (!registration) {
+        this.logRegistrationContextFailure(ctx, 'Could not register the notification worker');
+        return null;
       }
-
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-        scope: '/',
-        updateViaCache: 'none',
-      });
-
-      await new Promise<void>((resolve) => {
-        if (registration.active) { resolve(); return; }
-        const sw = registration.installing || registration.waiting;
-        if (!sw) { resolve(); return; }
-        sw.addEventListener('statechange', function handler(e: Event) {
-          if ((e.target as ServiceWorker).state === 'activated') {
-            sw.removeEventListener('statechange', handler);
-            resolve();
-          }
-        });
-      });
-
       await registration.update();
 
       const raw = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
@@ -346,8 +326,43 @@ export class FcmService {
   /* ── Foreground push listener ─────────────────────────────────────────── */
 
   /**
-   * Subscribe to foreground pushes (tab open, SW skips OS notification when a tab is focused).
-   * Web payloads use `data` (no root notification); native may still populate `notification`.
+   * Register the messaging worker so a logged-out tab can still receive pushes
+   * for a device that was registered while someone was signed in.
+   */
+  private async ensureFirebaseMessagingWorker(): Promise<ServiceWorkerRegistration | null> {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null;
+    const existing = await navigator.serviceWorker.getRegistration('/');
+    if (existing?.active && new URL(existing.active.scriptURL).pathname !== '/firebase-messaging-sw.js') {
+      await existing.unregister();
+    }
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+      scope: '/',
+      updateViaCache: 'none',
+    });
+    await new Promise<void>((resolve) => {
+      if (registration.active) {
+        resolve();
+        return;
+      }
+      const sw = registration.installing || registration.waiting;
+      if (!sw) {
+        resolve();
+        return;
+      }
+      sw.addEventListener('statechange', function handler(e: Event) {
+        if ((e.target as ServiceWorker).state === 'activated') {
+          sw.removeEventListener('statechange', handler);
+          resolve();
+        }
+      });
+    });
+    return registration;
+  }
+
+  /**
+   * Subscribe to foreground pushes. The service worker also shows the system
+   * notification, so an open tab gets both the browser banner and this toast.
+   * Stays active after logout. Web payloads use `data` (no root notification).
    */
   async subscribeForeground(): Promise<void> {
     if (this.foregroundUnsub) {
@@ -362,6 +377,12 @@ export class FcmService {
   }
 
   private async attachForegroundListener(): Promise<void> {
+    if (!this.isConfigured()) return;
+    const permissionGranted =
+      typeof Notification !== 'undefined' && Notification.permission === 'granted';
+    if (permissionGranted) {
+      await this.ensureFirebaseMessagingWorker();
+    }
     const messaging = await this.getMessagingInstance();
     if (!messaging) return;
     if (this.foregroundUnsub) return;
@@ -372,9 +393,6 @@ export class FcmService {
         const dataTitle = typeof data['title'] === 'string' ? data['title'] : '';
         const dataBody = typeof data['body'] === 'string' ? data['body'] : '';
         const type = typeof data['type'] === 'string' ? data['type'] : undefined;
-        if (this.shouldSuppressForegroundPush(type)) {
-          return;
-        }
         const push: PushPayload = {
           title: (payload.notification?.title || dataTitle || 'Moving Mate').trim(),
           body: (payload.notification?.body || dataBody || '').trim(),
@@ -384,32 +402,6 @@ export class FcmService {
         this.notificationStore.onPushReceived(push);
       });
     });
-  }
-
-  /**
-   * When Socket.io is connected, realtime events already update the in-app UI.
-   * Skip foreground FCM toasts for those types (avoids duplicate alerts with socket).
-   */
-  private shouldSuppressForegroundPush(type?: string): boolean {
-    if (!type) {
-      return false;
-    }
-    let connected = false;
-    try {
-      connected = this.injector.get(SocketService).socketConnectionState() === 'connected';
-    } catch {
-      return false;
-    }
-    if (!connected) {
-      return false;
-    }
-    const socketHandled = new Set([
-      'new_order',
-      'order_accepted',
-      'order_in_transit',
-      'rating_request',
-    ]);
-    return socketHandled.has(type);
   }
 
   /** Unsubscribe foreground listener (call on destroy if needed). */

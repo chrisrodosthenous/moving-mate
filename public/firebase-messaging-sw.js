@@ -1,6 +1,8 @@
 /* Service worker for Firebase Cloud Messaging (Angular app; assets from repo /public).
- * API sends data-only at message root for Web (no duplicate system notification); title/body are in payload.data. */
-// Version: 2.1
+ * API sends data-only at message root for Web so the browser does not show a second banner.
+ * This worker always shows the system notification, including when a Moving Mate tab is open.
+ * The open tab also shows an in-app toast from the page listener. */
+// Version: 2.2
 importScripts('https://www.gstatic.com/firebasejs/12.11.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/12.11.0/firebase-messaging-compat.js');
 
@@ -49,21 +51,15 @@ self.addEventListener('push', function (event) {
         renotify: true,
       };
 
-      return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-        .then(function (clientList) {
-          var focused = clientList.some(function (c) { return c.focused; });
-          // Skip OS notification when a tab is focused; foreground onMessage shows in-app toast.
-          if (focused) return;
-          return self.registration.showNotification(title, options)
-            .catch(function (err) {
-              console.error('[SW] showNotification failed:', err);
-              return self.registration.showNotification('Moving Mate', {
-                body:  'You have a new notification',
-                icon:  '/favicon.png',
-                badge: '/favicon.png',
-                tag:   'moving-mate-fallback-' + Date.now(),
-              });
-            });
+      return self.registration.showNotification(title, options)
+        .catch(function (err) {
+          console.error('[SW] showNotification failed:', err);
+          return self.registration.showNotification('Moving Mate', {
+            body:  'You have a new notification',
+            icon:  '/favicon.png',
+            badge: '/favicon.png',
+            tag:   'moving-mate-fallback-' + Date.now(),
+          });
         });
     })()
   );
