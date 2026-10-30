@@ -109,7 +109,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   readonly user = signal<AuthUser | null>(null);
 
   /** Vehicle photo URL for driver profile thumbnail. */
-  readonly vehiclePhotoUrl = computed(() => this.user()?.vehiclePhotoUrl?.trim() || '');
+  readonly vehiclePhotoUrl = computed(() => resolveUploadUrl(this.user()?.vehiclePhotoUrl || ''));
 
   readonly vehicleTypeLabel = computed(() =>
     driverVehicleTypeLabel(this.user()?.vehicleType),
@@ -188,6 +188,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
   uploadLicenseLoading = signal(false);
   uploadLicenseError = signal('');
   uploadLicenseSuccess = signal(false);
+  uploadVehicleLoading = signal(false);
+  uploadVehicleError = signal('');
+  uploadVehicleSuccess = signal(false);
 
   /** Check verification status: loading and message after check ('verified' | 'rejected'). */
   checkStatusLoading = signal(false);
@@ -558,6 +561,39 @@ export class ProfileComponent implements OnInit, OnDestroy {
         this.uploadLicenseError.set(msg);
       },
       complete: () => this.uploadLicenseLoading.set(false),
+    });
+  }
+
+  onVehiclePhotoChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    this.uploadVehicleError.set('');
+    this.uploadVehicleSuccess.set(false);
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+      this.uploadVehicleError.set('Only JPG or PNG images are allowed.');
+      return;
+    }
+    if (file.size > this.MAX_SIZE) {
+      this.uploadVehicleError.set('File is too large. Maximum size is 5MB.');
+      return;
+    }
+
+    this.uploadVehicleLoading.set(true);
+    this.authService.uploadVehiclePhoto(file, { skipGlobalErrorToast: true }).subscribe({
+      next: (res) => {
+        this.user.set({ ...res.user, verificationStatus: 'pending' });
+        this.uploadVehicleSuccess.set(true);
+        this.verificationMessage.set(null);
+        this.cdr.detectChanges();
+      },
+      error: (err: unknown) => {
+        const msg = (err as { error?: { message?: string } })?.error?.message ?? 'Upload failed.';
+        this.uploadVehicleError.set(msg);
+      },
+      complete: () => this.uploadVehicleLoading.set(false),
     });
   }
 }

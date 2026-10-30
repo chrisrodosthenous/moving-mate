@@ -4,8 +4,7 @@ const { normalizedDriverDistricts } = require('../constants/cyprusDistricts');
 const User = require('../models/User');
 const TransportOrder = require('../models/TransportOrder');
 const mongoose = require('mongoose');
-const path = require('path');
-const fs = require('fs');
+const { sendPublicUpload } = require('../services/storedUploadService');
 
 function toObjectId(id) {
   if (!id) return null;
@@ -313,23 +312,18 @@ async function getDriverDocument(req, res, next) {
     if (!user) return res.status(404).json({ message: 'Driver not found' });
 
     const relPath =
-      docType === 'id-card' ? user.idCardPath : user.licensePath || user.licenseUrl || '';
+      docType === 'id-card'
+        ? user.idCardPath || ''
+        : user.licenseUrl || user.licensePath || '';
     if (!relPath) {
       return res.status(404).json({ message: 'Document not uploaded' });
     }
 
-    const uploadsRoot = path.join(__dirname, '..', 'uploads');
-    const absolute = path.join(__dirname, '..', relPath.replace(/^\//, ''));
-    const safeRoot = path.resolve(uploadsRoot);
-    const safeAbsolute = path.resolve(absolute);
-    if (!safeAbsolute.startsWith(safeRoot)) {
-      return res.status(400).json({ message: 'Invalid file path' });
-    }
-    if (!fs.existsSync(safeAbsolute)) {
+    const sent = await sendPublicUpload(res, relPath);
+    if (!sent) {
       return res.status(404).json({ message: 'Document file not found' });
     }
-
-    return res.sendFile(safeAbsolute);
+    return undefined;
   } catch (err) {
     next(err);
   }

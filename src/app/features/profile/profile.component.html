@@ -385,6 +385,38 @@
             } @else {
               <p class="mt-4 text-sm text-muted">No vehicle photo on file.</p>
             }
+
+            <div class="mt-4">
+              @if (uploadVehicleError()) {
+                <div class="mb-3 alert-error px-4 py-3 text-sm" role="alert">
+                  {{ uploadVehicleError() }}
+                </div>
+              }
+              @if (uploadVehicleSuccess()) {
+                <div
+                  class="mb-3 rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary"
+                  role="status"
+                >
+                  Vehicle photo uploaded. It is waiting for review.
+                </div>
+              }
+              <input
+                #vehicleInput
+                type="file"
+                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                class="hidden"
+                (change)="onVehiclePhotoChange($event)"
+              />
+              <ui-button
+                type="button"
+                (click)="vehicleInput.click()"
+                [disabled]="uploadVehicleLoading()"
+                variant="outline"
+                [className]="'w-full justify-center py-2.5 sm:w-auto'"
+              >
+                {{ uploadVehicleLoading() ? 'Uploading…' : 'Upload vehicle photo' }}
+              </ui-button>
+            </div>
               </ui-card-content>
             </ui-card>
           </section>

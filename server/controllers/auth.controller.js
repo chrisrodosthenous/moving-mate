@@ -16,6 +16,7 @@ const { validatePassword } = require('../utils/passwordValidation');
 const { emitToAdmins } = require('../services/realtimeService');
 const { sendVerificationRequestToAdminsPush } = require('../services/pushNotificationService');
 const { sendPasswordResetEmail, clientBaseUrl } = require('../services/notificationService');
+const { persistMulterFile, deleteStoredUpload } = require('../services/storedUploadService');
 
 const JWT_SECRET = getJwtSecret();
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '30d';
@@ -170,6 +171,7 @@ async function register(req, res, next) {
       return res.status(400).json({ message: 'Email or Phone number already registered' });
     }
 
+    const storedPaths = [];
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
       const userFields = {
@@ -181,6 +183,7 @@ async function register(req, res, next) {
         role,
         dateOfBirth: dob,
       };
+      const uploadsToStore = [];
       if (role === 'driver') {
         const idCardFile = req.files?.idCard?.[0];
         const licenseFile = req.files?.drivingLicense?.[0];
@@ -193,6 +196,15 @@ async function register(req, res, next) {
         userFields.vehiclePhotoUrl = vehiclePhotoFile
           ? `/uploads/driver-documents/${vehiclePhotoFile.filename}`
           : '';
+        if (idCardFile && userFields.idCardPath) {
+          uploadsToStore.push({ publicPath: userFields.idCardPath, file: idCardFile });
+        }
+        if (licenseFile && userFields.licensePath) {
+          uploadsToStore.push({ publicPath: userFields.licensePath, file: licenseFile });
+        }
+        if (vehiclePhotoFile && userFields.vehiclePhotoUrl) {
+          uploadsToStore.push({ publicPath: userFields.vehiclePhotoUrl, file: vehiclePhotoFile });
+        }
         if (vehiclePhotoFile) {
           userFields.verificationStatus = 'pending';
           userFields.isVerified = false;
@@ -203,6 +215,15 @@ async function register(req, res, next) {
         if (req.body?.plateNumber != null) {
           userFields.plateNumber = String(req.body.plateNumber).trim();
         }
+      }
+      try {
+        for (const item of uploadsToStore) {
+          await persistMulterFile(item.publicPath, item.file);
+          storedPaths.push(item.publicPath);
+        }
+      } catch (storeErr) {
+        await Promise.all(storedPaths.map((storedPath) => deleteStoredUpload(storedPath).catch(() => {})));
+        return res.status(400).json({ message: storeErr.message || 'Could not store uploaded file.' });
       }
       const user = new User(userFields);
       await user.save();
@@ -256,6 +277,7 @@ async function register(req, res, next) {
         user: buildUserOut(user),
       });
     } catch (createErr) {
+      await Promise.all(storedPaths.map((storedPath) => deleteStoredUpload(storedPath).catch(() => {})));
       return res.status(400).json({ message: createErr.message });
     }
   } catch (err) {

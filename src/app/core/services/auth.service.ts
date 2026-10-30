@@ -219,6 +219,16 @@ export class AuthService {
     );
   }
 
+  /** Upload driver vehicle photo (JPG/PNG, max 5 MB). */
+  uploadVehiclePhoto(file: File, opts?: HttpToastControl): Observable<{ message: string; user: AuthUser }> {
+    const form = new FormData();
+    form.append('vehiclePhoto', file);
+    const h = opts?.skipGlobalErrorToast ? httpOptionsSkipGlobalErrorToast() : {};
+    return this.http.post<{ message: string; user: AuthUser }>(`${USERS_API}/upload-vehicle-photo`, form, h).pipe(
+      tap((res) => this.store.updateUser(res.user)),
+    );
+  }
+
   /** Upload driver license (PDF/JPG/PNG, max 5 MB). */
   uploadLicense(file: File, opts?: HttpToastControl): Observable<{ message: string; user: AuthUser }> {
     const form = new FormData();

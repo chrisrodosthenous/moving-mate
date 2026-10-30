@@ -21,6 +21,7 @@ const { getMongoUri, getJwtSecret, isProductionDefaultJwt, getPaymentsProvider, 
 const { registerClientStatic, registerSpaFallback } = require('./config/clientStatic');
 const { ALLOWED_ORIGINS, ALLOWED_HEADERS, ALLOWED_METHODS } = require('./config/cors');
 const { buildHelmetOptions } = require('./config/helmetConfig');
+const { serveStoredUpload } = require('./services/storedUploadService');
 const { globalApiLimiter } = require('./middleware/rateLimiters');
 const { joinUserSocketRooms, attachDriverLocationHandlers } = require('./services/realtimeService');
 const { attachSocketPresenceToSocket } = require('./services/socketPresenceService');
@@ -111,9 +112,10 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 // sanitizeInputMiddleware mutates inputs in place (see middleware/sanitizeInput.js).
 app.use(sanitizeInputMiddleware);
 
-// Static uploads (e.g. future profile or document uploads)
+// Disk copy first. MongoDB serves the same path after a deploy removes the file.
 const uploadsPath = path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(uploadsPath));
+app.use('/uploads', serveStoredUpload);
 
 /** Project-root `public/` (e.g. socket-test.html) — before API routes so 404 handler does not swallow HTML */
 const publicPath = path.join(__dirname, '..', 'public');

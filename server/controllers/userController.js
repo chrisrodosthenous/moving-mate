@@ -16,6 +16,7 @@ const { emitToAdmins } = require('../services/realtimeService');
 const { sendVerificationRequestToAdminsPush } = require('../services/pushNotificationService');
 const { sanitizeFcmTokens } = require('../utils/fcmTokens');
 const { strictMongoObjectIdString } = require('../utils/objectId');
+const { persistMulterFile, deleteStoredUpload } = require('../services/storedUploadService');
 
 const PHONE_DIGITS_REGEX = /^\d{8}$/;
 const PHONE_PREFIX = '+357';
@@ -388,19 +389,32 @@ async function uploadLicense(req, res, next) {
     }
 
     const filePath = `/uploads/licenses/${req.file.filename}`;
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      {
-        licenseUrl: filePath,
-        verificationStatus: 'pending',
-        isVerified: false,
-        rejectionReason: '',
-      },
-      { returnDocument: 'after', runValidators: false }
-    ).select('-password');
+    await persistMulterFile(filePath, req.file);
+    let updatedUser;
+    try {
+      updatedUser = await User.findByIdAndUpdate(
+        userId,
+        {
+          licenseUrl: filePath,
+          licensePath: filePath,
+          verificationStatus: 'pending',
+          isVerified: false,
+          rejectionReason: '',
+        },
+        { returnDocument: 'after', runValidators: false }
+      ).select('-password');
+    } catch (updateErr) {
+      await deleteStoredUpload(filePath).catch(() => {});
+      throw updateErr;
+    }
 
     if (!updatedUser) {
+      await deleteStoredUpload(filePath).catch(() => {});
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (current?.licenseUrl && current.licenseUrl !== filePath) {
+      await deleteStoredUpload(current.licenseUrl).catch(() => {});
     }
 
     const io = req.app.get('io');
@@ -426,6 +440,93 @@ async function uploadLicense(req, res, next) {
     res.json({
       success: true,
       message: 'License uploaded successfully',
+      user: toAuthUser(updatedUser),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/users/upload-vehicle-photo — replace the driver's verification photo.
+ * A new photo goes back to pending so an admin can review it.
+ */
+async function uploadVehiclePhoto(req, res, next) {
+  try {
+    const userId = req.user?.userId ?? req.user?._id;
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const actor = await User.findById(userId).select('role vehiclePhotoUrl').lean();
+    if (!actor || actor.role !== 'driver') {
+      return res.status(403).json({ message: 'Only drivers can upload a vehicle photo.' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded. Please select a JPG or PNG image.' });
+    }
+
+    const mime = String(req.file.mimetype || '').toLowerCase();
+    if (!['image/jpeg', 'image/jpg', 'image/png'].includes(mime)) {
+      await fs.unlink(req.file.path).catch(() => {});
+      return res.status(400).json({ message: 'Only JPG or PNG images are allowed.' });
+    }
+
+    const filePath = `/uploads/driver-documents/${req.file.filename}`;
+    await persistMulterFile(filePath, req.file);
+    let updatedUser;
+    try {
+      updatedUser = await User.findByIdAndUpdate(
+        userId,
+        {
+          vehiclePhotoUrl: filePath,
+          verificationStatus: 'pending',
+          isVerified: false,
+          rejectionReason: '',
+        },
+        { returnDocument: 'after', runValidators: false },
+      ).select('-password');
+    } catch (updateErr) {
+      await deleteStoredUpload(filePath).catch(() => {});
+      throw updateErr;
+    }
+
+    if (!updatedUser) {
+      await deleteStoredUpload(filePath).catch(() => {});
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (actor.vehiclePhotoUrl && actor.vehiclePhotoUrl !== filePath) {
+      await deleteStoredUpload(actor.vehiclePhotoUrl).catch(() => {});
+      const oldPath = path.join(__dirname, '..', actor.vehiclePhotoUrl.replace(/^\//, ''));
+      await fs.unlink(oldPath).catch((e) => {
+        if (e.code !== 'ENOENT') {
+          console.error('Could not delete old vehicle photo:', oldPath, e.message);
+        }
+      });
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      emitToAdmins(io, 'new_verification_request', {
+        userId: updatedUser._id,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        email: updatedUser.email,
+        phoneNumber: updatedUser.phoneNumber,
+        licenseUrl: updatedUser.licenseUrl || '',
+        verificationStatus: updatedUser.verificationStatus,
+        createdAt: updatedUser.createdAt,
+      });
+    }
+    const driverName = `${updatedUser.firstName || ''} ${updatedUser.lastName || ''}`.trim();
+    sendVerificationRequestToAdminsPush({ driverName, driverId: updatedUser._id }).catch((err) =>
+      console.warn('[Push] sendVerificationRequestToAdminsPush failed:', err.message)
+    );
+
+    res.json({
+      success: true,
+      message: 'Vehicle photo uploaded successfully',
       user: toAuthUser(updatedUser),
     });
   } catch (err) {
@@ -686,6 +787,7 @@ exports.getDriverAnalytics = getDriverAnalytics;
 exports.getDriverRating = getDriverRating;
 exports.getProfile = getProfile;
 exports.uploadLicense = uploadLicense;
+exports.uploadVehiclePhoto = uploadVehiclePhoto;
 exports.updateFcmToken = updateFcmToken;
 exports.removeFcmToken = removeFcmToken;
 exports.changePassword = changePassword;
