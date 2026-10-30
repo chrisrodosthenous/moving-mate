@@ -20,11 +20,8 @@
         @if (dropoff(); as d) {
           <map-marker [position]="{ lat: d.lat, lng: d.lng }" [options]="dropoffMarkerOptions()" title="Destination (B)"></map-marker>
         }
-        @if (directionsResult(); as dirs) {
-          <map-directions-renderer
-            [directions]="dirs"
-            [options]="directionsRendererOptions()"
-          ></map-directions-renderer>
+        @if (routePath().length >= 2) {
+          <map-polyline [path]="routePath()" [options]="routePolylineOptions"></map-polyline>
         }
       </google-map>
     }

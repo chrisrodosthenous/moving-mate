@@ -26,7 +26,7 @@ import {
   normalizeCargoQuantity,
 } from '../../../shared/utils/order-cargo-scoring.util';
 import { calculateOrderPrice, type OrderPriceBreakdown } from '../../../shared/utils/order-pricing.util';
-import { routeEndpointMarkerOptions, routeLineRendererOptions } from '../../../shared/utils/route-map-markers';
+import { routeEndpointMarkerOptions, routePathFromDirections } from '../../../shared/utils/route-map-markers';
 import { OrderQuoteService, type OrderQuote } from '../../../core/services/order-quote.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { LoggerService } from '../../../core/services/logger.service';
@@ -55,6 +55,8 @@ export const DISTRICT_MAP_CENTERS: Record<
 };
 
 const DISTRICT_FOCUS_ZOOM = 12;
+/** Keeps the A/B markers inside the frame after fitting the road. */
+const ROUTE_FIT_PADDING = 64;
 
 function isCyprusPickupDistrict(v: string): v is (typeof CYPRUS_PICKUP_DISTRICTS)[number] {
   return (CYPRUS_PICKUP_DISTRICTS as readonly string[]).includes(v);
@@ -281,8 +283,8 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
 
   readonly pickupMarkerOptions = routeEndpointMarkerOptions('pickup');
   readonly dropoffMarkerOptions = routeEndpointMarkerOptions('dropoff');
-  /** Route line only. Google's pins stay off; A/B markers are drawn separately. */
-  readonly directionsRendererOptions = routeLineRendererOptions();
+  /** Road between A and B, drawn by us from the directions path. */
+  readonly routePath = computed(() => routePathFromDirections(this.directionsResult()));
 
   readonly totalBoxes = computed(() => this.totalCargoItems());
 
@@ -402,11 +404,22 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
       } catch {
         /* non-fatal (tests / SSR) */
       }
+      this.fitRouteToPath();
     };
     queueMicrotask(invalidate);
     requestAnimationFrame(invalidate);
     setTimeout(invalidate, 120);
     setTimeout(invalidate, 450);
+  }
+
+  /** Frame the whole road once the map and the directions path are both ready. */
+  private fitRouteToPath(): void {
+    const map = this.mapInstance;
+    const path = this.routePath();
+    if (!map || path.length < 2 || typeof google === 'undefined' || !google.maps?.LatLngBounds) return;
+    const bounds = new google.maps.LatLngBounds();
+    for (const point of path) bounds.extend(point);
+    map.fitBounds(bounds, ROUTE_FIT_PADDING);
   }
 
   /**
@@ -730,6 +743,7 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
         next: ({ result, status }) => {
           if (status === google.maps.DirectionsStatus.OK && result) {
             this.directionsResult.set(result);
+            this.fitRouteToPath();
           }
         },
       });

@@ -36,6 +36,100 @@ export function routeEndpointMarkerOptions(endpoint: RouteEndpoint): google.maps
   };
 }
 
+/** Road line drawn by us, so it stays visible when Google's own pins are hidden. */
+const ROUTE_LINE_COLOR = '#22C55E';
+const ROUTE_LINE_WEIGHT = 5;
+
+export function routeLinePolylineOptions(): google.maps.PolylineOptions {
+  return {
+    strokeColor: ROUTE_LINE_COLOR,
+    strokeOpacity: 1,
+    strokeWeight: ROUTE_LINE_WEIGHT,
+    clickable: false,
+    zIndex: 1,
+  };
+}
+
+type LatLngLike = {
+  lat: number | (() => number);
+  lng: number | (() => number);
+};
+
+export interface RouteDirectionsPath {
+  routes?: Array<{
+    legs?: Array<{ steps?: Array<{ path?: unknown }> | null }> | null;
+    overview_path?: unknown;
+  }> | null;
+}
+
+function isLatLngLike(value: unknown): value is LatLngLike {
+  if (!value || typeof value !== 'object') return false;
+  const point = value as LatLngLike;
+  const latOk = typeof point.lat === 'number' || typeof point.lat === 'function';
+  const lngOk = typeof point.lng === 'number' || typeof point.lng === 'function';
+  return latOk && lngOk;
+}
+
+function readLatLng(value: unknown): google.maps.LatLngLiteral | null {
+  if (!isLatLngLike(value)) return null;
+  const lat = typeof value.lat === 'function' ? value.lat() : value.lat;
+  const lng = typeof value.lng === 'function' ? value.lng() : value.lng;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}
+
+function pointsFrom(value: unknown): google.maps.LatLngLiteral[] {
+  let list: unknown[] = [];
+  if (Array.isArray(value)) {
+    list = value;
+  } else if (
+    value &&
+    typeof value === 'object' &&
+    typeof (value as { getArray?: unknown }).getArray === 'function'
+  ) {
+    const array = (value as { getArray: () => unknown }).getArray();
+    list = Array.isArray(array) ? array : [];
+  }
+
+  const points: google.maps.LatLngLiteral[] = [];
+  for (const entry of list) {
+    const point = readLatLng(entry);
+    if (!point) continue;
+    const previous = points[points.length - 1];
+    if (previous && previous.lat === point.lat && previous.lng === point.lng) continue;
+    points.push(point);
+  }
+  return points;
+}
+
+/**
+ * Driving path for our polyline.
+ * Step paths follow the road; overview_path is the fallback when steps are missing.
+ */
+export function routePathFromDirections(
+  result: RouteDirectionsPath | null | undefined,
+): google.maps.LatLngLiteral[] {
+  const route = result?.routes?.[0];
+  if (!route) return [];
+
+  const detailed: google.maps.LatLngLiteral[] = [];
+  for (const leg of route.legs ?? []) {
+    for (const step of leg?.steps ?? []) {
+      const segment = pointsFrom(step?.path);
+      if (segment.length === 0) continue;
+      const previous = detailed[detailed.length - 1];
+      const first = segment[0];
+      if (previous && previous.lat === first.lat && previous.lng === first.lng) {
+        detailed.push(...segment.slice(1));
+      } else {
+        detailed.push(...segment);
+      }
+    }
+  }
+  if (detailed.length >= 2) return detailed;
+  return pointsFrom(route.overview_path);
+}
+
 /** Line only. Callers cannot turn Google's pins back on. */
 export function routeLineRendererOptions(
   extra: Omit<google.maps.DirectionsRendererOptions, 'suppressMarkers'> = {},

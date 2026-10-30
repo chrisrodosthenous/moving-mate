@@ -1,14 +1,14 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { GoogleMap, MapDirectionsRenderer, MapMarker } from '@angular/google-maps';
+import { GoogleMap, MapMarker, MapPolyline } from '@angular/google-maps';
 import { UiButtonComponent } from '@/components/ui/button';
 import type { PlaceResult } from '../../shared/directives/places-autocomplete.directive';
-import { routeLineRendererOptions } from '../../shared/utils/route-map-markers';
+import { routeLinePolylineOptions } from '../../shared/utils/route-map-markers';
 
 @Component({
   selector: 'app-order-map-view',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [GoogleMap, MapDirectionsRenderer, MapMarker, UiButtonComponent],
+  imports: [GoogleMap, MapMarker, MapPolyline, UiButtonComponent],
   templateUrl: './order-map-view.component.html',
   styleUrl: './order-map-view.component.css',
 })
@@ -18,11 +18,9 @@ export class OrderMapViewComponent {
   readonly center = input.required<google.maps.LatLngLiteral>();
   readonly zoom = input.required<number>();
   readonly mapOptionsWithClick = input.required<google.maps.MapOptions>();
-  readonly directionsResult = input<google.maps.DirectionsResult | null>(null);
-  /** Route line only. Google's own pins stay off; A/B markers are drawn separately. */
-  readonly directionsRendererOptions = input<google.maps.DirectionsRendererOptions>(
-    routeLineRendererOptions(),
-  );
+  /** Driving path drawn by us. Empty until directions return at least two points. */
+  readonly routePath = input<google.maps.LatLngLiteral[]>([]);
+  readonly routePolylineOptions = routeLinePolylineOptions();
   /** Pickup (A) / dropoff (B) markers when set. */
   readonly pickup = input<PlaceResult | null>(null);
   readonly dropoff = input<PlaceResult | null>(null);

@@ -1,4 +1,9 @@
-import { routeEndpointMarkerOptions, routeLineRendererOptions } from './route-map-markers';
+import {
+  routeEndpointMarkerOptions,
+  routeLinePolylineOptions,
+  routeLineRendererOptions,
+  routePathFromDirections,
+} from './route-map-markers';
 
 describe('route-map-markers', () => {
   it('draws a labeled green circle for pickup and destination', () => {
@@ -27,5 +32,81 @@ describe('route-map-markers', () => {
     expect(options.suppressMarkers).toBe(true);
     expect(options.preserveViewport).toBe(true);
     expect(options.polylineOptions).toEqual({ strokeColor: '#22C55E', strokeWeight: 5 });
+  });
+
+  it('styles the road line in brand green', () => {
+    expect(routeLinePolylineOptions()).toEqual(
+      jasmine.objectContaining({
+        strokeColor: '#22C55E',
+        strokeOpacity: 1,
+        strokeWeight: 5,
+        clickable: false,
+      }),
+    );
+  });
+
+  it('builds the road from step paths and drops the repeated join', () => {
+    const path = routePathFromDirections({
+      routes: [
+        {
+          overview_path: [
+            { lat: 0, lng: 0 },
+            { lat: 9, lng: 9 },
+          ],
+          legs: [
+            {
+              steps: [
+                {
+                  path: [
+                    { lat: () => 35.17, lng: () => 33.36 },
+                    { lat: () => 35.16, lng: () => 33.37 },
+                  ],
+                },
+                {
+                  path: [
+                    { lat: 35.16, lng: 33.37 },
+                    { lat: 35.15, lng: 33.39 },
+                    { lat: Number.NaN, lng: 33.4 },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(path).toEqual([
+      { lat: 35.17, lng: 33.36 },
+      { lat: 35.16, lng: 33.37 },
+      { lat: 35.15, lng: 33.39 },
+    ]);
+  });
+
+  it('falls back to the overview path when steps have no coordinates', () => {
+    const path = routePathFromDirections({
+      routes: [
+        {
+          legs: [{ steps: [{ path: [] }] }],
+          overview_path: {
+            getArray: () => [
+              { lat: 35.18, lng: 33.38 },
+              { lat: 35.18, lng: 33.38 },
+              { lat: 34.7, lng: 33.02 },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(path).toEqual([
+      { lat: 35.18, lng: 33.38 },
+      { lat: 34.7, lng: 33.02 },
+    ]);
+  });
+
+  it('returns no road when directions are missing', () => {
+    expect(routePathFromDirections(null)).toEqual([]);
+    expect(routePathFromDirections({ routes: [] })).toEqual([]);
   });
 });
