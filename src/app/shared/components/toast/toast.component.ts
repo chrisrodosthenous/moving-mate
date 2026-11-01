@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { badgeVariants, type BadgeVariant } from '@/components/ui/badge';
@@ -39,6 +39,8 @@ const TOAST_TYPE_VARIANT: Record<ToastType, BadgeVariant> = {
 })
 export class ToastComponent {
   readonly toast = inject(ToastService);
+  /** Lift the toast above the admin design button on the bottom right. */
+  readonly raised = input(false);
 
   /** Aligned with {@linkcode badgeVariants} (light) — success = emerald, error = rose. */
   classForType(type: ToastType): string {

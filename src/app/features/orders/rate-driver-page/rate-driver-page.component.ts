@@ -11,6 +11,8 @@ import { AuthService } from '../../../core/services/auth.service';
 import { TransportOrder } from '../../../core/services/orders.service';
 import * as CustomerActions from '../../customer/state/customer.actions';
 import {
+  selectCustomerCompletedTabLoading,
+  selectCustomerCompletedTabOrders,
   selectCustomerOrders,
   selectCustomerOrdersLoading,
   selectCustomerRatingSubmittingOrderId,
@@ -33,7 +35,11 @@ export class RateDriverPageComponent {
   readonly orderId = this.route.snapshot.paramMap.get('orderId') ?? '';
 
   readonly orders = toSignal(this.store.select(selectCustomerOrders), { initialValue: [] });
+  readonly completedOrders = toSignal(this.store.select(selectCustomerCompletedTabOrders), { initialValue: [] });
   readonly loading = toSignal(this.store.select(selectCustomerOrdersLoading), { initialValue: true });
+  readonly completedLoading = toSignal(this.store.select(selectCustomerCompletedTabLoading), {
+    initialValue: true,
+  });
   readonly ratingSubmittingOrderId = toSignal(
     this.store.select(selectCustomerRatingSubmittingOrderId),
     { initialValue: null },
@@ -47,10 +53,11 @@ export class RateDriverPageComponent {
 
   constructor() {
     this.store.dispatch(CustomerActions.loadCustomerOrders());
+    this.store.dispatch(CustomerActions.loadCustomerCompletedOrders());
 
     effect(() => {
-      const list = this.orders();
-      if (this.loading()) return;
+      const list = [...this.orders(), ...this.completedOrders()];
+      if (this.loading() || this.completedLoading()) return;
 
       const id = this.orderId;
       if (!id) {

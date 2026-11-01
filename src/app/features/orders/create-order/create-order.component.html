@@ -11,14 +11,14 @@
   >
     <div
       #orderFormPanel
-      class="create-order-drawer-panel relative z-[25] flex min-h-0 w-full flex-col overflow-hidden bg-card/92 backdrop-blur-md lg:z-[1] lg:order-1 lg:min-h-0 lg:border-r lg:border-border"
+      class="create-order-drawer-panel relative z-[25] flex min-h-0 w-full flex-col overflow-hidden bg-card/92 backdrop-blur-md md:z-[1] md:order-1 md:min-h-0 md:border-r md:border-border"
       [class.is-open]="drawerOpen()"
     role="dialog"
       aria-modal="false"
     aria-label="New order form"
   >
       <div
-        class="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-2 pb-[max(6rem,calc(1rem+env(safe-area-inset-bottom)))] pt-2 xs:px-3 lg:px-8 lg:pb-8 lg:pt-6 max-lg:pb-[max(6rem,calc(1rem+env(safe-area-inset-bottom)))]"
+        class="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-2 pb-[max(6rem,calc(1rem+env(safe-area-inset-bottom)))] pt-2 xs:px-3 md:px-6 md:pb-8 md:pt-6 lg:px-8"
       >
         <form class="flex min-w-0 flex-col gap-2 xs:gap-3 lg:gap-8" (ngSubmit)="confirmOrder()">
           <app-order-form
@@ -109,10 +109,10 @@
         </div>
 
     <div
-      class="create-order-map-wrap relative z-[35] flex w-full min-w-0 shrink-0 flex-col overflow-hidden lg:order-2 lg:min-h-[400px] lg:h-full lg:max-h-none"
+      class="create-order-map-wrap relative z-[35] flex w-full min-w-0 shrink-0 flex-col overflow-hidden md:order-2 md:h-full md:min-h-[400px] md:max-h-none"
     >
       <p
-        class="shrink-0 border-b border-border/30 bg-muted/35 px-3 py-1.5 text-center text-[10px] leading-snug text-muted-foreground xs:text-xs lg:hidden"
+        class="shrink-0 border-b border-border/30 bg-muted/35 px-3 py-1.5 text-center text-xs leading-snug text-muted-foreground md:hidden"
         role="note"
       >
         Tap the map to set pickup, then destination

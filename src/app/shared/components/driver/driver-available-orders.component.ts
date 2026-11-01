@@ -9,7 +9,6 @@ import { GoogleMap, MapMarker, MapDirectionsRenderer, MapDirectionsService } fro
 import { TransportOrder, ORDERS_API_BASE } from '../../../core/services/orders.service';
 import { CargoPhotoLightboxComponent } from '../cargo-photo-lightbox/cargo-photo-lightbox.component';
 import { EmptyStateComponent } from '../empty-state/empty-state.component';
-import { OrderRoutePreviewDialogComponent } from '../order-route-preview-dialog/order-route-preview-dialog.component';
 import { AuthService } from '../../../core/services/auth.service';
 import type { AuthUser } from '../../../store/auth.store';
 import * as DriverActions from '../../../features/driver/state/driver.actions';
@@ -63,7 +62,6 @@ export interface RouteInfo {
     RouterLink,
     EmptyStateComponent,
     CargoPhotoLightboxComponent,
-    OrderRoutePreviewDialogComponent,
     UiButtonComponent,
     DriverJobCardComponent,
   ],
@@ -79,7 +77,7 @@ export class DriverAvailableOrdersComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly breakpointObserver = inject(BreakpointObserver);
 
-  /** Desktop split-layout (tailwind `md`); mobile uses {@link OrderRoutePreviewDialogComponent} (My Orders / My trips parity). */
+  /** Tablet and desktop use a side-by-side map. Phones show a short map above the list. */
   readonly isMdUp = toSignal(this.breakpointObserver.observe(MD_BREAKPOINT_QUERY).pipe(map((r) => r.matches)), {
     initialValue: matchMediaMdUp(),
   });
@@ -287,7 +285,6 @@ export class DriverAvailableOrdersComponent {
   onWindowResize(): void {
     const map = this.mapInstance();
     if (!map || !this.selectedOrder()) return;
-    if (!this.isMdUp()) return;
     requestAnimationFrame(() => {
       const m = this.mapInstance();
       if (!m) return;

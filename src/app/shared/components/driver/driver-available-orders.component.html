@@ -41,8 +41,7 @@
             class="max-w-prose text-sm leading-relaxed text-muted"
             id="available-jobs-list-intro"
           >
-            Browse available orders in your area. Tap anywhere on a job card — or Accept after preview — to interact;
-            route opens in the split map on desktop.
+            Open a job to see the route, then accept it.
           </p>
         </div>
 
@@ -132,9 +131,9 @@
         </div>
       </div>
 
-      @if (selectedOrder() && isMdUp()) {
+      @if (selectedOrder()) {
         <div
-          class="route-map-pane relative hidden min-h-0 md:flex md:w-1/2 md:flex-1 md:flex-col md:self-stretch md:border-l md:border-border/30 md:bg-muted/35"
+          class="route-map-pane relative flex h-[clamp(20rem,52vh,28rem)] min-h-[20rem] w-full shrink-0 flex-col max-md:order-first md:h-auto md:min-h-0 md:w-1/2 md:flex-1 md:self-stretch md:border-l md:border-border/30 md:bg-muted/35"
           role="region"
           aria-label="Route map"
         >
@@ -177,30 +176,6 @@
     </div>
   }
 </div>
-
-@if (!gateLoading() && !locked() && selectedOrder(); as previewJob) {
-  @if (!isMdUp()) {
-    <app-order-route-preview-dialog
-      [order]="previewJob"
-      [embedMode]="false"
-      (closed)="clearMapSelection()"
-    >
-      <div
-        routePreviewModalFooter
-        class="shrink-0 border-t border-border/30 bg-card/90 backdrop-blur-md px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3"
-      >
-        <button
-          type="button"
-          (click)="acceptOrder(previewJob, $event)"
-          [disabled]="isAccepting(previewJob)"
-          class="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-[#7BBDE8] px-4 text-base font-bold text-[#001D39] shadow-[0_4px_12px_rgba(123,189,232,0.3)] transition hover:bg-[#6EA2B3] disabled:opacity-60"
-        >
-          {{ isAccepting(previewJob) ? 'Accepting…' : 'Accept order' }}
-        </button>
-      </div>
-    </app-order-route-preview-dialog>
-  }
-}
 
 @if (cargoLightboxUrl(); as lbUrl) {
   <app-cargo-photo-lightbox [imageUrl]="lbUrl" (closed)="onCargoLightboxClosed()" />

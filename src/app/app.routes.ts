@@ -161,7 +161,7 @@ export const routes: Routes = [
       },
       {
         path: 'active/:orderId',
-        data: { pageTitle: 'Active delivery' },
+        data: { pageTitle: 'Active delivery', shellFullBleed: true },
         canActivate: [driverStatusRefreshGuard],
         loadComponent: () =>
           import('./features/driver/driver-active-delivery/driver-active-delivery.component').then(

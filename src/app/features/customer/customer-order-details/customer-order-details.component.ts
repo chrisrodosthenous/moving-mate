@@ -12,11 +12,15 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { GoogleMap, MapMarker } from '@angular/google-maps';
+import { GoogleMap, MapDirectionsService, MapMarker, MapPolyline } from '@angular/google-maps';
 import { map } from 'rxjs/operators';
 import { GoogleMapsLoaderService } from '../../../core/services/google-maps-loader.service';
-import { LoggerService } from '../../../core/services/logger.service';
 import { isCustomerLiveMapTrackingStatus } from '../../../shared/utils/order-tracking';
+import {
+  routeEndpointMarkerOptions,
+  routeLinePolylineOptions,
+  routePathFromDirections,
+} from '../../../shared/utils/route-map-markers';
 import * as CustomerActions from '../state/customer.actions';
 import { selectCustomerOrders, selectCustomerOrdersLoading } from '../state/customer.selectors';
 import { SocketService } from '../../../core/services/socket.service';
@@ -27,7 +31,7 @@ import type { TransportOrder } from '../../../core/services/orders.service';
 @Component({
   selector: 'app-customer-order-details',
   standalone: true,
-  imports: [RouterLink, DecimalPipe, GoogleMap, MapMarker, TrackingComponent],
+  imports: [RouterLink, DecimalPipe, GoogleMap, MapMarker, MapPolyline, TrackingComponent],
   templateUrl: './customer-order-details.component.html',
   styleUrl: './customer-order-details.component.css',
 })
@@ -36,14 +40,14 @@ export class CustomerOrderDetailsComponent implements OnInit {
   private readonly store = inject(Store);
   private readonly route = inject(ActivatedRoute);
   private readonly mapsLoader = inject(GoogleMapsLoaderService);
-  private readonly logger = inject(LoggerService);
+  private readonly directions = inject(MapDirectionsService);
   private readonly socket = inject(SocketService);
   readonly socketConnectionState = this.socket.socketConnectionState;
 
   @ViewChild(GoogleMap) private staticOverviewMap?: GoogleMap;
 
   readonly mapsEmbedReady = signal(false);
-  readonly customerLocation = signal<{ lat: number; lng: number } | null>(null);
+  readonly routePath = signal<google.maps.LatLngLiteral[]>([]);
 
   /** Keeps this order on screen after it leaves the active list (delivered / cancelled). */
   private readonly trackedOrder = signal<TransportOrder | null>(null);
@@ -85,35 +89,33 @@ export class CustomerOrderDetailsComponent implements OnInit {
     streetViewControl: false,
   };
 
-  readonly pickupMarkerOptions: google.maps.MarkerOptions = {
-    label: { text: 'A', color: '#F0EDE6' },
-    title: 'Pickup',
-    zIndex: 10,
-  };
-
-  readonly dropoffMarkerOptions: google.maps.MarkerOptions = {
-    label: { text: 'B', color: '#F0EDE6' },
-    title: 'Destination',
-    zIndex: 11,
-  };
-
-  readonly customerMarkerOptions = computed(
-    (): google.maps.MarkerOptions => ({
-      title: 'You',
-      icon: {
-        path: typeof google !== 'undefined' ? google.maps.SymbolPath.CIRCLE : 0,
-        fillColor: '#22C55E',
-        fillOpacity: 0.92,
-        strokeColor: '#F0EDE6',
-        strokeWeight: 3,
-        scale: 8,
-      },
-      zIndex: 800,
-    }),
-  );
+  readonly pickupMarkerOptions = routeEndpointMarkerOptions('pickup');
+  readonly dropoffMarkerOptions = routeEndpointMarkerOptions('dropoff');
+  readonly routePolylineOptions = routeLinePolylineOptions();
 
   constructor() {
     this.socket.connect();
+
+    effect((onCleanup) => {
+      const o = this.order();
+      if (!this.mapsEmbedReady() || this.showLiveTracking() || !o?.pickupLocation || !o.dropoffLocation) {
+        return;
+      }
+      const sub = this.directions
+        .route({
+          origin: { lat: o.pickupLocation.lat, lng: o.pickupLocation.lng },
+          destination: { lat: o.dropoffLocation.lat, lng: o.dropoffLocation.lng },
+          travelMode: google.maps.TravelMode.DRIVING,
+        })
+        .subscribe(({ result, status }) => {
+          if (status !== google.maps.DirectionsStatus.OK || !result) {
+            this.routePath.set([]);
+            return;
+          }
+          this.routePath.set(routePathFromDirections(result));
+        });
+      onCleanup(() => sub.unsubscribe());
+    });
 
     effect(() => {
       const id = this.orderIdParam();
@@ -152,22 +154,6 @@ export class CustomerOrderDetailsComponent implements OnInit {
     void this.mapsLoader.ensureLoaded().then((ok) => {
       this.mapsEmbedReady.set(ok);
     });
-
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          this.customerLocation.set({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          });
-          this.triggerStaticResize();
-        },
-        () => {
-          this.logger.log('[CustomerLiveMap] geolocation unavailable or denied');
-        },
-        { enableHighAccuracy: true, maximumAge: 30_000, timeout: 12_000 },
-      );
-    }
   }
 
   /** Non-live Angular map only — live route uses imperative {@link TrackingComponent}. */

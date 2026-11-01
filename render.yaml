@@ -13,6 +13,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "22"
       - key: PAYMENTS_PROVIDER
         value: mock
       - key: CLIENT_URL

@@ -1,12 +1,7 @@
-<div class="checkout-root flex min-h-dvh min-w-0 flex-col overflow-x-hidden">
+<div class="checkout-root flex min-w-0 flex-col overflow-x-hidden pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
   @if (mockPayments) {
-    <div class="checkout-test-banner px-4 py-2 text-center text-xs font-medium sm:text-sm">
-      <span class="inline-flex items-center justify-center gap-2">
-        <span class="rounded bg-amber-200/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950"
-          >Test mode</span
-        >
-        Mock payment provider — no real card will be charged until a driver accepts your job.
-      </span>
+    <div class="checkout-test-banner px-4 py-3 text-center text-sm leading-snug">
+      This is a test payment. Nothing is charged until a driver accepts your move.
     </div>
   }
 
@@ -25,7 +20,7 @@
   <div class="flex min-h-0 flex-1 flex-col lg:flex-row">
     <!-- Order summary (Stripe-style left pane) -->
     <aside
-      class="checkout-summary-pane order-2 flex w-full shrink-0 flex-col px-5 py-8 sm:px-8 lg:order-1 lg:w-[min(100%,28rem)] lg:min-h-0 lg:flex-1 lg:px-10 lg:py-12 xl:w-[38%]"
+      class="checkout-summary-pane order-1 flex w-full shrink-0 flex-col px-5 py-8 sm:px-8 lg:w-[min(100%,28rem)] lg:min-h-0 lg:flex-1 lg:px-10 lg:py-12 xl:w-[38%]"
       aria-label="Order summary"
     >
       <p class="text-sm text-white/70">Pay Moving Mate</p>
@@ -40,11 +35,11 @@
           <span class="shrink-0 tabular-nums text-white">€{{ amount() | number: '1.2-2' }}</span>
         </div>
         <div class="border-t border-white/10 pt-3 flex items-center justify-between gap-3 font-semibold">
-          <span>Total due today</span>
+          <span>Taken today</span>
           <span class="tabular-nums">€0.00</span>
         </div>
-        <p class="text-xs leading-relaxed text-white/55">
-          €0.00 charged now. Full amount is authorized on your card and captured only when a driver accepts.
+        <p class="text-sm leading-relaxed text-white/70">
+          Nothing is taken today. The full amount is charged when a driver accepts.
         </p>
       </div>
 
@@ -55,7 +50,7 @@
 
     <!-- Payment form (Stripe-style right pane) -->
     <main
-      class="checkout-form-pane order-1 flex min-w-0 flex-1 flex-col px-4 py-6 sm:px-8 sm:py-10 lg:order-2 lg:px-12 lg:py-12"
+      class="checkout-form-pane order-2 flex min-w-0 flex-1 flex-col px-4 py-6 sm:px-8 sm:py-10 lg:px-12 lg:py-12"
       data-testid="mock-checkout-panel"
     >
       <div class="mx-auto w-full min-w-0 max-w-md flex-1">
@@ -75,7 +70,7 @@
           </div>
         } @else {
           <h1 class="text-xl font-semibold text-[#0a2540]">Payment details</h1>
-          <p class="mt-1 text-sm text-slate-500">Enter your card to authorize the move (mock test card).</p>
+          <p class="mt-1 text-sm text-slate-500">Confirm the test card to authorize the move.</p>
 
           <form class="mt-6 space-y-4" (ngSubmit)="confirmPayment(); $event.preventDefault()">
             <div>
@@ -120,7 +115,7 @@
                   />
                 </div>
               </div>
-              <p class="mt-1.5 text-xs text-slate-500">Test card pre-filled for sandbox checkout.</p>
+              <p class="mt-1.5 text-sm text-slate-500">A test card is filled in for you.</p>
             </div>
 
             <div>
@@ -148,7 +143,7 @@
               }
             </button>
 
-            <p class="checkout-powered text-center">Powered by Mock Payments · Stripe-compatible flow</p>
+            <p class="mt-3 text-center text-sm text-slate-500">No charge is taken until a driver accepts.</p>
           </form>
         }
 

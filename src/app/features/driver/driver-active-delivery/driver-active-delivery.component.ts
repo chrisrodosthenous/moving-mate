@@ -9,9 +9,15 @@ import { catchError, map, throttleTime } from 'rxjs/operators';
 import { LoggerService } from '../../../core/services/logger.service';
 import { SocketService } from '../../../core/services/socket.service';
 import { isDriverMapTrackingStatus } from '../../../shared/utils/order-tracking';
+import { buildDriverCarGoogleIcon } from '../../../shared/utils/driver-map-car-icon';
 import { routeEndpointMarkerOptions, routeLineRendererOptions } from '../../../shared/utils/route-map-markers';
 import * as DriverActions from '../state/driver.actions';
-import { selectDriverMyLoading, selectDriverMyOrders } from '../state/driver.selectors';
+import {
+  selectDriverMyLoading,
+  selectDriverMyOrders,
+  selectDriverTripBusyId,
+  selectDriverTripStatusError,
+} from '../state/driver.selectors';
 const LOCATION_THROTTLE_MS = 8000;
 const GEO_DENIED_MESSAGE = 'Tracking disabled - delivery might be delayed';
 const CYPRUS_CENTER = { lat: 35.1264, lng: 33.4299 };
@@ -59,6 +65,22 @@ export class DriverActiveDeliveryComponent implements OnDestroy {
   private mapInstance: google.maps.Map | null = null;
 
   readonly directionsResult = signal<google.maps.DirectionsResult | null>(null);
+  readonly driverPosition = signal<{ lat: number; lng: number } | null>(null);
+  readonly driverHeading = signal<number | null>(null);
+  readonly driverCarIcon = signal<google.maps.Icon | null>(null);
+  private fittedDriver = false;
+
+  readonly driverMarkerOptions = computed((): google.maps.MarkerOptions => {
+    const icon = this.driverCarIcon();
+    const heading = this.driverHeading();
+    return {
+      title: 'Your position',
+      optimized: false,
+      zIndex: 1000,
+      ...(icon ? { icon } : {}),
+      ...(heading != null ? { rotation: heading } : {}),
+    };
+  });
 
   readonly directionsRendererOptions = routeLineRendererOptions({
     preserveViewport: true,
@@ -79,6 +101,8 @@ export class DriverActiveDeliveryComponent implements OnDestroy {
 
   readonly myOrders = toSignal(this.store.select(selectDriverMyOrders), { initialValue: [] });
   readonly loading = toSignal(this.store.select(selectDriverMyLoading), { initialValue: true });
+  readonly tripBusyId = toSignal(this.store.select(selectDriverTripBusyId), { initialValue: null });
+  readonly tripStatusError = toSignal(this.store.select(selectDriverTripStatusError), { initialValue: null });
 
   readonly orderIdParam = toSignal(this.route.paramMap.pipe(map((p) => p.get('orderId') ?? '')), {
     initialValue: '',
@@ -116,6 +140,30 @@ export class DriverActiveDeliveryComponent implements OnDestroy {
     return !!o && isDriverMapTrackingStatus(o.status);
   });
 
+  readonly canMarkPickedUp = computed(() => this.order()?.status === 'accepted');
+
+  readonly canMarkDelivered = computed(() => {
+    const status = this.order()?.status;
+    return status === 'driver_is_on_the_way' || status === 'picked_up' || status === 'in_progress';
+  });
+
+  tripBusy(): boolean {
+    const id = this.order()?._id;
+    return !!id && this.tripBusyId() === String(id);
+  }
+
+  markPickedUp(): void {
+    const id = this.order()?._id;
+    if (!id) return;
+    this.store.dispatch(DriverActions.updateDriverTripStatus({ id: String(id), status: 'in-transit' }));
+  }
+
+  markDelivered(): void {
+    const id = this.order()?._id;
+    if (!id) return;
+    this.store.dispatch(DriverActions.updateDriverTripStatus({ id: String(id), status: 'completed' }));
+  }
+
   constructor() {
     this.store.dispatch(DriverActions.loadDriverMyOrders({}));
     this.socket.connect();
@@ -151,8 +199,7 @@ export class DriverActiveDeliveryComponent implements OnDestroy {
       if (!dirs || !map) return;
       window.setTimeout(() => {
         google.maps.event.trigger(map, 'resize');
-        const bounds = dirs.routes?.[0]?.bounds;
-        if (bounds) map.fitBounds(bounds, 48);
+        this.fitMap(true);
       }, 160);
       window.setTimeout(() => google.maps.event.trigger(map, 'resize'), 320);
     });
@@ -162,11 +209,23 @@ export class DriverActiveDeliveryComponent implements OnDestroy {
       const o = this.order();
       if (!o || !isDriverMapTrackingStatus(o.status)) {
         this.trackingPermissionMessage.set(null);
+        this.driverPosition.set(null);
+        this.driverHeading.set(null);
+        this.fittedDriver = false;
         return;
       }
 
       const oid = String(o._id);
       this.trackingPermissionMessage.set(null);
+      this.fittedDriver = false;
+      const saved = o.driverLocation;
+      if (saved && Number.isFinite(saved.lat) && Number.isFinite(saved.lng)) {
+        this.driverPosition.set({ lat: saved.lat, lng: saved.lng });
+        if (typeof saved.heading === 'number' && Number.isFinite(saved.heading)) {
+          this.driverHeading.set(saved.heading);
+        }
+        this.fitMap(true);
+      }
 
       this.geoSubscription = geolocationWatchPosition$(this.geolocationWatchId)
         .pipe(
@@ -187,6 +246,9 @@ export class DriverActiveDeliveryComponent implements OnDestroy {
               typeof pos.coords.heading === 'number' && Number.isFinite(pos.coords.heading)
                 ? pos.coords.heading
                 : null;
+            this.driverPosition.set({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            if (heading != null) this.driverHeading.set(heading);
+            this.fitMap(false);
             this.socket.emitDriverLocation({
               orderId: oid,
               lat: pos.coords.latitude,
@@ -220,14 +282,42 @@ export class DriverActiveDeliveryComponent implements OnDestroy {
 
   onMapReady(map: google.maps.Map): void {
     this.mapInstance = map;
+    this.ensureDriverCarIcon();
     const trigger = (): void => {
       google.maps.event.trigger(map, 'resize');
-      const dirs = this.directionsResult();
-      const b = dirs?.routes?.[0]?.bounds;
-      if (b) map.fitBounds(b, 48);
+      this.fitMap(true);
     };
     trigger();
     requestAnimationFrame(trigger);
     setTimeout(trigger, 300);
+  }
+
+  private ensureDriverCarIcon(): void {
+    if (this.driverCarIcon()) return;
+    if (typeof google === 'undefined' || !google.maps?.Size) return;
+    try {
+      this.driverCarIcon.set(buildDriverCarGoogleIcon());
+    } catch {
+      /* Marker still shows as a default pin until the icon can be built. */
+    }
+  }
+
+  /** Fit the road, and the car the first time it appears, so the icon stays on screen. */
+  private fitMap(force: boolean): void {
+    const map = this.mapInstance;
+    if (!map || typeof google === 'undefined') return;
+    const driver = this.driverPosition();
+    if (!force && (!driver || this.fittedDriver)) return;
+    const bounds = new google.maps.LatLngBounds();
+    const routeBounds = this.directionsResult()?.routes?.[0]?.bounds;
+    if (routeBounds) bounds.union(routeBounds);
+    const pickup = this.pickupPosition();
+    const dropoff = this.dropoffPosition();
+    if (pickup) bounds.extend(pickup);
+    if (dropoff) bounds.extend(dropoff);
+    if (driver) bounds.extend(driver);
+    if (bounds.isEmpty()) return;
+    map.fitBounds(bounds, 48);
+    if (driver) this.fittedDriver = true;
   }
 }

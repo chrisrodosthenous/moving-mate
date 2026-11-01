@@ -18,7 +18,7 @@ export { DEFAULT_ORDER_LOGISTICS } from '../../core/models/order.model';
 
 /** Shared select styling — matches app semantic tokens. */
 export const ORDER_SELECT_CLASS =
-  'w-full max-w-full rounded-lg border border-border/40 bg-background/50 px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 md:px-4 md:py-2.5';
+  'min-h-[44px] w-full max-w-full rounded-lg border border-border/40 bg-background/50 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 md:px-4';
 
 export const ORDER_REQUIRED_MARK = 'text-destructive-foreground';
 

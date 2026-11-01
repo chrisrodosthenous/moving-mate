@@ -1,16 +1,16 @@
 <div
-  class="flex min-h-dvh flex-col overflow-x-hidden bg-background font-sans md:flex-row md:h-[100dvh] md:overflow-hidden"
+  class="flex min-h-dvh flex-col overflow-x-hidden bg-background font-sans md:min-h-dvh md:flex-row"
 >
   <app-sidebar class="app-sidebar-host" />
   <main
-    class="app-shell-sidebar-offset flex flex-1 min-h-0 min-w-0 flex-col overflow-x-hidden md:flex-1 md:overflow-hidden"
-    [ngClass]="showMobileBottomNav() ? 'pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-12' : 'pb-10 md:pb-12'"
+    class="app-shell-sidebar-offset flex min-w-0 flex-1 flex-col overflow-x-hidden"
+    [ngClass]="showMobileBottomNav() ? 'pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-6' : 'pb-10 md:pb-6'"
   >
     <header class="app-shell-header">
       <h1 class="app-shell-header-title">{{ pageHeading() }}</h1>
     </header>
-    <div class="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
-      <div class="app-shell-main-pad">
+    <div class="flex flex-col overflow-x-hidden">
+      <div class="app-shell-main-pad lg:!py-4">
         <div class="app-page-container space-y-4 overflow-x-hidden sm:space-y-6">
           <div
             [ngClass]="
@@ -22,11 +22,11 @@
         <!-- Personal information -->
         <section>
           <ui-card [className]="'rounded-xl shadow-sm'">
-            <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-8'">
+            <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-5'">
           <h2 class="text-lg font-semibold text-card-title">Personal information</h2>
           <p class="mt-0.5 text-sm text-muted">Update your name and contact details</p>
           <div
-            class="mb-6 mt-6 flex border-b border-brand-slate/30 pb-6"
+            class="mb-6 mt-6 flex border-b border-brand-slate/30 pb-6 lg:mb-3 lg:mt-3 lg:pb-3"
           >
             <div
               class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/15 text-lg font-semibold text-primary"
@@ -42,7 +42,7 @@
             </div>
           </div>
 
-          <form (ngSubmit)="onSubmit()" class="space-y-6">
+          <form (ngSubmit)="onSubmit()" class="space-y-6 lg:space-y-3">
             @if (error()) {
               <div
                 class="alert-error px-5 py-4 text-sm"
@@ -60,39 +60,41 @@
               </div>
             }
 
-            <div>
-              <label
-                for="firstName"
-                class="mb-2 block text-sm font-medium text-muted"
-                >First name</label
-              >
-              <input
-                id="firstName"
-                name="firstName"
-                type="text"
-                uiInput
-                [(ngModel)]="firstName"
-                placeholder="First name"
-                [className]="'w-full px-4 py-3'"
-                autocomplete="given-name"
-              />
-            </div>
-            <div>
-              <label
-                for="lastName"
-                class="mb-2 block text-sm font-medium text-muted"
-                >Last name</label
-              >
-              <input
-                id="lastName"
-                name="lastName"
-                type="text"
-                uiInput
-                [(ngModel)]="lastName"
-                placeholder="Last name"
-                [className]="'w-full px-4 py-3'"
-                autocomplete="family-name"
-              />
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-3">
+              <div>
+                <label
+                  for="firstName"
+                  class="mb-2 block text-sm font-medium text-muted"
+                  >First name</label
+                >
+                <input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  uiInput
+                  [(ngModel)]="firstName"
+                  placeholder="First name"
+                  [className]="'w-full px-4 py-3'"
+                  autocomplete="given-name"
+                />
+              </div>
+              <div>
+                <label
+                  for="lastName"
+                  class="mb-2 block text-sm font-medium text-muted"
+                  >Last name</label
+                >
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  uiInput
+                  [(ngModel)]="lastName"
+                  placeholder="Last name"
+                  [className]="'w-full px-4 py-3'"
+                  autocomplete="family-name"
+                />
+              </div>
             </div>
             <div>
               <label
@@ -100,16 +102,12 @@
                 class="mb-2 block text-sm font-medium text-muted"
                 >Email address</label
               >
-              <input
+              <p
                 id="emailAddress"
-                name="emailAddress"
-                type="email"
-                uiInput
-                [ngModel]="user()?.email ?? ''"
-                [disabled]="true"
-                [className]="'w-full cursor-not-allowed px-4 py-3 opacity-80'"
-                autocomplete="email"
-              />
+                class="w-full break-all rounded-lg border border-brand-slate/45 bg-brand-nav/40 px-4 py-3 text-sm text-foreground opacity-80"
+              >
+                {{ user()?.email || '—' }}
+              </p>
             </div>
             <div>
               <label
@@ -142,7 +140,7 @@
             <ui-button
               type="submit"
               [disabled]="loading()"
-              [className]="'w-full justify-center py-3 rounded-lg'"
+              [className]="'min-h-[48px] w-full justify-center rounded-lg'"
             >
               {{ loading() ? 'Saving…' : 'Save changes' }}
             </ui-button>
@@ -155,13 +153,13 @@
         @if (user()?.role === 'customer' || user()?.role === 'driver') {
           <section>
             <ui-card [className]="'rounded-xl shadow-sm'">
-              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-8'">
+              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-5'">
             <h2 class="text-lg font-semibold text-card-title">Security</h2>
             <p class="mt-0.5 text-sm text-muted">Change the password for your account</p>
-            <div class="mb-2 mt-6 border-b border-brand-slate/30" aria-hidden="true"></div>
+            <div class="mb-2 mt-6 border-b border-brand-slate/30 lg:mt-3" aria-hidden="true"></div>
             <form
               (ngSubmit)="onPasswordSubmit()"
-              class="mt-6 space-y-6"
+              class="mt-6 space-y-6 lg:mt-3 lg:space-y-3"
             >
               @if (passwordChangeError()) {
                 <div
@@ -248,7 +246,7 @@
                 type="submit"
                 [disabled]="passwordChangeLoading() || (confirmNewPassword.length > 0 && newPassword !== confirmNewPassword)"
                 variant="default"
-                [className]="'w-full justify-center py-3 rounded-lg'"
+                [className]="'min-h-[48px] w-full justify-center rounded-lg'"
               >
                 {{ passwordChangeLoading() ? 'Updating password…' : 'Update password' }}
               </ui-button>
@@ -262,12 +260,12 @@
       <!-- Driver-only: below the main grid -->
       @if (user()?.role === 'driver') {
         <div
-          class="mt-8 space-y-6 border-t border-brand-slate/30 pt-8"
+          class="mt-6 grid grid-cols-1 gap-6 border-t border-brand-slate/30 pt-6 lg:grid-cols-2"
         >
           @if (driverIsVerified()) {
           <section>
             <ui-card [className]="'rounded-xl shadow-sm'">
-              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-8'">
+              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-5'">
             <h2 class="text-lg font-semibold text-card-title">Earnings &amp; withdrawals</h2>
             <p class="mt-0.5 text-sm text-muted">
               Available balance from completed deliveries (your share after platform commission). Mock bank withdrawal for testing.
@@ -339,7 +337,7 @@
 
           <section>
             <ui-card [className]="'rounded-xl shadow-sm'">
-              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-8'">
+              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-5'">
             <h2 class="text-lg font-semibold text-card-title">Vehicle details</h2>
             <p class="mt-0.5 text-sm text-muted">Registered vehicle category and verification photo</p>
             <div
@@ -423,7 +421,7 @@
 
           <section>
             <ui-card [className]="'rounded-xl shadow-sm'">
-              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-8'">
+              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-5'">
             <h2 class="text-lg font-semibold text-card-title">Working districts</h2>
             <p class="mt-0.5 text-sm text-muted">
               Choose where you want to receive available orders. At least one district
@@ -445,11 +443,11 @@
               @for (d of DRIVER_WORKING_DISTRICTS; track d) {
                 <li>
                   <label
-                    class="flex cursor-pointer select-none items-center gap-4 text-ice"
+                    class="flex min-h-[44px] cursor-pointer select-none items-center gap-4 py-2 text-ice"
                   >
                     <input
                       type="checkbox"
-                      class="h-4 w-4 rounded border-brand-slate/55 text-primary focus:ring-primary"
+                      class="h-6 w-6 rounded border-brand-slate/55 text-primary focus:ring-primary"
                       [checked]="isWorkingDistrictChecked(d)"
                       (change)="onWorkingDistrictToggle(d, $event)"
                     />
@@ -465,7 +463,7 @@
               type="button"
               (click)="saveWorkingDistricts()"
               [disabled]="!canSaveWorkingDistricts()"
-              [className]="'w-full justify-center py-3 rounded-lg gap-2 flex flex-row items-center'"
+              [className]="'min-h-[48px] w-full justify-center rounded-lg gap-2 flex flex-row items-center'"
             >
               @if (districtsSaving()) {
                 <lucide-icon
@@ -484,7 +482,7 @@
 
           <section>
             <ui-card [className]="'rounded-xl shadow-sm'">
-              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-8'">
+              <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-5'">
             <h2 class="text-lg font-semibold text-card-title">Account verification</h2>
             <div
               class="mb-4 mt-6 border-b border-brand-slate/30"
@@ -684,7 +682,7 @@
       </div>
     </div>
 
-    <div class="app-shell-main-pad mt-2 border-t border-border/20 pt-4 pb-2">
+    <div class="mt-2 border-t border-border/20 px-4 pb-6 pt-3 sm:px-6 md:hidden lg:px-8">
       <ui-button
         type="button"
         variant="outline"

@@ -4,8 +4,8 @@
 
 .order-live-map-slot {
   width: 100%;
-  min-height: 500px;
-  height: clamp(500px, min(52dvh), min(72dvh, 640px));
+  height: clamp(20rem, 52vh, 28rem);
+  min-height: 20rem;
 }
 
 @media (min-width: 1024px) {

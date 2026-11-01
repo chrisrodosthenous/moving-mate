@@ -82,7 +82,7 @@ test('admin: login, see pending driver, approve, removed from pending', async ({
     await page.getByRole('button', { name: /sign in/i }).click()
     await expect(page).toHaveURL(/\/admin$/)
 
-    await page.getByRole('button', { name: /driver approvals/i }).click()
+    await page.getByRole('link', { name: /driver approvals/i }).click()
     await expect(page.getByTestId('admin-stat-drivers')).toBeVisible()
     await page.getByTestId(`admin-pending-card-${driverId}`).click()
     await expect(page.getByTestId(`admin-approve-${driverId}`)).toBeVisible({ timeout: 15000 })

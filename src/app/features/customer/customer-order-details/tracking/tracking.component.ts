@@ -16,6 +16,11 @@ import { GoogleMapsLoaderService } from '../../../../core/services/google-maps-l
 import type { DriverTrackingPoint } from '../../../../core/services/tracking.service';
 import { TrackingService } from '../../../../core/services/tracking.service';
 import { buildDriverCarGoogleIcon } from '../../../../shared/utils/driver-map-car-icon';
+import {
+  routeEndpointMarkerOptions,
+  routeLinePolylineOptions,
+  routePathFromDirections,
+} from '../../../../shared/utils/route-map-markers';
 
 function normalizeSeed(seed: unknown): DriverTrackingPoint | null {
   if (!seed || typeof seed !== 'object') return null;
@@ -56,7 +61,6 @@ export class TrackingComponent {
   readonly seedDriverLocation = input<{ lat: number; lng: number; heading?: number | null } | null | undefined>(
     undefined,
   );
-  readonly customerLocation = input<{ lat: number; lng: number } | null>(null);
 
   readonly driverLocation = signal<DriverTrackingPoint | null>(null);
 
@@ -74,7 +78,7 @@ export class TrackingComponent {
   private pickupMarker: google.maps.Marker | null = null;
   private dropoffMarker: google.maps.Marker | null = null;
   private driverMarker: google.maps.Marker | null = null;
-  private customerMarker: google.maps.Marker | null = null;
+  private routeLine: google.maps.Polyline | null = null;
 
   private subscription: Subscription | null = null;
 
@@ -135,18 +139,6 @@ export class TrackingComponent {
       });
     });
 
-    effect(() => {
-      const _cust = this.customerLocation();
-      const ready = this.sdkReady();
-      if (!ready || !this.map) return;
-      untracked(() => {
-        void this.ensureCustomerMarker().then(() => {
-          if (!this.map) return;
-          this.fitAllBounds();
-          setTimeout(() => this.invalidateMapSize(), 80);
-        });
-      });
-    });
   }
 
   private async initializeMap(): Promise<void> {
@@ -170,43 +162,63 @@ export class TrackingComponent {
       streetViewControl: false,
     });
 
-    const pickupOpts: google.maps.MarkerOptions = {
+    this.pickupMarker = new google.maps.Marker({
+      ...routeEndpointMarkerOptions('pickup'),
       map: this.map,
       position: pickup,
-      label: { text: 'A', color: '#F0EDE6' },
-      title: 'Pickup',
-      zIndex: 10,
-    };
-    const dropOpts: google.maps.MarkerOptions = {
+    });
+    this.dropoffMarker = new google.maps.Marker({
+      ...routeEndpointMarkerOptions('dropoff'),
       map: this.map,
       position: dropoff,
-      label: { text: 'B', color: '#F0EDE6' },
-      title: 'Destination',
-      zIndex: 11,
-    };
+    });
 
-    this.pickupMarker = new google.maps.Marker(pickupOpts);
-    this.dropoffMarker = new google.maps.Marker(dropOpts);
-
-    await this.ensureCustomerMarker();
+    this.drawRoute();
     this.fitAllBounds();
     this.invalidateMapSize();
     setTimeout(() => this.invalidateMapSize(), 120);
+  }
+
+  private drawRoute(): void {
+    if (!this.map || typeof google === 'undefined') return;
+    const pickup = this.pickup();
+    const dropoff = this.dropoff();
+    new google.maps.DirectionsService().route(
+      {
+        origin: pickup,
+        destination: dropoff,
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (!this.map || status !== google.maps.DirectionsStatus.OK || !result) return;
+        const path = routePathFromDirections(result);
+        if (path.length < 2) return;
+        if (!this.routeLine) {
+          this.routeLine = new google.maps.Polyline({
+            ...routeLinePolylineOptions(),
+            map: this.map,
+            path,
+          });
+        } else {
+          this.routeLine.setPath(path);
+          this.routeLine.setMap(this.map);
+        }
+        this.fitAllBounds();
+      },
+    );
   }
 
   private updateDriverMarker(): void {
     const loc = this.driverLocation();
     if (!loc || !this.map || typeof google === 'undefined') return;
 
-    const driverCarIcon = typeof google !== 'undefined' ? buildDriverCarGoogleIcon() : undefined;
-
-    const baseOpts: google.maps.MarkerOptions = {
+    const driverCarIcon = buildDriverCarGoogleIcon();
+    const driveOpts: google.maps.MarkerOptions = {
       title: 'Driver',
       zIndex: 999,
-      optimized: true,
+      optimized: false,
+      icon: driverCarIcon,
     };
-    const driveOpts =
-      driverCarIcon != null ? ({ ...baseOpts, icon: driverCarIcon } as google.maps.MarkerOptions) : baseOpts;
 
     if (!this.driverMarker) {
       this.driverMarker = new google.maps.Marker({
@@ -220,36 +232,9 @@ export class TrackingComponent {
       this.driverMarker.setOptions(driveOpts);
     }
 
-    void this.ensureCustomerMarker();
     this.fitAllBounds();
     if (this.mapInitialized && this.map) {
       setTimeout(() => this.invalidateMapSize(), 100);
-    }
-  }
-
-  private async ensureCustomerMarker(): Promise<void> {
-    await this.mapsLoader.ensureLoaded();
-    const cust = this.customerLocation();
-    if (!cust || !this.map || typeof google === 'undefined') return;
-
-    if (!this.customerMarker) {
-      this.customerMarker = new google.maps.Marker({
-        map: this.map,
-        position: cust,
-        title: 'You',
-        zIndex: 800,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          fillColor: '#22C55E',
-          fillOpacity: 0.92,
-          strokeColor: '#F0EDE6',
-          strokeWeight: 3,
-          scale: 8,
-        },
-      });
-    } else {
-      this.customerMarker.setMap(this.map);
-      this.customerMarker.setPosition(cust);
     }
   }
 
@@ -261,9 +246,6 @@ export class TrackingComponent {
 
     const drv = this.driverLocation();
     if (drv) bounds.extend(drv);
-
-    const cust = this.customerLocation();
-    if (cust) bounds.extend(cust);
 
     this.map.fitBounds(bounds, MAP_PADDING);
   }
@@ -282,13 +264,13 @@ export class TrackingComponent {
     this.pickupMarker?.setMap(null);
     this.dropoffMarker?.setMap(null);
     this.driverMarker?.setMap(null);
-    this.customerMarker?.setMap(null);
+    this.routeLine?.setMap(null);
 
     this.map = null;
     this.pickupMarker = null;
     this.dropoffMarker = null;
     this.driverMarker = null;
-    this.customerMarker = null;
+    this.routeLine = null;
 
     this.mapInitialized = false;
     this.sdkReady.set(false);

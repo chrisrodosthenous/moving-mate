@@ -37,10 +37,9 @@ import { LucideAngularModule } from 'lucide-angular';
 
     @if (themeEditor.isOpen()) {
       <div
-        class="theme-editor-panel fixed z-[9998] flex flex-col overflow-hidden rounded-xl shadow-2xl"
+        class="theme-editor-panel fixed z-[9998] flex flex-col overflow-hidden rounded-xl shadow-2xl bottom-[calc(8.5rem+env(safe-area-inset-bottom,0px))] md:bottom-20"
         [class.right-4]="anchor() === 'right'"
         [class.left-4]="anchor() === 'left'"
-        [style.bottom]="panelBottom()"
         [style.width]="'340px'"
         [style.maxHeight]="'calc(100vh - 120px)'"
         style="background: #111827; border: 1px solid rgba(59, 130, 246, 0.3);"
@@ -324,8 +323,6 @@ export class ThemeEditorComponent {
     const rect = el.getBoundingClientRect();
     return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
   });
-
-  readonly panelBottom = computed(() => (this.anchor() === 'left' ? '80px' : '80px'));
 
   scopeDescription(scope: string): string {
     const meta = DESIGN_SCOPE_META[scope as keyof typeof DESIGN_SCOPE_META];

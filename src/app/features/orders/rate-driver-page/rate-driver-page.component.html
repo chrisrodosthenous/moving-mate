@@ -24,16 +24,18 @@
           <button
             type="button"
             (click)="goOrders()"
-            class="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90"
+            class="inline-flex min-h-[48px] items-center rounded-lg bg-primary px-4 font-medium text-primary-foreground hover:bg-primary/90"
           >
             View my orders
           </button>
         } @else if (o.status !== 'delivered' && o.status !== 'completed') {
-          <p class="text-muted-foreground text-sm py-4">
-            Rating opens once the job is marked delivered. Current status: <strong>{{ o.status }}</strong>
+          <p class="text-sm text-muted-foreground py-4">
+            You can rate the driver after the move is finished.
           </p>
-          <a routerLink="/customer/orders" class="text-primary font-medium hover:text-primary/90"
-            >Open my orders</a
+          <a
+            routerLink="/customer/orders"
+            class="inline-flex min-h-[44px] items-center font-medium text-primary hover:text-primary/90"
+            >Back to my orders</a
           >
         } @else {
           <p class="text-sm text-muted-foreground mb-4">
@@ -50,7 +52,7 @@
               <button
                 type="button"
                 (click)="setStar(star)"
-                class="p-1 focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded focus:outline-none focus:ring-2 focus:ring-primary"
                 [attr.aria-label]="'Rate ' + star + ' stars'"
               >
                 <span
@@ -75,13 +77,13 @@
               type="button"
               (click)="submitRating()"
               [disabled]="ratingStars() < 1 || ratingSubmittingOrderId() === o._id"
-              class="flex-1 py-2.5 rounded-lg font-medium text-primary-foreground bg-primary hover:bg-[#16A34A] disabled:opacity-60"
+              class="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-lg font-medium text-primary-foreground bg-primary hover:bg-[#16A34A] disabled:opacity-60"
             >
               {{ ratingSubmittingOrderId() === o._id ? 'Submitting…' : 'Submit rating' }}
             </button>
             <a
               routerLink="/customer/orders"
-              class="px-4 py-2.5 rounded-lg font-medium text-foreground bg-secondary/40 hover:bg-secondary/55 inline-flex items-center"
+              class="inline-flex min-h-[48px] items-center rounded-lg bg-secondary/40 px-4 font-medium text-foreground hover:bg-secondary/55"
               >Cancel</a
             >
           </div>

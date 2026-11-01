@@ -4,4 +4,37 @@
   flex-direction: column;
   min-height: 0;
   min-width: 0;
+  height: 100%;
+}
+
+.active-delivery-split {
+  min-height: 0;
+}
+
+.active-delivery-map {
+  flex: 3 1 0;
+  min-height: min(20rem, 52%);
+}
+
+.active-delivery-panel {
+  flex: 2 1 0;
+  min-height: 0;
+}
+
+@media (min-width: 1024px) {
+  .active-delivery-map,
+  .active-delivery-panel {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .active-delivery-map {
+    flex: 1 1 auto;
+  }
+
+  .active-delivery-panel {
+    flex: 0 0 28rem;
+    width: 28rem;
+    max-width: 28rem;
+  }
 }

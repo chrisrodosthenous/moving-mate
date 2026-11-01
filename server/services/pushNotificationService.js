@@ -1,4 +1,5 @@
-const admin = require('firebase-admin');
+const { initializeApp, getApps, cert } = require('firebase-admin/app');
+const { getMessaging } = require('firebase-admin/messaging');
 const { isNotificationEnabled } = require('./notificationSettingsService');
 const {
   loadFirebaseServiceAccount,
@@ -213,7 +214,7 @@ async function sendPush(tokenOrTokens, title, body, data = {}, options = {}) {
   // Multicast path (`uniqueTokens` guarantees no duplicate registrations in one request).
   console.log(`[Push] ▶ Sending (${uniqueTokens.length} tokens) | title="${safeTitle}"`);
   try {
-    const response = await admin.messaging().sendEachForMulticast({ ...payload, tokens: uniqueTokens });
+    const response = await getMessaging().sendEachForMulticast({ ...payload, tokens: uniqueTokens });
     console.log(`[Push] ✓ Multicast: ${response.successCount} sent, ${response.failureCount} failed`);
 
     // Log per-token results so we can diagnose delivery issues.
@@ -241,7 +242,7 @@ async function sendPush(tokenOrTokens, title, body, data = {}, options = {}) {
     return response.successCount > 0 ? response : null;
   } catch (err) {
     const code = err.errorInfo?.code || err.code || '';
-    console.error(`[Push] ✗ admin.messaging().sendEachForMulticast threw: ${code} — ${err.message}`);
+    console.error(`[Push] ✗ sendEachForMulticast threw: ${code} — ${err.message}`);
     console.error('[Push]   Full error:', err.errorInfo || err);
     return null;
   }

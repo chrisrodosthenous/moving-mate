@@ -4,6 +4,7 @@
  */
 const { test, expect, request } = require('@playwright/test')
 const { DEFAULT_LOGISTICS_PAYLOAD, testOrderPrice } = require('./helpers/order-logistics-payload')
+const { authorizeOrderPayment } = require('./helpers/payments')
 const { registerDriverViaApi, MIN_JPEG_BASE64, gotoDriverAvailableJobs } = require('./helpers/register-driver')
 const { clickCompletedTripsTab, clickCompletedOrdersTab } = require('./helpers/e2e-ui')
 
@@ -109,6 +110,9 @@ test('full app flow: license pending → verify → order → complete → revie
     expect(orderRes.ok()).toBeTruthy()
     const created = await orderRes.json()
     const orderId = String(created._id)
+
+    const pay = await authorizeOrderPayment(backend, orderId, customerToken)
+    expect(pay.ok()).toBeTruthy()
 
     const driverLogin = await backend.post('/api/auth/login', {
       data: { emailOrPhone: tourDriverEmail, password: tourDriverPassword },

@@ -65,7 +65,10 @@ test('customer profile: email locked and mismatch password validation', async ({
     await expect(page).toHaveURL(/\/customer\/dashboard$/)
 
     await page.goto(`${baseURL}/profile`)
-    await expect(page.locator('#emailAddress')).toBeDisabled({ timeout: 15000 })
+    const email = page.locator('#emailAddress')
+    await expect(email).toBeVisible({ timeout: 15000 })
+    await expect(email).toContainText(bootstrap.customer.email)
+    await expect(page.locator('input#emailAddress')).toHaveCount(0)
 
     await page.locator('#currentPassword').fill(bootstrap.customer.password)
     await page.locator('#newPassword').fill('NewPass123!')

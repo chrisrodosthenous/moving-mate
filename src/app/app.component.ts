@@ -18,11 +18,11 @@ import { SidebarLayoutService } from './core/services/sidebar-layout.service';
   imports: [RouterOutlet, ToastComponent, DialogComponent, ThemeEditorComponent, AdminDesignHubComponent],
   template: `
     <router-outlet />
-    <app-toast />
+    <app-toast [raised]="showAdminDesignTools()" />
     <app-dialog />
     @if (showAdminDesignTools()) {
       <app-admin-design-hub />
-      <app-theme-editor anchor="left" [showFloatingToggle]="false" />
+      <app-theme-editor anchor="right" [showFloatingToggle]="false" />
     }
   `,
   styles: [

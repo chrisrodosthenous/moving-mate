@@ -23,7 +23,7 @@
   height: 100%;
 }
 
-/* Mobile / tablet: map pinned on top, form scrolls below */
+/* Below desktop: a short map, then the full-width form. Desktop: map beside the form. */
 @media (max-width: 1023px) {
   .create-order-drawer-panel {
     order: 2;
@@ -36,8 +36,8 @@
   .create-order-map-wrap {
     order: 1;
     flex: 0 0 auto;
-    height: clamp(11.5rem, 38vh, 17.5rem);
-    min-height: 11.5rem;
+    height: clamp(20rem, 52vh, 28rem);
+    min-height: 20rem;
     border-bottom: 1px solid hsl(var(--border) / 0.35);
   }
 }

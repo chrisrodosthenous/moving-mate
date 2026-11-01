@@ -50,9 +50,9 @@
           @if (auth.user()?.role === 'customer') {
             <a
               routerLink="/customer/book"
-              class="inline-block px-4 py-2 rounded-lg font-medium text-primary-foreground bg-primary hover:bg-primary/90 transition"
+              class="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
             >
-              Create your first order
+              Book a move
             </a>
           } @else {
             <a

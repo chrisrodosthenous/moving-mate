@@ -22,7 +22,7 @@ import type { DesignScopeId } from '../../../core/config/admin-design-preview.co
       <button
         type="button"
         (click)="preview.toggle()"
-        class="admin-design-hub-fab fixed bottom-4 left-4 z-[9999] flex h-12 items-center gap-2 rounded-full px-4 shadow-lg transition-all hover:scale-[1.02]"
+        class="admin-design-hub-fab fixed right-4 z-[9999] bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] flex h-12 items-center gap-2 rounded-full px-4 shadow-lg transition-all hover:scale-[1.02] md:bottom-4"
         style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border: 2px solid rgba(255,255,255,0.15);"
         [class.ring-2]="preview.isOpen() || themeEditor.isOpen()"
         [class.ring-emerald-400]="preview.isOpen() || themeEditor.isOpen()"

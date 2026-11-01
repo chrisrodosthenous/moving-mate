@@ -1,5 +1,6 @@
 const { test, expect, request } = require('@playwright/test');
 const { DEFAULT_LOGISTICS_PAYLOAD, testOrderPrice } = require('./helpers/order-logistics-payload');
+const { authorizeOrderPayment } = require('./helpers/payments');
 const { clickCompletedTripsTab, clickCompletedOrdersTab } = require('./helpers/e2e-ui');
 
 function uniqueRunId() {
@@ -84,6 +85,9 @@ test('review system: driver completes order, customer submits 5-star review', as
     expect(orderRes.ok()).toBeTruthy();
     const created = await orderRes.json();
     const orderId = String(created._id);
+
+    const pay = await authorizeOrderPayment(backend, orderId, customerToken);
+    expect(pay.ok()).toBeTruthy();
 
     const driverLogin = await backend.post('/api/auth/login', {
       data: {

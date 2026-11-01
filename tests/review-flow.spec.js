@@ -1,5 +1,6 @@
 const { test, expect, request } = require('@playwright/test');
 const { DEFAULT_LOGISTICS_PAYLOAD, testOrderPrice } = require('./helpers/order-logistics-payload');
+const { authorizeOrderPayment } = require('./helpers/payments');
 const { clickCompletedTripsTab, clickCompletedOrdersTab } = require('./helpers/e2e-ui');
 
 function uniqueRunId() {
