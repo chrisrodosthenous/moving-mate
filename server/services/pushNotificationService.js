@@ -20,7 +20,7 @@ let missingConfigWarned = false;
 
 function initPushNotificationService() {
   try {
-    if (initialized || admin.apps.length) {
+    if (initialized || getApps().length) {
       initialized = true;
       return true;
     }
@@ -48,8 +48,8 @@ function initPushNotificationService() {
       return false;
     }
 
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
+    initializeApp({
+      credential: cert(serviceAccount),
     });
     initialized = true;
     if (process.env.NODE_ENV === 'development') {
@@ -188,7 +188,7 @@ async function sendPush(tokenOrTokens, title, body, data = {}, options = {}) {
   );
   const payload = buildMessagePayload(safeTitle, safeBody, safeData);
 
-  // Single token → admin.messaging().send() (simpler, better error object).
+  // Single token → getMessaging().send() (simpler, better error object).
   // Multiple tokens → sendEachForMulticast() so all devices receive the push.
   // `uniqueTokens` is already filtered (activeFcmTokens); [0] is only used when length === 1.
   if (uniqueTokens.length === 1) {
@@ -196,7 +196,7 @@ async function sendPush(tokenOrTokens, title, body, data = {}, options = {}) {
     const hint  = `${token.slice(0, 20)}…${token.slice(-10)}`;
     console.log(`[Push] ▶ Sending (1 token) | title="${safeTitle}" | token=${hint}`);
     try {
-      const response = await admin.messaging().send({ ...payload, token });
+      const response = await getMessaging().send({ ...payload, token });
       console.log(`[Push] ✓ ${response}`);
       return response;
     } catch (err) {
@@ -283,8 +283,8 @@ async function send30MinReminderPush(orderData) {
 async function sendStartTripPush(orderData) {
   const orderId = String(orderData?.orderId || '');
   const customerUserId = String(orderData?.customerUserId || '');
-  const title = 'Driver on the way';
-  const body = 'The driver is now on the way to your location.';
+  const title = 'Driver is on the way';
+  const body = 'Your driver is on the way to the pickup location.';
   return sendPush(
     orderData?.customerFcmToken,
     title,
@@ -294,6 +294,38 @@ async function sendStartTripPush(orderData) {
       eventKey: 'push_in_transit',
       fcmDebugUserId: customerUserId || undefined,
       dedupeKey: buildDedupeKey('push', 'order_in_transit', orderId, customerUserId),
+    },
+  );
+}
+
+async function sendPickedUpPush(orderData) {
+  const orderId = String(orderData?.orderId || '');
+  const customerUserId = String(orderData?.customerUserId || '');
+  return sendPush(
+    orderData?.customerFcmToken,
+    'Load picked up',
+    'Your driver has picked up the load and is heading to the drop-off.',
+    { orderId, type: 'order_picked_up', url: '/my-orders' },
+    {
+      eventKey: 'push_picked_up',
+      fcmDebugUserId: customerUserId || undefined,
+      dedupeKey: buildDedupeKey('push', 'order_picked_up', orderId, customerUserId),
+    },
+  );
+}
+
+async function sendOrderCancelledPush(orderData) {
+  const orderId = String(orderData?.orderId || '');
+  const customerUserId = String(orderData?.customerUserId || '');
+  return sendPush(
+    orderData?.customerFcmToken,
+    'Move cancelled',
+    'Your move request has been cancelled.',
+    { orderId, type: 'order_cancelled', url: '/my-orders' },
+    {
+      eventKey: 'push_order_cancelled',
+      fcmDebugUserId: customerUserId || undefined,
+      dedupeKey: buildDedupeKey('push', 'order_cancelled', orderId, customerUserId),
     },
   );
 }
@@ -446,6 +478,8 @@ module.exports = {
   sendOrderAcceptedPush,
   send30MinReminderPush,
   sendStartTripPush,
+  sendPickedUpPush,
+  sendOrderCancelledPush,
   sendRatingRequestPush,
   sendNewOrderToDriversPush,
   sendVerificationRequestToAdminsPush,

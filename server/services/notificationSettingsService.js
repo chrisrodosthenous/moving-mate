@@ -78,14 +78,26 @@ const DEFAULT_SETTINGS = [
   {
     eventName: 'push_in_transit',
     type: 'push',
-    label: 'In Transit',
-    description: 'Push to customer when the driver starts the trip. Deep-links to /my-orders.',
+    label: 'Driver is on the way',
+    description: 'Push to customer when the driver is on the way to pickup. Deep-links to /my-orders.',
+  },
+  {
+    eventName: 'push_picked_up',
+    type: 'push',
+    label: 'Load picked up',
+    description: 'Push to customer when the driver marks the load as picked up. Deep-links to /my-orders.',
   },
   {
     eventName: 'push_order_delivered',
     type: 'push',
     label: 'Order Delivered',
     description: 'Push to customer asking them to rate after delivery. Deep-links to /rate-driver/:id.',
+  },
+  {
+    eventName: 'push_order_cancelled',
+    type: 'push',
+    label: 'Order Cancelled',
+    description: 'Push to customer when a pending move is cancelled. Deep-links to /my-orders.',
   },
   {
     eventName: 'push_verification_request',
@@ -109,11 +121,13 @@ async function ensureDefaultSettings() {
     eventName: { $in: ['push_chat_message', 'push_new_chat_message'] },
   });
   for (const row of DEFAULT_SETTINGS) {
-    const { label, ...rest } = row;
     await NotificationSetting.updateOne(
-      { eventName: rest.eventName },
-      { $setOnInsert: { ...rest, isEnabled: true } },
-      { upsert: true }
+      { eventName: row.eventName },
+      {
+        $set: { type: row.type, description: row.description },
+        $setOnInsert: { eventName: row.eventName, isEnabled: true },
+      },
+      { upsert: true },
     );
   }
 }

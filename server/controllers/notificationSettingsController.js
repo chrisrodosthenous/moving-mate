@@ -18,12 +18,20 @@ function pushTestCopyForEvent(eventName, label) {
       body: 'Sample: your driver has been assigned to your order.',
     },
     push_in_transit: {
-      title: 'In transit (test)',
-      body: 'Sample: your driver is heading to your location.',
+      title: 'Driver is on the way (test)',
+      body: 'Sample: your driver is on the way to the pickup location.',
+    },
+    push_picked_up: {
+      title: 'Load picked up (test)',
+      body: 'Sample: your driver has picked up the load.',
     },
     push_order_delivered: {
       title: 'Order delivered (test)',
       body: 'Sample: how was your experience? Tap to rate your driver.',
+    },
+    push_order_cancelled: {
+      title: 'Move cancelled (test)',
+      body: 'Sample: your move request has been cancelled.',
     },
     push_verification_request: {
       title: 'Driver verification request (test)',

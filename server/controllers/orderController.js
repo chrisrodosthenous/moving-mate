@@ -7,6 +7,8 @@ const { sendOrderConfirmation, sendDriverAcceptedEmail, sendOrderCompletedEmail,
 const {
   sendOrderAcceptedPush,
   sendStartTripPush,
+  sendPickedUpPush,
+  sendOrderCancelledPush,
   sendRatingRequestPush,
 } = require('../services/pushNotificationService');
 const {
@@ -278,6 +280,92 @@ async function runInTransitNotifications(orderDoc) {
   return out;
 }
 
+async function runPickedUpNotifications(orderDoc) {
+  const orderId = String(orderDoc._id || '');
+  const out = {
+    orderId,
+    pushMessageId: null,
+    pushSkippedReason: null,
+    errors: [],
+  };
+  let ctx;
+  try {
+    ctx = await loadUsersForOrderNotifications(orderDoc);
+  } catch (err) {
+    out.errors.push({ phase: 'loadUsers', message: err.message });
+    console.warn(`[Automation] Failed to load users for notifications for Order ${orderId}:`, err.message);
+    return out;
+  }
+
+  if (ctx.customerFcm.length) {
+    try {
+      out.pushMessageId = await sendPickedUpPush({
+        customerFcmToken: ctx.customerFcm,
+        orderId,
+        customerUserId: customerUserIdForPush(ctx, orderDoc),
+      });
+      if (out.pushMessageId) {
+        console.log(`[Automation] Sent push (picked-up) notification for Order ${orderId}`);
+      } else {
+        out.pushSkippedReason = 'sendPush returned null (invalid token or push disabled)';
+      }
+    } catch (err) {
+      out.errors.push({ phase: 'push', message: err.message });
+      console.warn(`[Automation] Push (picked-up) failed for Order ${orderId}:`, err.message);
+    }
+  } else {
+    out.pushSkippedReason = 'no client fcmTokens';
+    const cid = orderDoc.customerId?._id ?? orderDoc.customerId;
+    console.warn(
+      `[Automation] Skipped push (picked-up): no customer fcmTokens for Order ${orderId} customerId=${cid != null ? String(cid) : 'none'}`,
+    );
+  }
+  return out;
+}
+
+async function runOrderCancelledNotifications(orderDoc) {
+  const orderId = String(orderDoc._id || '');
+  const out = {
+    orderId,
+    pushMessageId: null,
+    pushSkippedReason: null,
+    errors: [],
+  };
+  let ctx;
+  try {
+    ctx = await loadUsersForOrderNotifications(orderDoc);
+  } catch (err) {
+    out.errors.push({ phase: 'loadUsers', message: err.message });
+    console.warn(`[Automation] Failed to load users for notifications for Order ${orderId}:`, err.message);
+    return out;
+  }
+
+  if (ctx.customerFcm.length) {
+    try {
+      out.pushMessageId = await sendOrderCancelledPush({
+        customerFcmToken: ctx.customerFcm,
+        orderId,
+        customerUserId: customerUserIdForPush(ctx, orderDoc),
+      });
+      if (out.pushMessageId) {
+        console.log(`[Automation] Sent push (order-cancelled) notification for Order ${orderId}`);
+      } else {
+        out.pushSkippedReason = 'sendPush returned null (invalid token or push disabled)';
+      }
+    } catch (err) {
+      out.errors.push({ phase: 'push', message: err.message });
+      console.warn(`[Automation] Push (order-cancelled) failed for Order ${orderId}:`, err.message);
+    }
+  } else {
+    out.pushSkippedReason = 'no client fcmTokens';
+    const cid = orderDoc.customerId?._id ?? orderDoc.customerId;
+    console.warn(
+      `[Automation] Skipped push (order-cancelled): no customer fcmTokens for Order ${orderId} customerId=${cid != null ? String(cid) : 'none'}`,
+    );
+  }
+  return out;
+}
+
 async function runOrderCompletedNotifications(orderDoc) {
   const orderId = String(orderDoc._id || '');
   const out = {
@@ -344,6 +432,18 @@ function notifyOrderCompleted(orderDoc) {
 function notifyInTransit(orderDoc) {
   void runInTransitNotifications(orderDoc).catch((err) => {
     console.warn('[Notifications] notifyInTransit unexpected:', err.message);
+  });
+}
+
+function notifyPickedUp(orderDoc) {
+  void runPickedUpNotifications(orderDoc).catch((err) => {
+    console.warn('[Notifications] notifyPickedUp unexpected:', err.message);
+  });
+}
+
+function notifyOrderCancelled(orderDoc) {
+  void runOrderCancelledNotifications(orderDoc).catch((err) => {
+    console.warn('[Notifications] notifyOrderCancelled unexpected:', err.message);
   });
 }
 
@@ -860,6 +960,9 @@ async function updateOrder(req, res, next) {
     if (status === 'completed' || status === 'delivered') {
       notifyOrderCompleted(updated);
     }
+    if (status === 'cancelled') {
+      notifyOrderCancelled(updated);
+    }
     res.json(updated);
   } catch (err) {
     next(err);
@@ -1038,6 +1141,7 @@ async function updateOrderStatus(req, res, next) {
       }
     }
     if (statusToSet === 'driver_is_on_the_way') notifyInTransit(updated);
+    if (statusToSet === 'picked_up') notifyPickedUp(updated);
     if (statusToSet === 'delivered') notifyOrderCompleted(updated);
 
     res.json(updated);
@@ -1162,8 +1266,8 @@ async function cancelOrder(req, res, next) {
     await order.save();
 
     const updated = await TransportOrder.findById(order._id)
-      .populate('customerId', 'firstName lastName phoneNumber email')
-      .populate('driverId', 'firstName lastName phoneNumber plateNumber vehicleType email');
+      .populate('customerId', 'firstName lastName phoneNumber email fcmTokens')
+      .populate('driverId', 'firstName lastName phoneNumber plateNumber vehicleType email fcmTokens');
 
     const io = req.app.get('io');
     const payload = orderPayloadForEmit(updated);
@@ -1173,6 +1277,7 @@ async function cancelOrder(req, res, next) {
       if (order.driverId) emitToUser(io, order.driverId, 'order_updated', payload);
     }
 
+    notifyOrderCancelled(updated);
     return res.json(updated);
   } catch (err) {
     return next(err);
