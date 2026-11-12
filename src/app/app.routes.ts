@@ -82,12 +82,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'dashboard',
-    loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),
-    data: { pageTitle: 'Dashboard' },
-    canActivate: [authGuard],
-  },
-  {
     path: 'profile',
     data: { pageTitle: 'Profile' },
     loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent),

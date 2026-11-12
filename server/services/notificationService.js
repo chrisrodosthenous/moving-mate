@@ -422,7 +422,7 @@ async function sendDriverVerificationEmail({ to, firstName, status, dashboardUrl
           firstName: safeName,
           dashboardUrl: base,
         },
-        text: `Hello ${safeName}, your driver account has been verified. Login: ${base}/dashboard`,
+        text: `Hello ${safeName}, your driver account has been verified. Login: ${base}/driver/dashboard`,
         notificationEvent: 'email_account_verified',
       });
     }
@@ -435,7 +435,7 @@ async function sendDriverVerificationEmail({ to, firstName, status, dashboardUrl
         firstName: safeName,
           dashboardUrl: base,
       },
-        text: `Hello ${safeName}, welcome to Moving Mate. Dashboard: ${base}/dashboard`,
+        text: `Hello ${safeName}, welcome to Moving Mate. Dashboard: ${base}/driver/dashboard`,
         notificationEvent: 'email_driver_welcome',
     });
     }
@@ -572,7 +572,7 @@ async function sendDriverAcceptedEmailPayload({
       vehicleDetails: vInfo,
       pickupAddress,
       dropoffAddress,
-      trackUrl: trackUrl || `${clientBaseUrl()}/dashboard`,
+      trackUrl: trackUrl || `${clientBaseUrl()}/customer/dashboard`,
     },
     text: `${mainLine} Vehicle: ${vInfo}.`,
     notificationEvent: 'email_order_accepted',
@@ -600,7 +600,7 @@ async function sendDriverAcceptedEmail(order, customerUser, driverUser, vehicleI
     vehicleDetails: vehicleInfo,
     pickupAddress: order.pickupLocation?.address || '',
     dropoffAddress: order.dropoffLocation?.address || '',
-    trackUrl: `${clientBaseUrl()}/dashboard`,
+    trackUrl: `${clientBaseUrl()}/customer/dashboard`,
   });
 }
 
@@ -650,7 +650,7 @@ async function sendOrderCompletedEmailPayload({
       pickupAddress,
       dropoffAddress,
       price,
-      invoiceUrl: invoiceUrl || `${clientBaseUrl()}/dashboard`,
+      invoiceUrl: invoiceUrl || `${clientBaseUrl()}/customer/dashboard`,
     },
     text: `Order Completed. Thank you for using Moving Mate! Total Amount: ${amount}.`,
     notificationEvent: 'email_order_completed',
@@ -675,7 +675,7 @@ async function sendOrderCompletedEmail(order, customerUser) {
     pickupAddress: order.pickupLocation?.address || '',
     dropoffAddress: order.dropoffLocation?.address || '',
     price: order.price || 0,
-    invoiceUrl: `${clientBaseUrl()}/dashboard`,
+    invoiceUrl: `${clientBaseUrl()}/customer/dashboard`,
   });
 }
 
@@ -842,7 +842,7 @@ async function sendAdminTemplateTestForEvent(eventName, to) {
           vehicleDetails: 'Demo van — test',
           pickupAddress: demoPickup,
           dropoffAddress: demoDropoff,
-          trackUrl: `${base}/dashboard`,
+          trackUrl: `${base}/customer/dashboard`,
         },
         text: 'Test: order accepted email.',
       });
@@ -857,7 +857,7 @@ async function sendAdminTemplateTestForEvent(eventName, to) {
           pickupAddress: demoPickup,
           dropoffAddress: demoDropoff,
           price: '49.90',
-          invoiceUrl: `${base}/dashboard`,
+          invoiceUrl: `${base}/customer/dashboard`,
         },
         text: 'Test: order completed email.',
       });

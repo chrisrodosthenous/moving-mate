@@ -115,7 +115,7 @@ test('admin: login, see pending driver, approve, removed from pending', async ({
     await customerPage.getByRole('button', { name: /sign in/i }).click()
     await expect(customerPage).toHaveURL(/\/customer\/dashboard$/)
     await customerPage.goto(`${baseURL}/admin/dashboard`)
-    await expect(customerPage).toHaveURL(/\/dashboard$/)
+    await expect(customerPage).toHaveURL(/\/customer\/dashboard$/)
     await customerPage.close()
   } finally {
     await backend.post('/api/test/e2e/cleanup', { data: { runId } }).catch(() => {})

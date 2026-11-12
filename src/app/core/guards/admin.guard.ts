@@ -10,5 +10,5 @@ import { AuthStore } from '../../store/auth.store';
 export const adminGuard: CanActivateFn = () => {
   const store = inject(AuthStore);
   const router = inject(Router);
-  return store.isAdmin() || router.createUrlTree(['/dashboard']);
+  return store.isAdmin() || router.createUrlTree([store.dashboardRoute()]);
 };

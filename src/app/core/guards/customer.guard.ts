@@ -17,5 +17,5 @@ export const customerGuard: CanActivateFn = (route, state) => {
     'allowed:',
     role === 'customer' || role === 'admin',
   );
-  return role === 'customer' || role === 'admin' || router.createUrlTree(['/dashboard']);
+  return role === 'customer' || role === 'admin' || router.createUrlTree([store.dashboardRoute()]);
 };

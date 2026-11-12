@@ -139,12 +139,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe(() => {
         const path = this.router.url.split('?')[0] ?? '';
-        if (
-          path === '/dashboard' ||
-          path.startsWith('/dashboard/') ||
-          path === '/customer/dashboard' ||
-          path === '/driver/dashboard'
-        ) {
+        if (path === '/customer/dashboard' || path === '/driver/dashboard') {
           this.loadSummary();
           this.loadActiveOrders();
           this.loadDriverFocus();

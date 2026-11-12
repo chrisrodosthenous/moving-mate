@@ -7,5 +7,5 @@ export const driverGuard: CanActivateFn = () => {
   const store = inject(AuthStore);
   const router = inject(Router);
   const role = store.role();
-  return role === 'driver' || role === 'admin' || router.createUrlTree(['/dashboard']);
+  return role === 'driver' || role === 'admin' || router.createUrlTree([store.dashboardRoute()]);
 };
