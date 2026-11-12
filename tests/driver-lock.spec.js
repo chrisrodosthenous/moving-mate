@@ -85,7 +85,7 @@ test('driver lock: unverified sees warning; after verification sees orders area'
 
     await gotoDriverAvailableJobs(page, baseURL);
     await expect(page.getByRole('alert')).toHaveCount(0);
-    await expect(page.getByText(/No orders available|Loading orders/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/No moves available|Loading moves/i)).toBeVisible({ timeout: 15000 });
   } finally {
     await backend.post('/api/test/e2e/delete-user-by-email', { data: { email: driverEmail } }).catch(() => {});
     await backend.dispose();

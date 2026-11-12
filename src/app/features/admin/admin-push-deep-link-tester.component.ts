@@ -86,7 +86,7 @@ const ALL_PRESETS: DeepLinkTestButton[] = [
           </label>
           <button
             type="button"
-            class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:opacity-50"
+            class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
             [disabled]="!!sendingKey() || !selectedPreset()"
             (click)="sendSelectedPreset()"
           >

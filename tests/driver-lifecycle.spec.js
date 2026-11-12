@@ -126,7 +126,7 @@ test('driver lifecycle: start delivery then complete; customer sees live status'
     await login(driverPage, bootstrap.driver?.email ?? driverEmail, bootstrap.driver?.password ?? driverPassword);
     await expect(driverPage).toHaveURL(/\/driver\/dashboard$/);
 
-    await driverPage.getByRole('link', { name: /my trips/i }).click();
+    await driverPage.getByRole('link', { name: /my moves/i }).click();
     await expect(driverPage).toHaveURL(/\/driver\/tasks$/);
 
     await expect(driverPage.getByTestId(`driver-task-row-${orderId}`)).toBeVisible();
@@ -138,8 +138,19 @@ test('driver lifecycle: start delivery then complete; customer sees live status'
     await driverPage.getByTestId(`start-delivery-${orderId}`).click();
     await startRespPromise;
 
-    await expect(driverPage.getByTestId(`driver-task-status-${orderId}`)).toHaveText(/in progress/i);
-    await expect(customerPage.getByTestId(`customer-order-status-${orderId}`)).toHaveText(/in progress/i, {
+    await expect(driverPage.getByTestId(`driver-task-status-${orderId}`)).toHaveText(/driver is on the way/i);
+    await expect(customerPage.getByTestId(`customer-order-status-${orderId}`)).toHaveText(/driver is on the way/i, {
+      timeout: 15000,
+    });
+
+    const pickupRespPromise = driverPage.waitForResponse((resp) => (
+      resp.url().includes(`/api/orders/${orderId}/status`) && resp.request().method() === 'PATCH'
+    ));
+    await driverPage.getByTestId(`mark-picked-up-${orderId}`).click();
+    await pickupRespPromise;
+
+    await expect(driverPage.getByTestId(`driver-task-status-${orderId}`)).toHaveText(/picked up/i);
+    await expect(customerPage.getByTestId(`customer-order-status-${orderId}`)).toHaveText(/picked up/i, {
       timeout: 15000,
     });
 
@@ -152,7 +163,7 @@ test('driver lifecycle: start delivery then complete; customer sees live status'
     await clickCompletedTripsTab(driverPage);
     await expect(driverPage.getByTestId(`driver-history-row-${orderId}`)).toBeVisible({ timeout: 15000 });
     await clickCompletedOrdersTab(customerPage);
-    await expect(customerPage.getByTestId(`customer-order-status-${orderId}`)).toHaveText(/completed/i, {
+    await expect(customerPage.getByTestId(`customer-order-status-${orderId}`)).toHaveText(/delivered/i, {
       timeout: 15000,
     });
 

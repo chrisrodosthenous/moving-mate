@@ -61,7 +61,7 @@
           @if (breakdown.pricingBasis === 'minimum_fare') {
             Minimum fare for this vehicle applies.
           } @else {
-            Adjusted for the travel distance of this trip.
+            Adjusted for the travel distance of this move.
           }
         </p>
       }
@@ -77,7 +77,7 @@
         'inline-flex min-h-[48px] w-full items-center justify-center rounded-lg px-4 py-3 text-[13px] font-semibold xs:px-6 xs:text-sm md:w-auto md:max-w-full md:px-8 md:min-w-[min(14rem,calc(100vw-3rem))]'
       "
     >
-      {{ createSubmitting() ? 'Creating…' : 'Confirm Order' }}
+      {{ createSubmitting() ? 'Creating…' : 'Confirm Move' }}
     </ui-button>
   </div>
 </div>

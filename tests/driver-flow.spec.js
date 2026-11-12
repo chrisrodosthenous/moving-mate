@@ -66,7 +66,7 @@ test('driver flow: customer order in Nicosia, driver sees and accepts', async ({
     await login(page, bootstrap.customer.email, bootstrap.customer.password);
     await expect(page).toHaveURL(/\/customer\/dashboard$/);
 
-    await page.getByTestId('sidebar').getByRole('link', { name: /new order/i }).click();
+    await page.getByTestId('sidebar').getByRole('link', { name: /new move/i }).click();
     await expect(page).toHaveURL(/\/customer\/book$/);
 
     await page.getByLabel('Pickup district').selectOption('Nicosia');
@@ -79,7 +79,7 @@ test('driver flow: customer order in Nicosia, driver sees and accepts', async ({
     const createRespPromise = page.waitForResponse((resp) => (
       resp.url().includes('/api/orders') && resp.request().method() === 'POST'
     ));
-    await page.getByRole('button', { name: /confirm order/i }).click();
+    await page.getByRole('button', { name: /confirm move/i }).click();
     const createResp = await createRespPromise;
     await expect(createResp.status()).toBe(201);
     const created = await createResp.json();

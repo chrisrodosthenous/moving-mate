@@ -192,7 +192,7 @@
             <div>
               <h2 class="text-base font-semibold text-[#BDD8E9]">Vehicle details</h2>
               <p class="mt-1 text-xs text-[#BDD8E9]/70">
-                Select your category and upload a photo for verification.
+                Select your category, enter the vehicle plates, and upload a photo for verification.
               </p>
             </div>
 
@@ -217,10 +217,30 @@
             </div>
 
             <div [formGroup]="driverVehicleForm">
+              <label for="plateNumber" class="mb-2 block text-sm font-medium text-[#BDD8E9]">
+                Vehicle plates <span class="text-[#7BBDE8]" aria-hidden="true">*</span>
+              </label>
+              <input
+                id="plateNumber"
+                type="text"
+                formControlName="plateNumber"
+                autocomplete="off"
+                maxlength="16"
+                placeholder="e.g. KAA 123"
+                class="w-full rounded-lg border border-[#49769F]/45 bg-[#0A4174]/60 px-4 py-3 text-sm uppercase text-[#BDD8E9] shadow-sm outline-none transition placeholder:normal-case focus:border-[#7BBDE8]/60 focus:ring-2 focus:ring-[#7BBDE8]/25"
+                [class.border-[#7BBDE8]/50]="driverPlateError"
+              />
+              @if (driverPlateError) {
+                <p class="mt-1.5 text-sm text-destructive-foreground">{{ driverPlateError }}</p>
+              }
+            </div>
+
+            <div [formGroup]="driverVehicleForm">
               <span class="mb-2 block text-sm font-medium text-[#BDD8E9]">
                 Vehicle photo (for verification)
                 <span class="text-[#7BBDE8]" aria-hidden="true">*</span>
               </span>
+              <p class="mb-2 text-xs text-[#BDD8E9]/70">The vehicle plates should be displayed in the photo.</p>
               <label
                 for="vehiclePhoto"
                 class="block cursor-pointer border-dashed border-2 border-border/60 rounded-lg p-4 bg-background/50 text-center transition hover:border-[#7BBDE8]/50 hover:bg-[#0A4174]/30"
@@ -258,7 +278,7 @@
             <span class="mb-2 block text-sm font-medium text-muted-foreground">
               Districts <span class="text-primary" aria-hidden="true">*</span>
             </span>
-            <p class="mb-3 text-xs text-muted-foreground">Select all provinces where you want to see jobs (at least one).</p>
+            <p class="mb-3 text-xs text-muted-foreground">Select all provinces where you want to see moves (at least one).</p>
             <div
               class="space-y-3 rounded-lg border px-5 py-4"
               [class.border-border]="!driverDistrictsError"

@@ -13,6 +13,12 @@ export function normalizeOrderId(value: unknown): string {
   return String(value);
 }
 
+/** Customer-facing order number: last 8 characters of the id, uppercased. */
+export function orderShortId(value: unknown): string {
+  const id = normalizeOrderId(value);
+  return id.length <= 8 ? id.toUpperCase() : id.slice(-8).toUpperCase();
+}
+
 type OrderWithTimeline = { submittedAt?: string; createdAt?: string };
 
 /**

@@ -2,7 +2,7 @@ import { ORDER_FLOOR_OPTIONS } from '../../components/orders/order-form.constant
 
 import type { TransportOrder } from '../../core/services/orders.service';
 
-import { isLargeTierOrderVehicle, orderVehicleTypeDisplayLabel } from './order-cargo-scoring.util';
+import { orderVehicleTypeDisplayLabel } from './order-cargo-scoring.util';
 
 
 
@@ -24,38 +24,20 @@ export function driverVehicleTypeLabel(type: TransportOrder['vehicleType']): str
 
 
 
-export function driverVehicleTypeIcon(type: TransportOrder['vehicleType']): 'truck' | 'container' {
-  return isLargeTierOrderVehicle(type) ? 'container' : 'truck';
-}
-
-
-
-export function driverLaborHelpLabel(labor: TransportOrder['laborRequired']): string | null {
-
-  switch (labor) {
-
-    case 'driver':
-
-      return 'Driver Help Required';
-
-    case 'driver_plus_helper':
-
-      return 'Extra Helper Included';
-
+export function driverVehicleTypeIcon(
+  type: TransportOrder['vehicleType'],
+): 'car' | 'bus' | 'van' | 'truck' {
+  switch (String(type ?? '').toLowerCase()) {
+    case 'van':
+      return 'van';
+    case 'truck':
+    case 'large':
+      return 'truck';
+    case 'minivan':
+      return 'bus';
     default:
-
-      return null;
-
+      return 'car';
   }
-
-}
-
-
-
-export function driverHasLaborHelp(labor: TransportOrder['laborRequired']): boolean {
-
-  return labor === 'driver' || labor === 'driver_plus_helper';
-
 }
 
 

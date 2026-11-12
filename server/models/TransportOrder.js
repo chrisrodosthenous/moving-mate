@@ -99,6 +99,8 @@ const transportOrderSchema = new mongoose.Schema(
     pickupFloor: { type: String, default: '0' },
     destinationFloor: { type: String, default: '0' },
     hasElevator: { type: Boolean, default: false },
+    pickupHasElevator: { type: Boolean, default: false },
+    dropoffHasElevator: { type: Boolean, default: false },
     /** Loading/unloading assistance: none | driver | driver_plus_helper */
     laborRequired: {
       type: String,

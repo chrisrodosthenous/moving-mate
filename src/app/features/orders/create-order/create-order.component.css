@@ -38,7 +38,7 @@
     flex: 0 0 auto;
     height: clamp(20rem, 52vh, 28rem);
     min-height: 20rem;
-    border-bottom: 1px solid hsl(var(--border) / 0.35);
+    border-bottom: 1px solid #bdbdbd;
   }
 }
 

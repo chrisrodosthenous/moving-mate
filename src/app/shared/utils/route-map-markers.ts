@@ -37,7 +37,7 @@ export function routeEndpointMarkerOptions(endpoint: RouteEndpoint): google.maps
 }
 
 /** Road line drawn by us, so it stays visible when Google's own pins are hidden. */
-const ROUTE_LINE_COLOR = '#22C55E';
+const ROUTE_LINE_COLOR = '#EF4444';
 const ROUTE_LINE_WEIGHT = 5;
 
 export function routeLinePolylineOptions(): google.maps.PolylineOptions {
@@ -152,9 +152,18 @@ export function routeMetricsFromDirections(
   return { distanceKm: meters / 1000, durationText };
 }
 
-/** Line only. Callers cannot turn Google's pins back on. */
+/** Line only. Callers cannot turn Google's pins back on, and the road stays red. */
 export function routeLineRendererOptions(
   extra: Omit<google.maps.DirectionsRendererOptions, 'suppressMarkers'> = {},
 ): google.maps.DirectionsRendererOptions {
-  return { ...extra, suppressMarkers: true };
+  const { polylineOptions, ...rest } = extra;
+  return {
+    ...rest,
+    suppressMarkers: true,
+    polylineOptions: {
+      ...routeLinePolylineOptions(),
+      ...polylineOptions,
+      strokeColor: ROUTE_LINE_COLOR,
+    },
+  };
 }

@@ -37,6 +37,7 @@ import { AdminAnalyticsComponent } from '../admin-analytics/admin-analytics.comp
 import { AdminCustomersComponent } from '../admin-customers/admin-customers.component';
 import { AdminDriversComponent } from '../admin-drivers/admin-drivers.component';
 import { AdminOrdersComponent } from '../admin-orders/admin-orders.component';
+import { AdminDesignColorsComponent } from '../admin-design-colors/admin-design-colors.component';
 import { UiButtonComponent } from '@/components/ui/button';
 import { UiDialogBackdropComponent, UiDialogPanelComponent } from '@/components/ui/dialog';
 import { LucideAngularModule } from 'lucide-angular';
@@ -52,7 +53,6 @@ import {
   type AdminLogisticsTabId,
   driverMatchesFleetNotVerifiedTab,
   driverMatchesFleetPendingTab,
-  driverMatchesFleetVerifiedTab,
   orderMatchesLogisticsTab,
 } from '../../../core/constants/statuses';
 import { isPdfDocumentPath, resolveUploadUrl } from '../../../shared/utils/document-url';
@@ -72,6 +72,7 @@ const ADMIN_OVERVIEW_POLL_MS = 120_000;
     AdminCustomersComponent,
     AdminDriversComponent,
     AdminOrdersComponent,
+    AdminDesignColorsComponent,
     UiButtonComponent,
     UiDialogBackdropComponent,
     UiDialogPanelComponent,
@@ -149,7 +150,6 @@ export class AdminDashboardComponent implements OnInit {
   });
 
   readonly pendingDrivers = computed(() => this.users().filter((u) => driverMatchesFleetPendingTab(u)));
-  readonly verifiedDrivers = computed(() => this.users().filter((u) => driverMatchesFleetVerifiedTab(u)));
   readonly notVerifiedDrivers = computed(() => this.users().filter((u) => driverMatchesFleetNotVerifiedTab(u)));
 
   get totalDriversCount(): number {
@@ -171,10 +171,11 @@ export class AdminDashboardComponent implements OnInit {
       this.syncSectionFromRoute(this.router.url);
     });
 
-    this.loadOverview();
     interval(ADMIN_OVERVIEW_POLL_MS)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.loadOverview({ silent: true }));
+      .subscribe(() => {
+        if (this.section() !== 'analytics') this.loadOverview({ silent: true });
+      });
     const unsubVerification = this.socket.onNewVerificationRequest(() => {
       this.toast.show('New driver verification request', 'info');
       this.loadOverview({ silent: true });
@@ -184,7 +185,16 @@ export class AdminDashboardComponent implements OnInit {
 
   private syncSectionFromRoute(url: string): void {
     const nav = parseAdminNavFromUrl(url);
+    if (nav.section === 'drivers' && nav.fleetTab === ADMIN_FLEET_TAB.VERIFIED) {
+      this.navigateSection('driversTable');
+      return;
+    }
     this.section.set(nav.section);
+    if (nav.section === 'analytics') {
+      this.loading.set(false);
+    } else if (this.users().length === 0) {
+      this.loadOverview();
+    }
     if (nav.section === 'drivers' && nav.fleetTab) {
       this.driverTab.set(nav.fleetTab);
     }
@@ -243,27 +253,8 @@ export class AdminDashboardComponent implements OnInit {
     setTimeout(() => this.logisticsView?.mapResize(), 40);
   }
 
-  onViewCustomer(user: AdminUser): void {
-    this.toast.show(`Customer: ${[user.firstName, user.lastName].filter(Boolean).join(' ') || user.email}`, 'success');
-  }
-
-  onViewDriver(user: AdminUser): void {
-    this.setSection('drivers', ADMIN_FLEET_TAB.VERIFIED);
-    this.selectedDriver.set(user);
-  }
-
-  onViewOrderFromTable(order: AdminOrder): void {
-    const s = (order.status ?? '').toLowerCase();
-    const tab =
-      s === 'cancelled' || s === 'canceled'
-        ? ADMIN_LOGISTICS_TAB.CANCELLED
-        : s === 'delivered' || s === 'completed'
-          ? ADMIN_LOGISTICS_TAB.COMPLETED
-          : ADMIN_LOGISTICS_TAB.IN_PROGRESS;
-    this.setSection('orders');
-    this.selectedLogisticsTab.set(tab);
-    this.selectOrder(order);
-    this.logisticsResizeSoon();
+  onCustomerSuspension(user: AdminUser): void {
+    this.users.update((list) => list.map((row) => (row._id === user._id ? { ...row, ...user } : row)));
   }
 
   onPushTesterToast(e: { message: string; variant: 'success' | 'error' }): void {
@@ -314,6 +305,10 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   setDriverTab(tab: AdminFleetTabId): void {
+    if (tab === ADMIN_FLEET_TAB.VERIFIED) {
+      this.navigateSection('driversTable');
+      return;
+    }
     this.driverTab.set(tab);
     this.selectedDriver.set(null);
     this.navigateSection('drivers', tab);
@@ -354,7 +349,7 @@ export class AdminDashboardComponent implements OnInit {
         this.licensePreviewUrl.set(blobUrl);
       },
       error: () => {
-        this.openStaticImagePreview(licenseUrl);
+        this.toast.show('Could not open license document.', 'error');
       },
     });
   }
@@ -379,12 +374,20 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  openVehiclePhotoPreview(vehiclePhotoUrl: string): void {
-    if (!vehiclePhotoUrl) return;
-    const fullUrl = resolveUploadUrl(vehiclePhotoUrl, this.licenseBaseUrl);
-    this.revokeLicensePreviewBlob();
-    this.licensePreviewUrl.set(null);
-    this.vehiclePhotoPreviewUrl.set(fullUrl);
+  openVehiclePhotoPreview(userId: string): void {
+    if (!userId) return;
+    this.adminService.getPrivateDocument(userId, 'vehicle-photo').subscribe({
+      next: (blob) => {
+        this.revokeLicensePreviewBlob();
+        const blobUrl = URL.createObjectURL(blob);
+        this.licensePreviewBlobUrl = blobUrl;
+        this.licensePreviewUrl.set(null);
+        this.vehiclePhotoPreviewUrl.set(blobUrl);
+      },
+      error: () => {
+        this.toast.show('Could not open vehicle photo.', 'error');
+      },
+    });
   }
 
   closeLicensePreview(): void {

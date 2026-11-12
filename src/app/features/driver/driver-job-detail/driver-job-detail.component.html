@@ -3,7 +3,7 @@
     routerLink="/driver/tasks"
     class="text-sm font-medium text-primary hover:text-primary mb-5 inline-flex items-center gap-1"
   >
-  ← Back to My trips
+  ← Back to My moves
     </a>
 
     @if (tripStatusError(); as te) {
@@ -96,7 +96,6 @@
             <li><strong class="text-[#BDD8E9]/90">Vehicle type:</strong> {{ vehicleTypeLabel(o.vehicleType) }}</li>
             <li><strong class="text-[#BDD8E9]/90">Floors:</strong> Pickup: floor {{ o.pickupFloor ?? '0' }} → Delivery: floor {{ o.destinationFloor ?? '0' }}</li>
             <li><strong class="text-[#BDD8E9]/90">Elevator:</strong> {{ o.hasElevator === true ? 'Yes' : o.hasElevator === false ? 'No' : 'Not specified' }}</li>
-            <li><strong class="text-[#BDD8E9]/90">Loading help:</strong> {{ o.laborRequired === 'driver_plus_helper' ? 'Driver + 1 helper' : o.laborRequired === 'driver' ? 'Driver assistance' : 'None (transport only)' }}</li>
           </ul>
         </section>
 
@@ -115,16 +114,28 @@
                 'w-full min-h-[48px] justify-center rounded-xl border-border/40 bg-card/85 backdrop-blur-sm px-4 py-3 text-sm font-semibold text-card-foreground hover:bg-secondary/20 sm:w-max'
               "
             >
-              View Route
+              {{ routePreviewOrder() ? 'Close route' : 'View Route' }}
+            </ui-button>
+          }
+          @if (canShowOnTheWay(o)) {
+            <ui-button
+              type="button"
+              [disabled]="isTripBusy(o._id)"
+              (click)="startDelivery(o._id)"
+              [className]="
+                'w-full min-h-[48px] justify-center rounded-xl border-0 bg-primary px-4 py-3 text-base font-semibold text-primary-foreground hover:bg-[#76b28c] disabled:opacity-60 sm:w-max'
+              "
+            >
+              {{ isTripBusy(o._id) ? '…' : 'Driver is on the way' }}
             </ui-button>
           }
           @if (canShowMarkPickedUp(o)) {
             <ui-button
               type="button"
               [disabled]="isTripBusy(o._id)"
-              (click)="startDelivery(o._id)"
+              (click)="markPickedUp(o._id)"
               [className]="
-                'w-full min-h-[48px] justify-center rounded-xl border-0 bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:bg-[#16A34A] disabled:opacity-60 sm:w-max'
+                'w-full min-h-[48px] justify-center rounded-xl border-0 bg-primary px-4 py-3 text-base font-semibold text-primary-foreground hover:bg-[#76b28c] disabled:opacity-60 sm:w-max'
               "
             >
               {{ isTripBusy(o._id) ? '…' : 'Mark picked up' }}
@@ -136,7 +147,7 @@
               [disabled]="isTripBusy(o._id)"
               (click)="markCompleted(o._id)"
               [className]="
-                'w-full min-h-[48px] justify-center rounded-xl border-0 bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-60 sm:w-max'
+                'w-full min-h-[48px] justify-center rounded-xl border-0 bg-primary px-4 py-3 text-base font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60 sm:w-max'
               "
             >
               {{ isTripBusy(o._id) ? '…' : 'Mark delivered' }}
@@ -146,11 +157,11 @@
       </div>
     </div>
   } @else if (loading()) {
-    <p class="text-muted text-center py-12">Loading job…</p>
+    <p class="text-muted text-center py-12">Loading move…</p>
   } @else if (notFound()) {
     <div class="rounded-xl border border-border/30 bg-card/85 backdrop-blur-sm p-8 text-center shadow-sm">
-      <p class="text-muted mb-2">This job could not be found in your list.</p>
-      <a routerLink="/driver/tasks" class="text-primary font-medium hover:text-primary">Return to My trips</a>
+      <p class="text-muted mb-2">This move could not be found in your list.</p>
+      <a routerLink="/driver/tasks" class="text-primary font-medium hover:text-primary">Return to My moves</a>
     </div>
   }
 </div>

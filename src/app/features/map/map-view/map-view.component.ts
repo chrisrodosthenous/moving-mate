@@ -27,6 +27,7 @@ function markerOptions(accepted: boolean): google.maps.MarkerOptions {
   imports: [GoogleMap, MapMarker, SidebarComponent],
   templateUrl: './map-view.component.html',
   styleUrl: './map-view.component.css',
+  host: { 'data-design-scope': 'customer' },
 })
 export class MapViewComponent implements OnInit, OnDestroy {
   private ordersService = inject(OrdersService);

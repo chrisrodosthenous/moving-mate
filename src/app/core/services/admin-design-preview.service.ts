@@ -20,6 +20,7 @@ export class AdminDesignPreviewService {
   readonly allowGuestPagePreview = signal(false);
 
   readonly currentPath = signal(this.router.url.split('?')[0] || '/');
+  readonly currentUrl = signal(this.router.url.split('#')[0] || '/');
 
   readonly currentDestination = computed(() =>
     resolvePreviewDestination(this.currentPath()),
@@ -43,6 +44,7 @@ export class AdminDesignPreviewService {
       .subscribe((e) => {
         const path = e.urlAfterRedirects.split('?')[0] || '/';
         this.currentPath.set(path);
+        this.currentUrl.set(e.urlAfterRedirects.split('#')[0] || '/');
         this.syncGuestPreviewFlag(path);
       });
   }
@@ -71,20 +73,29 @@ export class AdminDesignPreviewService {
     return DESIGN_SCOPE_META[scopeId].description;
   }
 
-  navigateTo(dest: AdminPreviewDestination): void {
+  navigateTo(dest: AdminPreviewDestination): Promise<boolean> {
+    if (!dest.path) return Promise.resolve(false);
     if (dest.guestPreview) {
       this.allowGuestPagePreview.set(true);
     } else {
       this.allowGuestPagePreview.set(false);
     }
-    void this.router.navigateByUrl(dest.path);
+    const url = dest.query ? `${dest.path}?${dest.query}` : dest.path;
     this.isOpen.set(false);
+    return this.router.navigateByUrl(url);
   }
 
   isActiveDestination(dest: AdminPreviewDestination): boolean {
-    const path = this.currentPath();
+    const url = this.router.url.split('#')[0] ?? '';
+    const path = url.split('?')[0] || '/';
+    if (dest.query) {
+      return url === `${dest.path}?${dest.query}` || url.startsWith(`${dest.path}?${dest.query}&`);
+    }
+    if (dest.path === '/admin') {
+      return path === '/admin' && !url.includes('section=');
+    }
     if (path === dest.path) return true;
-    return dest.path !== '/' && path.startsWith(dest.path + '/');
+    return dest.path !== '/' && path.startsWith(`${dest.path}/`);
   }
 
   private syncGuestPreviewFlag(path: string): void {

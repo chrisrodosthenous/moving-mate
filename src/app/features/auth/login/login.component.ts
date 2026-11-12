@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { AuthStore } from '../../../store/auth.store';
@@ -20,12 +20,20 @@ export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   emailOrPhone = '';
   password = '';
   /** Signals ensure the template updates as soon as HTTP success/error completes (no focus workaround). */
   readonly loading = signal(false);
   readonly error = signal('');
+
+  constructor() {
+    const suspended = this.route.snapshot.queryParamMap.get('suspended');
+    if (suspended === '1') {
+      this.error.set('Your account is suspended. Please contact info@moving-mate.com');
+    }
+  }
 
   onSubmit(): void {
     this.error.set('');

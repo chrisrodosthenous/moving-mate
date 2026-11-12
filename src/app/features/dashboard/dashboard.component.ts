@@ -4,6 +4,7 @@ import {
   inject,
   signal,
   computed,
+  effect,
   OnInit,
   OnDestroy,
   ChangeDetectorRef,
@@ -28,6 +29,7 @@ import {
 } from '../../shared/utils/order-tracking';
 import { DriverAnalyticsComponent } from '../driver/driver-analytics/driver-analytics.component';
 import { driverNetEarningsForOrder } from '../../shared/utils/order-commission.util';
+import { SocketService } from '../../core/services/socket.service';
 
 /** Dashboard charts use the newest trips. The earnings window is 30 days. */
 const DRIVER_CHART_ORDER_CAP = 100;
@@ -54,6 +56,15 @@ const DRIVER_CHART_ORDER_CAP = 100;
 export class DashboardComponent implements OnInit, OnDestroy {
   auth = inject(AuthService);
   private fcm = inject(FcmService);
+  private readonly socket = inject(SocketService);
+  private readonly watchLiveOrders = effect(() => {
+    const updated = this.socket.onOrderUpdated();
+    if (!updated) return;
+    const id = String(updated._id ?? '');
+    this.activeOrders.update((list) =>
+      list.map((order) => (String(order._id) === id ? { ...order, ...updated } : order)),
+    );
+  });
   private cdr = inject(ChangeDetectorRef);
   ordersService = inject(OrdersService);
   usersService = inject(UsersService);
@@ -73,12 +84,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   summaryLoading = signal(true);
 
   /** Customer's latest active order for the dashboard hero. */
-  latestActiveOrder = signal<TransportOrder | null>(null);
+  activeOrders = signal<TransportOrder[]>([]);
   /** True until the first active-order request finishes. */
   readonly activeOrderLoading = signal(true);
 
-  /** Driver's current trip, preferred over an open job. */
-  readonly driverActiveTrip = signal<TransportOrder | null>(null);
+  /** Driver's accepted jobs that are still open. */
+  readonly driverActiveTrips = signal<TransportOrder[]>([]);
   /** Newest open job when the driver has no current trip. */
   readonly driverNextJob = signal<TransportOrder | null>(null);
   readonly driverFocusLoading = signal(false);
@@ -119,7 +130,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
     });
     this.loadSummary();
-    this.loadLatestActiveOrder();
+    this.loadActiveOrders();
     this.loadDriverFocus();
     this.loadDriverRating();
     this.loadDriverChartOrders();
@@ -135,7 +146,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           path === '/driver/dashboard'
         ) {
           this.loadSummary();
-          this.loadLatestActiveOrder();
+          this.loadActiveOrders();
           this.loadDriverFocus();
           this.loadDriverRating();
           this.loadDriverChartOrders();
@@ -163,33 +174,33 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Load customer's latest active order for dashboard status display */
-  loadLatestActiveOrder(): void {
+  /** Load every open customer order so the dashboard lists them all. */
+  loadActiveOrders(): void {
     if (!this.isCustomer) {
-      this.latestActiveOrder.set(null);
+      this.activeOrders.set([]);
       this.activeOrderLoading.set(false);
       return;
     }
     this.activeOrderLoading.set(true);
     this.ordersService
-      .getMyOrders({ view: 'summary', scope: 'active', limit: 1 })
+      .getMyOrders({ view: 'summary', scope: 'active', limit: 100 })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: ({ orders }) => {
-          this.latestActiveOrder.set(orders[0] ?? null);
+          this.activeOrders.set(orders);
           this.activeOrderLoading.set(false);
         },
         error: () => {
-          this.latestActiveOrder.set(null);
+          this.activeOrders.set([]);
           this.activeOrderLoading.set(false);
         },
       });
   }
 
-  /** Current trip first. If there is none, the first open job in the driver's districts. */
+  /** Every accepted job still in progress. If there are none, the first open job in the driver's districts. */
   loadDriverFocus(): void {
     if (!this.isDriver || !this.user?.isVerified) {
-      this.driverActiveTrip.set(null);
+      this.driverActiveTrips.set([]);
       this.driverNextJob.set(null);
       this.driverFocusLoading.set(false);
       return;
@@ -199,15 +210,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
       .getMyOrders({
         view: 'summary',
         scope: 'active',
-        limit: 1,
+        limit: 100,
         skipGlobalErrorToast: true,
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: ({ orders }) => {
-          const trip = orders[0] ?? null;
-          this.driverActiveTrip.set(trip);
-          if (trip) {
+          this.driverActiveTrips.set(orders);
+          if (orders.length > 0) {
             this.driverNextJob.set(null);
             this.driverFocusLoading.set(false);
             return;
@@ -215,7 +225,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.loadDriverNextJob();
         },
         error: () => {
-          this.driverActiveTrip.set(null);
+          this.driverActiveTrips.set([]);
           this.loadDriverNextJob();
         },
       });
@@ -239,10 +249,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   /** One sentence for the customer's current move. */
-  moveStatusSentence(status: string): string {
+  moveStatusSentence(order: TransportOrder): string {
+    const status = order.status;
     switch (status) {
       case 'pending':
-        return 'Waiting for a driver.';
+        return order.paymentStatus === 'authorized' || order.paymentStatus === 'captured'
+          ? 'Waiting for a driver.'
+          : 'Please proceed with payment.';
       case 'accepted':
         return 'A driver accepted your move.';
       case 'picked_up':
@@ -260,12 +273,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   driverTripSentence(status: string): string {
-    if (status === 'accepted') return 'You accepted this job.';
+    if (status === 'accepted') return 'You accepted this move.';
+    if (status === 'driver_is_on_the_way') return 'You are on the way to pickup.';
+    if (status === 'picked_up' || status === 'in_progress') return 'You picked up the load.';
+    if (status === 'delivered' || status === 'completed') return 'This delivery is finished.';
     return 'This delivery is in progress.';
   }
 
   driverPay(order: TransportOrder): number {
     return driverNetEarningsForOrder(order);
+  }
+
+  driverPlates(order: TransportOrder): string {
+    const driver = order.driverId;
+    if (!driver || typeof driver !== 'object') return '';
+    return (driver.plateNumber ?? '').trim();
   }
 
   /** Load driver's average rating for dashboard */
@@ -298,8 +320,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   readonly orderSegmentBarFilledClass = orderSegmentBarFilledClass;
 
-  /** Progress bar segments: Submitted → Accepted → On the way → Done */
-  orderSegmentFilled(status: string, index: 0 | 1 | 2 | 3): boolean {
-    return customerOrderSegmentFilled(status, index);
+  /** Progress bar segments: Submitted → Payment → Accepted → On the way → Done */
+  orderSegmentFilled(order: TransportOrder, index: 0 | 1 | 2 | 3 | 4): boolean {
+    return customerOrderSegmentFilled(order.status, index, order.paymentStatus);
   }
 }

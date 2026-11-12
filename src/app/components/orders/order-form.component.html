@@ -43,10 +43,7 @@
         From (pickup) <span [class]="requiredMarkClass" aria-hidden="true">*</span>
       </label>
       <div
-        class="relative flex min-h-[44px] items-center overflow-hidden rounded-lg border bg-input/70 transition"
-        [class.border-primary/80]="pickupLocationSet()"
-        [class.bg-primary/10]="pickupLocationSet()"
-        [class.border-border]="!pickupLocationSet()"
+        class="order-text-box relative flex min-h-[44px] items-center overflow-hidden rounded-lg border bg-background transition"
       >
         <span
           class="pointer-events-none absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-card-foreground"
@@ -89,10 +86,7 @@
         To (destination) <span [class]="requiredMarkClass" aria-hidden="true">*</span>
       </label>
       <div
-        class="relative flex min-h-[44px] items-center overflow-hidden rounded-lg border bg-input/70 transition"
-        [class.border-primary/80]="dropoffLocationSet()"
-        [class.bg-primary/10]="dropoffLocationSet()"
-        [class.border-border]="!dropoffLocationSet()"
+        class="order-text-box relative flex min-h-[44px] items-center overflow-hidden rounded-lg border bg-background transition"
       >
         <span
           class="pointer-events-none absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-card-foreground"
@@ -183,9 +177,7 @@
       @if (totalCargoItems() === 0) {
         <p class="mt-2 text-xs text-warning md:text-sm">Add at least 1 item.</p>
       } @else {
-        <p [class]="labelSubClass + ' mt-2'">
-          Total items: {{ totalCargoItems() }} · Score: {{ cargoScore() }} points
-        </p>
+        <p [class]="labelSubClass + ' mt-2'">Total items: {{ totalCargoItems() }}</p>
       }
 
       @if (totalCargoItems() > 0) {
@@ -196,25 +188,20 @@
           data-testid="vehicle-recommendation-banner"
         >
           <div class="flex items-start gap-3">
-            <span class="text-xl leading-none" aria-hidden="true">
-              @if (assignedVehicleType() === 'truck') {
-                🚛
-              } @else {
-                🚚
-              }
-            </span>
+            <lucide-icon
+              [name]="vehicleBanner().icon"
+              [size]="28"
+              class="mt-0.5 shrink-0 text-[#21c45d]"
+              aria-hidden="true"
+            />
             <div class="min-w-0 flex-1">
-              <div class="mb-1 flex flex-wrap items-center gap-2">
-                <lucide-icon
-                  [name]="vehicleBanner().icon"
-                  [size]="18"
-                  class="shrink-0 text-[#7BBDE8]"
-                  aria-hidden="true"
-                />
-                <span class="text-sm font-semibold text-[#7BBDE8]">
+              <span class="mb-1 block text-sm font-semibold text-[#21c45d]">
+                @if (assignedVehicleType() === 'pickup') {
+                  Pick up (small items/up to 4 boxes)
+                } @else {
                   {{ assignedVehicleType() | uppercase }}
-                </span>
-              </div>
+                }
+              </span>
               <p class="text-sm leading-relaxed text-[#BDD8E9]">{{ vehicleBanner().message }}</p>
             </div>
           </div>
@@ -224,7 +211,7 @@
 
     <div class="md:col-span-2" [formGroup]="logisticsForm()">
       <span [class]="labelClass + ' mb-2 md:mb-3'">Logistics &amp; floor details</span>
-      <div class="grid grid-cols-1 gap-2 md:grid-cols-3 md:gap-4">
+      <div class="grid grid-cols-2 gap-2 md:gap-4">
         <div class="min-w-0">
           <label for="pickupFloor" [class]="labelSubClass + ' md:mb-1.5'">Pickup Floor</label>
           <select id="pickupFloor" formControlName="pickupFloor" [class]="selectClass">
@@ -234,6 +221,20 @@
           </select>
         </div>
         <div class="min-w-0">
+          <label for="pickupHasElevator" [class]="labelSubClass + ' md:mb-1.5'">Elevator available on pick up?</label>
+          <select
+            id="pickupHasElevator"
+            [class]="selectClass"
+            [value]="elevatorValue('pickupHasElevator')"
+            (change)="onElevatorChange('pickupHasElevator', $any($event.target).value)"
+          >
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt-2 grid grid-cols-2 gap-2 md:mt-4 md:gap-4">
+        <div class="min-w-0">
           <label for="destinationFloor" [class]="labelSubClass + ' md:mb-1.5'">Destination Floor</label>
           <select id="destinationFloor" formControlName="destinationFloor" [class]="selectClass">
             @for (opt of floorOptions; track opt.value) {
@@ -242,25 +243,18 @@
           </select>
         </div>
         <div class="min-w-0">
-          <span [class]="labelSubClass + ' md:mb-1.5'">Elevator Available?</span>
-          <div class="order-switch-row">
-            <span class="text-xs text-muted-foreground md:text-sm">At pickup / drop-off</span>
-            <label class="order-switch" aria-label="Elevator available">
-              <input type="checkbox" formControlName="hasElevator" class="order-switch-input" />
-              <span class="order-switch-track" aria-hidden="true"></span>
-            </label>
-          </div>
+          <label for="dropoffHasElevator" [class]="labelSubClass + ' md:mb-1.5'">Elevator available on drop off?</label>
+          <select
+            id="dropoffHasElevator"
+            [class]="selectClass"
+            [value]="elevatorValue('dropoffHasElevator')"
+            (change)="onElevatorChange('dropoffHasElevator', $any($event.target).value)"
+          >
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
         </div>
       </div>
-    </div>
-
-    <div class="md:col-span-2" [formGroup]="logisticsForm()">
-      <label for="laborRequired" [class]="labelClass">Do you need help with loading/unloading?</label>
-      <select id="laborRequired" formControlName="laborRequired" [class]="selectClass + ' mt-1 md:mt-2'">
-        <option value="none">No help needed (I will bring items to the vehicle)</option>
-        <option value="driver">Driver assistance (+ extra charge)</option>
-        <option value="driver_plus_helper">Driver + 1 Extra Helper (+ premium charge)</option>
-      </select>
     </div>
 
     <div class="flex flex-col gap-2 md:col-span-2 md:gap-8 lg:gap-12">
@@ -297,7 +291,7 @@
               [ngModel]="scheduledDate()"
               (ngModelChange)="scheduledDateChange.emit($event)"
               [min]="minDate()"
-              [className]="'w-full min-w-0 max-w-full px-3 py-2 text-sm md:px-4 md:py-2.5'"
+              [className]="'order-date w-full min-w-0 max-w-full bg-background px-3 py-2 text-sm md:px-4 md:py-2.5'"
             />
           </div>
           <div class="min-w-0">
@@ -331,7 +325,7 @@
         uiInput
         (change)="cargoFileChange.emit($event)"
         [className]="
-          'w-full min-w-0 max-w-full px-3 py-2 text-xs file:mr-2 file:rounded file:border-0 file:bg-secondary/30 file:px-2 file:py-1 file:text-foreground md:px-4 md:py-2.5 md:text-sm'
+          'w-full min-w-0 max-w-full bg-background px-3 py-2 text-xs file:mr-2 file:rounded file:border-0 file:bg-secondary/30 file:px-2 file:py-1 file:text-foreground md:px-4 md:py-2.5 md:text-sm'
         "
       />
       @if (cargoFile(); as f) {

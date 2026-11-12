@@ -61,15 +61,17 @@ export interface AdminPreviewDestination {
   label: string;
   group: AdminPreviewGroup;
   scopes: DesignScopeId[];
+  /** Query string without the leading ?, for screens that share a path. */
+  query?: string;
   /** Admin must bypass guestGuard (logged in while viewing login/register). */
   guestPreview?: boolean;
 }
 
 export const ADMIN_PREVIEW_GROUP_LABELS: Record<AdminPreviewGroup, string> = {
-  public: 'Public website',
-  auth: 'Authentication',
-  customer: 'Customer (signed in)',
-  driver: 'Driver (signed in)',
+  public: 'Website',
+  auth: 'Sign in',
+  customer: 'Customer',
+  driver: 'Driver',
   admin: 'Admin',
 };
 
@@ -80,18 +82,28 @@ export const ADMIN_PREVIEW_DESTINATIONS: AdminPreviewDestination[] = [
   { path: '/how-it-works', label: 'How it works', group: 'public', scopes: ['marketing', 'global'] },
   { path: '/about', label: 'About', group: 'public', scopes: ['marketing', 'global'] },
   { path: '/contact', label: 'Contact', group: 'public', scopes: ['marketing', 'global'] },
+  { path: '/download', label: 'Download', group: 'public', scopes: ['marketing', 'global'] },
   { path: '/login', label: 'Login', group: 'auth', scopes: ['auth', 'global', 'global-shared'], guestPreview: true },
   { path: '/register', label: 'Register', group: 'auth', scopes: ['auth', 'global', 'global-shared'], guestPreview: true },
   { path: '/forgot-password', label: 'Forgot password', group: 'auth', scopes: ['auth', 'global'], guestPreview: true },
-  { path: '/customer/dashboard', label: 'Dashboard', group: 'customer', scopes: ['customer', 'global', 'global-shared'] },
-  { path: '/customer/book', label: 'New order', group: 'customer', scopes: ['customer', 'global', 'global-shared'] },
-  { path: '/customer/orders', label: 'My orders', group: 'customer', scopes: ['customer', 'global', 'global-shared'] },
+  { path: '/reset-password', label: 'Reset password', group: 'auth', scopes: ['auth', 'global'], guestPreview: true },
+  { path: '/customer/dashboard', label: 'Customer dashboard', group: 'customer', scopes: ['customer', 'global', 'global-shared'] },
+  { path: '/customer/book', label: 'New move', group: 'customer', scopes: ['customer', 'global', 'global-shared'] },
+  { path: '/customer/orders', label: 'My moves', group: 'customer', scopes: ['customer', 'global', 'global-shared'] },
+  { path: '/map', label: 'Map', group: 'customer', scopes: ['customer', 'global', 'global-shared'] },
   { path: '/profile', label: 'Profile', group: 'customer', scopes: ['global', 'global-shared'] },
-  { path: '/driver/dashboard', label: 'Dashboard', group: 'driver', scopes: ['driver', 'global', 'global-shared'] },
-  { path: '/driver/available', label: 'Available jobs', group: 'driver', scopes: ['driver', 'global', 'global-shared'] },
-  { path: '/driver/tasks', label: 'My trips', group: 'driver', scopes: ['driver', 'global', 'global-shared'] },
+  { path: '/driver/dashboard', label: 'Driver dashboard', group: 'driver', scopes: ['driver', 'global', 'global-shared'] },
+  { path: '/driver/available', label: 'Available moves', group: 'driver', scopes: ['driver', 'global', 'global-shared'] },
+  { path: '/driver/tasks', label: 'My moves', group: 'driver', scopes: ['driver', 'global', 'global-shared'] },
   { path: '/admin', label: 'Admin dashboard', group: 'admin', scopes: ['admin', 'global', 'global-shared'] },
-  { path: '/admin/settings/notifications', label: 'Notification settings', group: 'admin', scopes: ['admin', 'global', 'global-shared'] },
+  { path: '/admin', query: 'section=customers', label: 'Customers', group: 'admin', scopes: ['admin', 'global', 'global-shared'] },
+  { path: '/admin', query: 'section=driversTable', label: 'Drivers', group: 'admin', scopes: ['admin', 'global', 'global-shared'] },
+  { path: '/admin', query: 'section=ordersTable', label: 'Orders', group: 'admin', scopes: ['admin', 'global', 'global-shared'] },
+  { path: '/admin', query: 'section=orders', label: 'Order management', group: 'admin', scopes: ['admin', 'global', 'global-shared'] },
+  { path: '/admin', query: 'section=drivers&fleetTab=pending', label: 'Driver approvals', group: 'admin', scopes: ['admin', 'global', 'global-shared'] },
+  { path: '/admin', query: 'section=notify', label: 'Developer tools', group: 'admin', scopes: ['admin', 'global', 'global-shared'] },
+  { path: '/admin/settings/notifications', label: 'Notifications', group: 'admin', scopes: ['admin', 'global', 'global-shared'] },
+  { path: '/admin/settings/pricing', label: 'Pricing', group: 'admin', scopes: ['admin', 'global', 'global-shared'] },
 ];
 
 /** Match current URL to preview metadata (longest prefix wins). */

@@ -28,7 +28,7 @@ test('customer my-orders list and cancel pending order', async ({ page, baseURL 
     await page.locator('#password').fill(bootstrap.customer.password)
     await page.getByRole('button', { name: /sign in/i }).click()
     await expect(page).toHaveURL(/\/customer\/dashboard$/)
-    await page.getByTestId('sidebar').getByRole('link', { name: /new order/i }).click()
+    await page.getByTestId('sidebar').getByRole('link', { name: /new move/i }).click()
     await expect(page).toHaveURL(/\/customer\/book$/)
 
     await page.getByLabel('Pickup district').selectOption('Larnaca')
@@ -40,7 +40,7 @@ test('customer my-orders list and cancel pending order', async ({ page, baseURL 
     const createRespPromise = page.waitForResponse((resp) => (
       resp.url().includes('/api/orders') && resp.request().method() === 'POST'
     ))
-    await page.getByRole('button', { name: /confirm order/i }).click()
+    await page.getByRole('button', { name: /confirm move/i }).click()
     const createResp = await createRespPromise
     expect(createResp.status()).toBe(201)
     const createdOrder = await createResp.json()
@@ -54,7 +54,7 @@ test('customer my-orders list and cancel pending order', async ({ page, baseURL 
       resp.url().includes('/cancel') &&
       resp.request().method() === 'PATCH'
     ))
-    await page.getByRole('button', { name: /cancel order/i }).click()
+    await page.getByRole('button', { name: /cancel move/i }).click()
     await page.getByRole('button', { name: /^Confirm$/i }).click()
     const cancelResp = await cancelRespPromise
     expect(cancelResp.status()).toBe(200)

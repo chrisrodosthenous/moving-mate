@@ -4,6 +4,7 @@ import {
   HostListener,
   inject,
 } from '@angular/core';
+import { AuthService } from '../../../core/services/auth.service';
 import { DialogService } from '../../../core/services/dialog.service';
 import { UiButtonComponent } from '@/components/ui/button';
 import { UiDialogBackdropComponent, UiDialogPanelComponent } from '@/components/ui/dialog';
@@ -17,6 +18,8 @@ import { UiDialogBackdropComponent, UiDialogPanelComponent } from '@/components/
 })
 export class DialogComponent {
   readonly dialog = inject(DialogService);
+  private readonly auth = inject(AuthService);
+  readonly customerMuted = () => this.auth.user()?.role === 'customer';
 
   @HostListener('document:keydown', ['$event'])
   onEscape(e: KeyboardEvent): void {

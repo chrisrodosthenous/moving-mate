@@ -5,6 +5,7 @@ import type { HttpToastControl } from '../http/http-error-context';
 import { httpOptionsSkipGlobalErrorToast } from '../http/http-error-context';
 import type { OrderLaborRequired, OrderVehicleType, StoredOrderVehicleType } from '../models/order.model';
 import type { DriverVehicleType } from '../models/driver.model';
+import type { AuthUser } from '../../store/auth.store';
 
 export type { OrderLaborRequired, OrderLogistics, OrderLogisticsPartial, OrderVehicleType } from '../models/order.model';
 
@@ -35,6 +36,7 @@ export interface AdminUser {
   district?: string | null;
   districts?: string[];
   isVerified?: boolean;
+  isSuspended?: boolean;
   verificationStatus?: 'pending' | 'approved' | 'rejected' | string;
   licenseUrl?: string;
   vehicleType?: DriverVehicleType | string;
@@ -84,6 +86,7 @@ export interface AdminOrder {
   pickupLocation: { address: string; lat: number; lng: number };
   dropoffLocation: { address: string; lat: number; lng: number };
   status: string;
+  paymentStatus?: string;
   price: number;
   driverEarnings?: number;
   platformCommission?: number;
@@ -105,6 +108,8 @@ export interface AdminOrder {
   pickupFloor?: string;
   destinationFloor?: string;
   hasElevator?: boolean;
+  pickupHasElevator?: boolean;
+  dropoffHasElevator?: boolean;
   laborRequired?: OrderLaborRequired;
 }
 
@@ -119,10 +124,92 @@ export interface AdminOverview {
   orders: AdminOrder[];
 }
 
+export interface AdminDirectoryQuery {
+  offset?: number;
+  limit?: number;
+  search?: string;
+  name?: string;
+  contact?: string;
+  district?: string;
+  orders?: string;
+  status?: string;
+  rating?: string;
+  vehicle?: string;
+  trips?: string;
+  availability?: string;
+  id?: string;
+  customer?: string;
+  driver?: string;
+  place?: string;
+  logistics?: string;
+  price?: string;
+  created?: string;
+}
+
+export interface AdminDirectoryPage<T> {
+  items: T[];
+  total: number;
+  offset: number;
+  limit: number;
+  districts?: string[];
+  vehicles?: string[];
+}
+
+export type AdminCustomerListItem = AdminUser & {
+  totalOrders?: number;
+  districtLabel?: string;
+  fullName?: string;
+  statusLabel?: string;
+};
+
+export type AdminDriverListItem = AdminUser & {
+  fullName?: string;
+  districtLabel?: string;
+  vehicleLabel?: string;
+  completedTrips?: number;
+  availabilityLabel?: string;
+  ratingText?: string;
+};
+
+export type AdminCustomerDirectoryPage = AdminDirectoryPage<AdminCustomerListItem>;
+export type AdminDriverDirectoryPage = AdminDirectoryPage<AdminDriverListItem>;
+export type AdminOrderDirectoryPage = AdminDirectoryPage<AdminOrder>;
+
+function directoryParams(query: AdminDirectoryQuery): Record<string, string> {
+  const params: Record<string, string> = {};
+  for (const [key, value] of Object.entries(query)) {
+    if (value == null || value === '') continue;
+    params[key] = String(value);
+  }
+  return params;
+}
+
+export interface AdminAnalyticsSummary {
+  clients: number;
+  drivers: { all: number; verified: number; not_verified: number; pending: number };
+  orders: {
+    all: number;
+    pending_payment: number;
+    pending_driver: number;
+    accepted: number;
+    on_the_way: number;
+    picked_up: number;
+    delivered: number;
+    cancelled: number;
+  };
+  ledger: {
+    grossTurnover: number;
+    platformRevenue: number;
+    driverEarnings: number;
+    completedCount: number;
+  };
+}
+
 export interface AdminAnalyticsPayload {
   trend: { labels: string[]; orders: number[]; revenue: number[] };
   districts: { labels: string[]; counts: number[] };
   topDrivers: { labels: string[]; trips: number[] };
+  summary?: AdminAnalyticsSummary;
 }
 
 export interface PendingVerificationsResponse {
@@ -140,10 +227,42 @@ export interface AdminPricingPreview {
   commissionRate: number;
 }
 
+export interface AdminPricingVehicleRates {
+  baseFee: number;
+  rateNear: number;
+  rateFar: number;
+  minFare: number;
+  consumptionLPer100Km: number;
+  wearPerKm: number;
+}
+
 export interface AdminPricingConfig {
   dieselPricePerLitreEur: number;
   driverHourlyTargetEur: number;
   helperHourlyRateEur: number;
+  handlingRatePerMinuteEur: number;
+  stairsSurchargePerFloor: number;
+  distanceTaperThresholdKm: number;
+  averageSpeedKmh: number;
+  deadheadKm: number;
+  setupHours: number;
+  handlingMinutesPerItem: {
+    boxes: number;
+    mediumItems: number;
+    largeFurniture: number;
+    heavyAppliances: number;
+  };
+  crewMultiplier: {
+    none: number;
+    driver: number;
+    driver_plus_helper: number;
+  };
+  vehicles: {
+    pickup: AdminPricingVehicleRates;
+    minivan: AdminPricingVehicleRates;
+    van: AdminPricingVehicleRates;
+    truck: AdminPricingVehicleRates;
+  };
   commissionTiers: Array<{ upToEur: number | null; ratePercent: number }>;
 }
 
@@ -162,9 +281,10 @@ export class AdminService {
     return this.http.get<AdminOverview>(`${API_URL}/overview`, h);
   }
 
-  getAnalytics(opts?: HttpToastControl): Observable<AdminAnalyticsPayload> {
+  getAnalytics(opts?: HttpToastControl & { range?: string }): Observable<AdminAnalyticsPayload> {
     const h = opts?.skipGlobalErrorToast ? httpOptionsSkipGlobalErrorToast() : {};
-    return this.http.get<AdminAnalyticsPayload>(`${API_URL}/analytics`, h);
+    const range = opts?.range ? `?range=${encodeURIComponent(opts.range)}` : '';
+    return this.http.get<AdminAnalyticsPayload>(`${API_URL}/analytics${range}`, h);
   }
 
   getPendingVerifications(): Observable<PendingVerificationsResponse> {
@@ -176,10 +296,66 @@ export class AdminService {
     return this.http.get<AdminOrderDetailResponse>(`${API_URL}/orders/${idParam}`);
   }
 
+  setCustomerSuspension(customerId: string, suspended: boolean): Observable<{ success: boolean; user: AdminUser }> {
+    return this.setAccountSuspension('customers', customerId, suspended);
+  }
+
+  setDriverSuspension(driverId: string, suspended: boolean): Observable<{ success: boolean; user: AdminUser }> {
+    return this.setAccountSuspension('drivers', driverId, suspended);
+  }
+
+  impersonate(userId: string): Observable<{ code: string; role: string }> {
+    const idParam = encodeURIComponent(String(userId).trim());
+    return this.http.post<{ code: string; role: string }>(
+      `${API_URL}/impersonate/${idParam}`,
+      {},
+      httpOptionsSkipGlobalErrorToast(),
+    );
+  }
+
+  redeemImpersonation(code: string): Observable<{ message: string; token: string; user: AuthUser }> {
+    return this.http.post<{ message: string; token: string; user: AuthUser }>(
+      `${API_URL}/impersonate/redeem`,
+      { code },
+      httpOptionsSkipGlobalErrorToast(),
+    );
+  }
+
+  listCustomers(query: AdminDirectoryQuery): Observable<AdminCustomerDirectoryPage> {
+    return this.http.get<AdminCustomerDirectoryPage>(`${API_URL}/customers`, { params: directoryParams(query) });
+  }
+
+  listDrivers(query: AdminDirectoryQuery): Observable<AdminDriverDirectoryPage> {
+    return this.http.get<AdminDriverDirectoryPage>(`${API_URL}/drivers`, { params: directoryParams(query) });
+  }
+
+  listOrders(query: AdminDirectoryQuery): Observable<AdminOrderDirectoryPage> {
+    return this.http.get<AdminOrderDirectoryPage>(`${API_URL}/orders`, { params: directoryParams(query) });
+  }
+
+  private setAccountSuspension(
+    kind: 'customers' | 'drivers',
+    userId: string,
+    suspended: boolean,
+  ): Observable<{ success: boolean; user: AdminUser }> {
+    const idParam = encodeURIComponent(String(userId).trim());
+    return this.http.patch<{ success: boolean; user: AdminUser }>(
+      `${API_URL}/${kind}/${idParam}/suspension`,
+      { suspended },
+    );
+  }
+
   getDriverLicenseBlob(userId: string): Observable<Blob> {
     return this.http.get(`${API_URL}/driver-documents/${encodeURIComponent(userId)}/license`, {
       responseType: 'blob',
     });
+  }
+
+  getPrivateDocument(userId: string, docType: 'license' | 'vehicle-photo' | 'id-card'): Observable<Blob> {
+    return this.http.get(
+      `/api/users/documents/${encodeURIComponent(userId)}/${docType}`,
+      { responseType: 'blob' },
+    );
   }
 
   /** PUT /api/admin/drivers/:id/verify — approve or reject driver verification. */

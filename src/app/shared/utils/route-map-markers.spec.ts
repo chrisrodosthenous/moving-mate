@@ -24,7 +24,7 @@ describe('route-map-markers', () => {
     expect(String(pickupIcon.path)).not.toMatch(/^https?:/);
   });
 
-  it('keeps Google route pins off while preserving the caller line style', () => {
+  it('keeps Google route pins off and paints the road red', () => {
     const options = routeLineRendererOptions({
       preserveViewport: true,
       polylineOptions: { strokeColor: '#22C55E', strokeWeight: 5 },
@@ -32,13 +32,15 @@ describe('route-map-markers', () => {
 
     expect(options.suppressMarkers).toBe(true);
     expect(options.preserveViewport).toBe(true);
-    expect(options.polylineOptions).toEqual({ strokeColor: '#22C55E', strokeWeight: 5 });
+    expect(options.polylineOptions).toEqual(
+      jasmine.objectContaining({ strokeColor: '#EF4444', strokeWeight: 5 }),
+    );
   });
 
-  it('styles the road line in brand green', () => {
+  it('styles the road line red', () => {
     expect(routeLinePolylineOptions()).toEqual(
       jasmine.objectContaining({
-        strokeColor: '#22C55E',
+        strokeColor: '#EF4444',
         strokeOpacity: 1,
         strokeWeight: 5,
         clickable: false,

@@ -86,6 +86,9 @@ test('review: customer rates completed order; driver review count increases', as
     const created = await orderRes.json();
     const orderId = String(created._id);
 
+    const paymentRes = await authorizeOrderPayment(backend, orderId, customerToken);
+    expect(paymentRes.ok()).toBeTruthy();
+
     const driverLogin = await backend.post('/api/auth/login', {
       data: {
         emailOrPhone: bootstrap.driver?.email ?? driverEmail,
@@ -116,11 +119,16 @@ test('review: customer rates completed order; driver review count increases', as
     await driverPage.goto(`${baseURL}/login`);
     await login(driverPage, bootstrap.driver?.email ?? driverEmail, bootstrap.driver?.password ?? driverPassword);
     await expect(driverPage).toHaveURL(/\/driver\/dashboard$/);
-    await driverPage.getByRole('link', { name: /my trips/i }).click();
+    await driverPage.getByRole('link', { name: /my moves/i }).click();
     await expect(driverPage).toHaveURL(/\/driver\/tasks$/);
 
     await driverPage.getByTestId(`start-delivery-${orderId}`).click();
-    await expect(driverPage.getByTestId(`driver-task-status-${orderId}`)).toContainText(/in progress|progress/i, {
+    await expect(driverPage.getByTestId(`driver-task-status-${orderId}`)).toContainText(/driver is on the way/i, {
+      timeout: 15000,
+    });
+
+    await driverPage.getByTestId(`mark-picked-up-${orderId}`).click();
+    await expect(driverPage.getByTestId(`driver-task-status-${orderId}`)).toContainText(/picked up/i, {
       timeout: 15000,
     });
 

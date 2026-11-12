@@ -6,7 +6,7 @@ import { map } from 'rxjs/operators';
 import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { FormsModule } from '@angular/forms';
-import { DatePipe, DecimalPipe, NgClass } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { OrdersService, TransportOrder, ORDERS_API_BASE } from '../../../core/services/orders.service';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { AuthService } from '../../../core/services/auth.service';
@@ -36,10 +36,10 @@ import {
   customerStatusLabel,
   orderStatusToBadgeVariant,
 } from '../../../shared/utils/order-tracking';
-import { normalizeOrderId, orderSubmissionDateIso } from '../../../shared/utils/order-utils';
-import { UiBadgeComponent } from '@/components/ui/badge';
+import { normalizeOrderId, orderShortId as orderShortIdLabel, orderSubmissionDateIso } from '../../../shared/utils/order-utils';
+import { downloadCustomerMoveReceipt } from '../../../shared/utils/driver-move-receipt';
 import { UiButtonComponent } from '@/components/ui/button';
-import { UiCardComponent } from '@/components/ui/card';
+import { DriverJobCardComponent } from '../../../shared/components/driver/driver-job-card/driver-job-card.component';
 import { LoggerService } from '../../../core/services/logger.service';
 import { OrderRoutePreviewDialogComponent } from '../../../shared/components/order-route-preview-dialog/order-route-preview-dialog.component';
 import {
@@ -67,14 +67,12 @@ const COMPLETED_TAB_STATUSES = new Set(['delivered', 'completed', 'cancelled', '
     RouterLink,
     FormsModule,
     DatePipe,
-    DecimalPipe,
     NgClass,
     SidebarComponent,
     CargoPhotoLightboxComponent,
     EmptyStateComponent,
     UiButtonComponent,
-    UiCardComponent,
-    UiBadgeComponent,
+    DriverJobCardComponent,
     OrderRoutePreviewDialogComponent,
   ],
   templateUrl: './my-orders.component.html',
@@ -100,8 +98,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
 
   /** Compact order id for card headers (last 8 of Mongo `_id`). */
   orderShortId(order: TransportOrder): string {
-    const id = normalizeOrderId(order._id);
-    return id.length <= 8 ? id.toUpperCase() : id.slice(-8).toUpperCase();
+    return orderShortIdLabel(order._id);
   }
 
   /** Order passed when opening “View route”; dialog receives {@link routePreviewOrderLive} merged from the store. */
@@ -125,20 +122,6 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Hover / active shell for order cards (matches driver Available Jobs route selection).
-   */
-  orderCardShellClass(order: TransportOrder, variant: 'active' | 'completed'): string {
-    const pinned = this.routePreviewMatches(order);
-    const base =
-      'rounded-xl border border-border/30 border-l-4 bg-secondary/45 backdrop-blur-sm p-2 shadow-surface outline-none cursor-pointer transition-all duration-300 xs:p-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background';
-    const state = pinned
-      ? 'border-l-primary bg-primary/15'
-      : 'border-l-transparent hover:border-border/50 hover:bg-secondary/90';
-    const muted = variant === 'completed' ? ' opacity-90' : '';
-    return `${base} ${state}${muted}`;
-  }
-
-  /**
    * Opens split-view route preview unless the event originated inside a nested control.
    */
   onOrderCardOpenRoute(order: TransportOrder, event?: Event): void {
@@ -153,23 +136,9 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   /** ISO for `date` pipe (submittedAt ?? createdAt). */
   readonly submissionDateIso = orderSubmissionDateIso;
 
-  private static readonly ROUTE_PREVIEW_PROMINENT = new Set([
-    'accepted',
-    'picked_up',
-    'in_progress',
-    'driver_is_on_the_way',
-  ]);
-
-  /**
-   * Styles for primary map entry: stronger on {@link ROUTE_PREVIEW_PROMINENT} statuses when the route is actionable.
-   */
-  viewRouteButtonClass(order: TransportOrder): string {
-    const base =
-      'inline-flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-lg border border-border bg-secondary/40 px-4 py-2.5 text-xs font-medium text-foreground hover:bg-secondary/40 hover:text-foreground hover:shadow-btn-secondary md:w-auto';
-    if (MyOrdersComponent.ROUTE_PREVIEW_PROMINENT.has(order.status)) {
-      return `${base} border-primary/50 font-semibold text-primary ring-2 ring-primary/50 ring-offset-2 ring-offset-background shadow-[0_0_12px_rgba(34,197,94,0.2)]`;
-    }
-    return base;
+  /** Same View route control on every customer order, matching the pending-order button. */
+  viewRouteButtonClass(): string {
+    return 'inline-flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-lg border border-border bg-secondary/40 px-4 py-2.5 text-xs font-medium text-foreground hover:bg-secondary/40 hover:text-foreground hover:shadow-btn-secondary md:w-auto';
   }
 
   /** Stable list identity for `@for` track (OnPush-friendly). */
@@ -473,7 +442,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
 
   cancelOrder(order: TransportOrder): void {
     if (!this.canCancelOrder(order)) return;
-    this.confirmDialog.confirm('Are you sure you want to cancel this order?', 'Cancel order').subscribe((ok) => {
+    this.confirmDialog.confirm('Are you sure you want to cancel this move?', 'Cancel move').subscribe((ok) => {
       if (!ok) return;
       const id = normalizeOrderId(order._id);
       this.cancellingId.set(id);
@@ -490,8 +459,8 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
     });
   }
 
-  statusLabel(status: string): string {
-    return customerStatusLabel(status);
+  statusLabel(order: { status: string; paymentStatus?: string | null }): string {
+    return customerStatusLabel(order.status, order.paymentStatus);
   }
 
   canComplete(order: TransportOrder): boolean {
@@ -530,7 +499,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
       this.error.set('Order ID is missing.');
       return;
     }
-    this.confirmDialog.confirm('Mark this trip as delivered and complete the order?', 'Complete Trip').subscribe((ok) => {
+    this.confirmDialog.confirm('Mark this move as delivered?', 'Complete move').subscribe((ok) => {
       if (!ok) return;
       this.updatingStatusId.set(id);
       this.error.set('');
@@ -569,6 +538,12 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   viewRoute(order: TransportOrder, event?: Event): void {
     event?.stopPropagation();
     this.toggleRoutePreview(order);
+  }
+
+  downloadReceipt(order: TransportOrder, event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+    void downloadCustomerMoveReceipt(order);
   }
 
   toggleRoutePreview(order: TransportOrder): void {

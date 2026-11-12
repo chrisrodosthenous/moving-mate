@@ -123,7 +123,7 @@ test('end-to-end: customer order syncs to Accepted then Completed via polling', 
     });
     await expect(customerPage.getByTestId(`customer-order-driver-${orderId}`)).toBeVisible({ timeout: 5000 });
 
-    await driverPage.getByRole('link', { name: /my trips/i }).click();
+    await driverPage.getByRole('link', { name: /my moves/i }).click();
     await expect(driverPage).toHaveURL(/\/driver\/tasks$/);
 
     const startPromise = driverPage.waitForResponse((resp) => (
@@ -132,6 +132,12 @@ test('end-to-end: customer order syncs to Accepted then Completed via polling', 
     await driverPage.getByTestId(`start-delivery-${orderId}`).click();
     await startPromise;
 
+    const pickupPromise = driverPage.waitForResponse((resp) => (
+      resp.url().includes(`/api/orders/${orderId}/status`) && resp.request().method() === 'PATCH'
+    ));
+    await driverPage.getByTestId(`mark-picked-up-${orderId}`).click();
+    await pickupPromise;
+
     const completePromise = driverPage.waitForResponse((resp) => (
       resp.url().includes(`/api/orders/${orderId}/status`) && resp.request().method() === 'PATCH'
     ));
@@ -139,7 +145,7 @@ test('end-to-end: customer order syncs to Accepted then Completed via polling', 
     await completePromise;
 
     await clickCompletedOrdersTab(customerPage);
-    await expect(customerPage.getByTestId(`customer-order-status-${orderId}`)).toHaveText(/completed/i, {
+    await expect(customerPage.getByTestId(`customer-order-status-${orderId}`)).toHaveText(/delivered/i, {
       timeout: 15000,
     });
 

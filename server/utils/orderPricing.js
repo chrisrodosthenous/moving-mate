@@ -127,10 +127,21 @@ function computeCrewCost(handlingCost, laborRequired, multipliers = CREW_MULTIPL
   return roundMoney(handlingCost * multiplier);
 }
 
+function stairsApply(specific, legacy) {
+  if (specific === true) return false;
+  if (specific === false) return true;
+  return legacy !== true;
+}
+
 /** Stairs scale with the load being carried, not with a flat per-floor fee. */
-function computeAccessCost(handlingCost, { pickupFloor, destinationFloor, hasElevator }, surcharge = STAIRS_SURCHARGE_PER_FLOOR) {
-  if (hasElevator === true) return 0;
-  const floors = parseFloorValue(pickupFloor) + parseFloorValue(destinationFloor);
+function computeAccessCost(handlingCost, input, surcharge = STAIRS_SURCHARGE_PER_FLOOR) {
+  let floors = 0;
+  if (stairsApply(input?.pickupHasElevator, input?.hasElevator)) {
+    floors += parseFloorValue(input?.pickupFloor);
+  }
+  if (stairsApply(input?.dropoffHasElevator, input?.hasElevator)) {
+    floors += parseFloorValue(input?.destinationFloor);
+  }
   if (floors <= 0) return 0;
   return roundMoney(handlingCost * surcharge * floors);
 }
@@ -201,6 +212,8 @@ function calculateOrderPrice(input, config) {
       pickupFloor: input?.pickupFloor,
       destinationFloor: input?.destinationFloor,
       hasElevator: input?.hasElevator,
+      pickupHasElevator: input?.pickupHasElevator,
+      dropoffHasElevator: input?.dropoffHasElevator,
     },
     c.stairsSurchargePerFloor,
   );

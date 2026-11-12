@@ -85,11 +85,10 @@ export class AvailableOrdersComponent implements OnInit {
     maxZoom: 18,
     minZoom: 4,
   };
-  /** Green route line. Google pins stay off; A/B dots are ours. */
+  /** Red route line. Google pins stay off; A/B dots are ours. */
   readonly directionsRendererOptions = routeLineRendererOptions({
     preserveViewport: true,
     polylineOptions: {
-      strokeColor: '#22C55E',
       strokeOpacity: 1,
       strokeWeight: 5,
     },

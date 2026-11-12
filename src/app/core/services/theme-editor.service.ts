@@ -1,11 +1,22 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
+import { Router } from '@angular/router';
 import {
   readDesignScopeFromElement,
   DESIGN_SCOPE_META,
   type DesignScopeId,
 } from '../config/admin-design-preview.config';
+
+export type ThemeApplyTarget = 'everywhere' | 'side';
+export type ThemeSide = 'marketing' | 'auth' | 'customer' | 'driver' | 'admin';
+
+const SIDE_LABEL: Record<ThemeSide, string> = {
+  marketing: 'Website',
+  auth: 'Sign in',
+  customer: 'Customer',
+  driver: 'Driver',
+  admin: 'Admin',
+};
 
 export interface ThemeVariable {
   name: string;
@@ -27,6 +38,8 @@ export interface DetectedColor {
   source: 'class' | 'computed' | 'inherited';
   className?: string;
   isTransparent: boolean;
+  /** True when this color is a shared theme token, so Save can write it. */
+  linked: boolean;
 }
 
 export interface SelectedElement {
@@ -132,8 +145,13 @@ const EDITABLE_VARIABLES: Omit<ThemeVariable, 'hslValue' | 'hexValue' | 'origina
 @Injectable({ providedIn: 'root' })
 export class ThemeEditorService {
   private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
 
   readonly isOpen = signal(false);
+  /** Color editing on a real screen: click a part of the page to open its colors. */
+  readonly pageEdit = signal(false);
+  /** Everywhere updates the shared theme. Side updates only the shell you are in. */
+  readonly applyTarget = signal<ThemeApplyTarget>('side');
   
   /** Inspect mode is always active when panel is open */
   readonly isInspectMode = computed(() => this.isOpen());
@@ -164,7 +182,7 @@ export class ThemeEditorService {
     const wasOpen = this.isOpen();
     this.isOpen.set(!wasOpen);
     if (!wasOpen) {
-      this.loadCurrentTheme();
+      this.ensureThemeLoaded();
     } else {
       this.clearSelection();
     }
@@ -172,13 +190,28 @@ export class ThemeEditorService {
 
   open(): void {
     this.isOpen.set(true);
-    this.loadCurrentTheme();
+    this.ensureThemeLoaded();
   }
 
   close(): void {
+    this.clearInlinePreview();
     this.isOpen.set(false);
+    this.pageEdit.set(false);
     this.hoveredElement.set(null);
     this.selectedElement.set(null);
+  }
+
+  /** Open a screen for color editing. The palette panel stays closed. */
+  startPageEdit(): void {
+    this.clearInlinePreview();
+    this.pageEdit.set(true);
+    this.isOpen.set(true);
+    this.applyTarget.set(this.scopeElement() ? 'side' : 'everywhere');
+    this.loadCurrentTheme();
+  }
+
+  stopPageEdit(): void {
+    this.close();
   }
 
   /** No longer needed - inspect mode is always on when panel is open */
@@ -208,25 +241,29 @@ export class ThemeEditorService {
     const bgHex = this.rgbToHex(bgColor);
     const bgIsTransparent = this.isTransparentColor(bgColor);
     const bgClassMatch = this.findClassMatch(el, 'background');
-    const bgVariable = bgClassMatch?.variable || this.findClosestVariable(bgHex, 'backgrounds') || '--background';
+    const bgSample = bgIsTransparent ? this.getInheritedBackgroundColor(el) : bgHex;
+    const bgClosest = this.findClosestVariable(bgSample, 'backgrounds');
+    const bgVariable = bgClassMatch?.variable || bgClosest || '--background';
 
     colors.push({
       id: `color-${colorId++}`,
       type: 'background',
       label: 'Background',
-      actualHex: bgIsTransparent ? this.getInheritedBackgroundColor(el) : bgHex,
+      actualHex: bgSample,
       selectedVariable: bgVariable,
       selectedVariableLabel: VARIABLE_LABELS[bgVariable] || bgVariable,
       source: bgClassMatch ? 'class' : (bgIsTransparent ? 'inherited' : 'computed'),
       className: bgClassMatch?.className,
       isTransparent: bgIsTransparent,
+      linked: Boolean(bgClassMatch || bgClosest),
     });
 
     // 2. ALWAYS detect text color
     const textColor = computed.color;
     const textHex = this.rgbToHex(textColor);
     const textClassMatch = this.findClassMatch(el, 'text');
-    const textVariable = textClassMatch?.variable || this.findClosestVariable(textHex, 'text') || '--foreground';
+    const textClosest = this.findClosestVariable(textHex, 'text');
+    const textVariable = textClassMatch?.variable || textClosest || '--foreground';
 
     colors.push({
       id: `color-${colorId++}`,
@@ -238,15 +275,17 @@ export class ThemeEditorService {
       source: textClassMatch ? 'class' : 'computed',
       className: textClassMatch?.className,
       isTransparent: false,
+      linked: Boolean(textClassMatch || textClosest),
     });
 
     // 3. ALWAYS detect border color (even if no visible border)
     const borderColor = computed.borderTopColor || computed.borderColor;
     const borderHex = this.rgbToHex(borderColor);
     const borderWidth = parseFloat(computed.borderWidth) || parseFloat(computed.borderTopWidth) || 0;
-    const borderClassMatch = this.findClassMatch(el, 'border');
-    const borderVariable = borderClassMatch?.variable || this.findClosestVariable(borderHex, 'borders') || '--border';
     const borderIsTransparent = this.isTransparentColor(borderColor) || borderWidth === 0;
+    const borderClassMatch = this.findClassMatch(el, 'border');
+    const borderClosest = borderIsTransparent ? null : this.findClosestVariable(borderHex, 'borders');
+    const borderVariable = borderClassMatch?.variable || borderClosest || '--border';
 
     colors.push({
       id: `color-${colorId++}`,
@@ -258,6 +297,7 @@ export class ThemeEditorService {
       source: borderClassMatch ? 'class' : 'computed',
       className: borderClassMatch?.className,
       isTransparent: borderIsTransparent,
+      linked: Boolean(borderClassMatch || borderClosest) && !borderIsTransparent,
     });
 
     const tag = el.tagName.toLowerCase();
@@ -276,40 +316,56 @@ export class ThemeEditorService {
   }
 
   /**
-   * Find matching class on element or parents
+   * Find a theme-token class on the element or a nearby parent.
+   * A hardcoded color such as text-slate-400 stops the search so the page-wide
+   * text color is not treated as this element's color.
    */
   private findClassMatch(el: HTMLElement, type: 'background' | 'text' | 'border'): { variable: string; className: string } | null {
     let current: HTMLElement | null = el;
     let depth = 0;
-    const maxDepth = 10;
-    const prefix = type === 'background' ? 'bg-' : type === 'text' ? 'text-' : 'border-';
 
-    while (current && depth < maxDepth) {
-      const classes = current.className?.split?.(' ') || [];
+    while (current && depth < 10) {
+      if (depth > 0 && (current === document.body || current === document.documentElement)) break;
+      const classes = typeof current.className === 'string' ? current.className.split(' ') : [];
 
       for (const cls of classes) {
         const trimmedClass = cls.trim();
-        if (!trimmedClass.startsWith(prefix) && !(type === 'border' && trimmedClass.startsWith('ring-'))) continue;
+        if (!this.isColorUtility(trimmedClass, type)) continue;
 
-        // Check exact match
         const mapping = CLASS_TO_VARIABLE[trimmedClass];
         if (mapping && mapping.type === type) {
           return { variable: mapping.variable, className: trimmedClass };
         }
 
-        // Check prefix match (for opacity modifiers)
         for (const [pattern, patternMapping] of Object.entries(CLASS_TO_VARIABLE)) {
           if (trimmedClass.startsWith(pattern + '/') && patternMapping.type === type) {
             return { variable: patternMapping.variable, className: trimmedClass };
           }
         }
+
+        return null;
       }
 
       current = current.parentElement;
-      depth++;
+      depth += 1;
     }
 
     return null;
+  }
+
+  private isColorUtility(cls: string, type: 'background' | 'text' | 'border'): boolean {
+    if (type === 'background') {
+      return /^bg-/.test(cls)
+        && !/^bg-(none|auto|cover|contain|fixed|local|scroll|repeat|no-repeat|gradient|clip|origin|top|bottom|left|right|center)(-|$)/.test(cls);
+    }
+    if (type === 'text') {
+      return /^text-/.test(cls)
+        && !/^text-(xs|sm|base|lg|xl|[2-9]xl|left|center|right|justify|start|end|ellipsis|clip|wrap|nowrap|balance|pretty|mono|sans|serif|thin|extralight|light|normal|medium|semibold|bold|extrabold|black)(-|$)/.test(cls);
+    }
+    if (/^ring-(0|1|2|4|8|inset)$/.test(cls) || cls.startsWith('ring-offset')) return false;
+    if (cls.startsWith('ring-')) return true;
+    return /^border-/.test(cls)
+      && !/^border-([0248]|t|b|l|r|x|y|s|e|solid|dashed|dotted|double|none|collapse|separate)(-|$)/.test(cls);
   }
 
   /**
@@ -418,9 +474,15 @@ export class ThemeEditorService {
     );
   }
 
+  /** Reload from the page unless there are unsaved edits to keep. */
+  private ensureThemeLoaded(): void {
+    if (this.variables().length === 0 || !this.hasChanges()) {
+      this.loadCurrentTheme();
+    }
+  }
+
   loadCurrentTheme(): void {
-    const root = document.documentElement;
-    const computedStyle = getComputedStyle(root);
+    const computedStyle = getComputedStyle(this.themeElement());
 
     const vars: ThemeVariable[] = EDITABLE_VARIABLES.map(def => {
       const hslValue = computedStyle.getPropertyValue(def.name).trim();
@@ -437,9 +499,75 @@ export class ThemeEditorService {
     this.variables.set(vars);
   }
 
+  sideScope(): ThemeSide | null {
+    const path = this.router.url.split('?')[0] || '/';
+    if (path.startsWith('/customer') || path.startsWith('/rate-driver') || path === '/map') return 'customer';
+    if (path.startsWith('/driver')) return 'driver';
+    if (path.startsWith('/admin')) return 'admin';
+    if (path === '/login' || path === '/register' || path.startsWith('/forgot-password') || path.startsWith('/reset-password')) {
+      return 'auth';
+    }
+    if (
+      path === '/' ||
+      path.startsWith('/features') ||
+      path.startsWith('/how-it-works') ||
+      path.startsWith('/about') ||
+      path.startsWith('/contact') ||
+      path.startsWith('/download')
+    ) {
+      return 'marketing';
+    }
+    return null;
+  }
+
+  sideLabel(): string | null {
+    const side = this.sideScope();
+    return side ? SIDE_LABEL[side] : null;
+  }
+
+  setApplyTarget(target: ThemeApplyTarget): void {
+    if (target === 'side' && !this.scopeElement()) return;
+    const modified = this.variables().filter((v) => v.modified).map((v) => ({ name: v.name, hex: v.hexValue }));
+    this.clearInlinePreview();
+    this.applyTarget.set(target);
+    this.loadCurrentTheme();
+    modified.forEach((change) => this.updateVariable(change.name, change.hex));
+  }
+
+  private scopeElement(): HTMLElement | null {
+    const side = this.sideScope();
+    if (!side) return null;
+    return document.querySelector(`[data-design-scope="${side}"]`);
+  }
+
+  private themeElement(): HTMLElement {
+    if (this.applyTarget() === 'side') {
+      return this.scopeElement() ?? document.documentElement;
+    }
+    return document.documentElement;
+  }
+
+  private paint(name: string, hslValue: string): void {
+    const target = this.themeElement();
+    target.style.setProperty(name, hslValue);
+    if (target === document.documentElement) {
+      this.scopeElement()?.style.removeProperty(name);
+    } else {
+      document.documentElement.style.removeProperty(name);
+    }
+  }
+
+  private clearInlinePreview(): void {
+    const side = this.scopeElement();
+    EDITABLE_VARIABLES.forEach((def) => {
+      document.documentElement.style.removeProperty(def.name);
+      side?.style.removeProperty(def.name);
+    });
+  }
+
   updateVariable(name: string, hexColor: string): void {
     const hslValue = this.hexToHslString(hexColor);
-    document.documentElement.style.setProperty(name, hslValue);
+    this.paint(name, hslValue);
 
     this.variables.update(vars =>
       vars.map(v =>
@@ -455,7 +583,7 @@ export class ThemeEditorService {
     if (!variable) return;
 
     const hslValue = this.hexToHslString(variable.originalHex);
-    document.documentElement.style.setProperty(name, hslValue);
+    this.paint(name, hslValue);
 
     this.variables.update(vars =>
       vars.map(v =>
@@ -467,14 +595,8 @@ export class ThemeEditorService {
   }
 
   resetAll(): void {
-    this.variables().forEach(v => {
-      const hslValue = this.hexToHslString(v.originalHex);
-      document.documentElement.style.setProperty(v.name, hslValue);
-    });
-
-    this.variables.update(vars =>
-      vars.map(v => ({ ...v, hexValue: v.originalHex, hslValue: this.hexToHslString(v.originalHex), modified: false }))
-    );
+    this.clearInlinePreview();
+    this.loadCurrentTheme();
   }
 
   async saveTheme(): Promise<boolean> {
@@ -486,26 +608,31 @@ export class ThemeEditorService {
     this.isSaving.set(true);
     this.saveMessage.set(null);
 
-    const themeData: Record<string, string> = {};
+    const side = this.applyTarget() === 'side' ? this.sideScope() : null;
+    if (this.applyTarget() === 'side' && !side) {
+      this.saveMessage.set({ type: 'error', text: 'Open a website, customer, driver, or admin screen first.' });
+      this.isSaving.set(false);
+      return false;
+    }
+
+    const themeData: Record<string, { hsl: string; hex: string }> = {};
     this.variables().forEach(v => {
-      themeData[v.name] = v.hslValue;
+      if (!v.modified) return;
+      themeData[v.name] = { hsl: v.hslValue, hex: v.hexValue };
     });
 
     try {
-      const apiUrl = environment.production
-        ? '/api/devtools/save-theme'
-        : `http://localhost:3000/api/devtools/save-theme`;
-
       const response = await this.http.post<{ success: boolean; message: string }>(
-        apiUrl,
-        { variables: themeData }
+        '/api/devtools/save-theme',
+        { scope: side ?? 'global', variables: themeData }
       ).toPromise();
 
       if (response?.success) {
         this.variables.update(vars =>
           vars.map(v => ({ ...v, originalHex: v.hexValue, modified: false }))
         );
-        this.saveMessage.set({ type: 'success', text: 'Theme saved successfully to global.css!' });
+        const where = side ? `${SIDE_LABEL[side]} only` : 'everywhere';
+        this.saveMessage.set({ type: 'success', text: `Saved for ${where}. Ready to commit.` });
         return true;
       } else {
         this.saveMessage.set({ type: 'error', text: response?.message || 'Failed to save theme.' });

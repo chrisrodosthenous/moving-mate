@@ -15,7 +15,10 @@ import { distinctUntilChanged, filter, map } from 'rxjs/operators';
 import { GoogleMapsLoaderService } from '../../../../core/services/google-maps-loader.service';
 import type { DriverTrackingPoint } from '../../../../core/services/tracking.service';
 import { TrackingService } from '../../../../core/services/tracking.service';
-import { buildDriverCarGoogleIcon } from '../../../../shared/utils/driver-map-car-icon';
+import {
+  buildDriverCarGoogleIcon,
+  type DriverMapVehicle,
+} from '../../../../shared/utils/driver-map-car-icon';
 import {
   routeEndpointMarkerOptions,
   routeLinePolylineOptions,
@@ -61,6 +64,7 @@ export class TrackingComponent {
   readonly seedDriverLocation = input<{ lat: number; lng: number; heading?: number | null } | null | undefined>(
     undefined,
   );
+  readonly vehicleType = input<DriverMapVehicle>('pickup');
 
   readonly driverLocation = signal<DriverTrackingPoint | null>(null);
 
@@ -72,7 +76,7 @@ export class TrackingComponent {
 
   readonly sdkReady = signal(false);
 
-  private mapInitialized = false;
+  private mapInitPromise: Promise<void> | null = null;
 
   private map: google.maps.Map | null = null;
   private pickupMarker: google.maps.Marker | null = null;
@@ -92,53 +96,50 @@ export class TrackingComponent {
     effect((onCleanup) => {
       const oid = String(this.orderId() ?? '').trim();
       const ready = this.mapsReady();
-      untracked(() => {
+      if (!oid || !ready) return;
+
+      let cancelled = false;
+      void this.ensureMap().then(() => {
+        if (cancelled) return;
+        this.updateDriverMarker();
+      });
+
+      const stream$ = merge(seed$, this.trackingSvc.getDriverLocation(oid)).pipe(distinctUntilChanged(sameCoord));
+      this.subscription = stream$.subscribe((location: DriverTrackingPoint) => {
+        if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.lng)) return;
+        this.driverLocation.set(location);
+        void this.ensureMap().then(() => {
+          if (!cancelled) this.updateDriverMarker();
+        });
+      });
+
+      onCleanup(() => {
+        cancelled = true;
         this.subscription?.unsubscribe();
         this.subscription = null;
         this.teardownMapRuntime();
       });
+    });
 
-      if (!oid || !ready) {
-        return;
-      }
-
-      const stream$ = merge(seed$, this.trackingSvc.getDriverLocation(oid)).pipe(distinctUntilChanged(sameCoord));
-
-      onCleanup(() => {
-        untracked(() => {
-          this.subscription?.unsubscribe();
-          this.subscription = null;
-          this.teardownMapRuntime();
-        });
-      });
-
+    effect(() => {
+      const vehicle = this.vehicleType();
+      if (!this.sdkReady() || !this.driverLocation()) return;
       untracked(() => {
-        this.subscription = stream$.subscribe((location: DriverTrackingPoint) => {
-          if (!location) return;
-
-          this.driverLocation.set(location);
-
-          if (!Number.isFinite(location.lat) || !Number.isFinite(location.lng)) return;
-
-          if (!this.mapInitialized) {
-            setTimeout(() => {
-              void (async (): Promise<void> => {
-                await this.initializeMap();
-                this.mapInitialized = true;
-                this.sdkReady.set(true);
-                this.invalidateMapSize();
-                this.updateDriverMarker();
-                this.mapRevealVisible.set(true);
-                setTimeout(() => this.invalidateMapSize(), 100);
-              })();
-            }, 300);
-          } else {
-            this.updateDriverMarker();
-          }
-        });
+        void vehicle;
+        this.updateDriverMarker();
       });
     });
 
+  }
+
+  private ensureMap(): Promise<void> {
+    if (this.map) return Promise.resolve();
+    if (!this.mapInitPromise) {
+      this.mapInitPromise = this.initializeMap().finally(() => {
+        this.mapInitPromise = null;
+      });
+    }
+    return this.mapInitPromise;
   }
 
   private async initializeMap(): Promise<void> {
@@ -175,6 +176,8 @@ export class TrackingComponent {
 
     this.drawRoute();
     this.fitAllBounds();
+    this.sdkReady.set(true);
+    this.mapRevealVisible.set(true);
     this.invalidateMapSize();
     setTimeout(() => this.invalidateMapSize(), 120);
   }
@@ -212,12 +215,17 @@ export class TrackingComponent {
     const loc = this.driverLocation();
     if (!loc || !this.map || typeof google === 'undefined') return;
 
-    const driverCarIcon = buildDriverCarGoogleIcon();
+    let driverCarIcon: google.maps.Icon | undefined;
+    try {
+      driverCarIcon = buildDriverCarGoogleIcon(this.vehicleType());
+    } catch {
+      driverCarIcon = undefined;
+    }
     const driveOpts: google.maps.MarkerOptions = {
       title: 'Driver',
       zIndex: 999,
       optimized: false,
-      icon: driverCarIcon,
+      ...(driverCarIcon ? { icon: driverCarIcon } : {}),
     };
 
     if (!this.driverMarker) {
@@ -233,7 +241,7 @@ export class TrackingComponent {
     }
 
     this.fitAllBounds();
-    if (this.mapInitialized && this.map) {
+    if (this.map) {
       setTimeout(() => this.invalidateMapSize(), 100);
     }
   }
@@ -272,7 +280,6 @@ export class TrackingComponent {
     this.driverMarker = null;
     this.routeLine = null;
 
-    this.mapInitialized = false;
     this.sdkReady.set(false);
     this.driverLocation.set(null);
     this.mapRevealVisible.set(false);

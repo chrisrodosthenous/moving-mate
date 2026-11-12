@@ -3,18 +3,25 @@ import { Component, computed, effect, inject, input, signal, untracked } from '@
 import { FormsModule } from '@angular/forms';
 import { ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
-import { catchError, EMPTY } from 'rxjs';
-import type { AdminAnalyticsPayload, AdminOrder } from '../../../core/services/admin.service';
+import type { AdminAnalyticsPayload, AdminAnalyticsSummary, AdminOrder, AdminUser } from '../../../core/services/admin.service';
 import { AdminService } from '../../../core/services/admin.service';
 import { WalletService } from '../../../core/services/wallet.service';
 import { UiButtonComponent } from '@/components/ui/button';
-import { ADMIN_CHART, ADMIN_CHART_SLICE_COLORS } from '../../../core/constants/admin-chart-theme';
-import { buildAnalyticsFromOrders, emptyAnalyticsPayload } from './admin-analytics.utils';
+import { ADMIN_CHART } from '../../../core/constants/admin-chart-theme';
+import { emptyAnalyticsPayload } from './admin-analytics.utils';
 import {
+  driverNetEarningsForOrder,
   isCompletedOrderStatus,
   platformCommissionForOrder,
 } from '../../../shared/utils/order-commission.util';
+import { isOrderPaymentReadyForAccept } from '../../../shared/utils/order-payment.util';
 import { roundMoney } from '../../../shared/utils/order-pricing.util';
+import type { AnalyticsTrendRange } from '../../../shared/utils/chart-date-buckets';
+import {
+  driverMatchesFleetNotVerifiedTab,
+  driverMatchesFleetPendingTab,
+  driverMatchesFleetVerifiedTab,
+} from '../../../core/constants/statuses';
 
 @Component({
   selector: 'app-admin-analytics',
@@ -27,7 +34,12 @@ export class AdminAnalyticsComponent {
   private readonly walletService = inject(WalletService);
 
   readonly orders = input<AdminOrder[]>([]);
+  readonly users = input<AdminUser[]>([]);
   readonly loading = input(false);
+
+  readonly trendRange = signal<AnalyticsTrendRange>('month');
+  readonly driverStatus = signal<'all' | 'verified' | 'not_verified' | 'pending'>('all');
+  readonly orderStatus = signal<AdminOrderStat>('all');
 
   readonly platformWalletAvailable = signal(0);
   readonly platformWalletWithdrawn = signal(0);
@@ -37,6 +49,7 @@ export class AdminAnalyticsComponent {
   readonly platformWalletError = signal('');
 
   private readonly payload = signal<AdminAnalyticsPayload>(emptyAnalyticsPayload());
+  private readonly summary = signal<AdminAnalyticsSummary | null>(null);
 
   readonly lineChartType = 'line' as const;
   readonly doughnutChartType = 'doughnut' as const;
@@ -82,7 +95,7 @@ export class AdminAnalyticsComponent {
 
   readonly doughnutChartData = computed((): ChartData<'doughnut'> => {
     const p = this.payload();
-    const colors = p.districts.labels.map((_, i) => ADMIN_CHART_SLICE_COLORS[i % ADMIN_CHART_SLICE_COLORS.length]);
+    const colors = p.districts.labels.map((label, i) => districtSliceColor(label, i));
     return {
       labels: p.districts.labels.length ? p.districts.labels : ['No data'],
       datasets: [
@@ -187,27 +200,54 @@ export class AdminAnalyticsComponent {
     return { orders, revenue };
   });
 
-  /** Aggregated platform ledger from all completed orders in overview. */
   readonly platformLedger = computed(() => {
+    const summary = this.summary();
+    if (summary) return summary.ledger;
     const completed = this.orders().filter((o) => isCompletedOrderStatus(o.status));
     let grossTurnover = 0;
     let platformRevenue = 0;
+    let driverEarnings = 0;
     for (const order of completed) {
       grossTurnover += Number(order.price) || 0;
       platformRevenue += platformCommissionForOrder(order);
+      driverEarnings += driverNetEarningsForOrder(order);
     }
     return {
       grossTurnover: roundMoney(grossTurnover),
       platformRevenue: roundMoney(platformRevenue),
+      driverEarnings: roundMoney(driverEarnings),
       completedCount: completed.length,
     };
   });
 
+  readonly clientCount = computed(() => this.summary()?.clients ?? this.users().filter((user) => user.role === 'customer').length);
+
+  readonly driverCount = computed(() => {
+    const status = this.driverStatus();
+    const summary = this.summary();
+    if (summary) return summary.drivers[status];
+    const drivers = this.users();
+    if (status === 'all') return drivers.filter((user) => user.role === 'driver').length;
+    if (status === 'verified') return drivers.filter((user) => driverMatchesFleetVerifiedTab(user)).length;
+    if (status === 'pending') return drivers.filter((user) => driverMatchesFleetPendingTab(user)).length;
+    return drivers.filter((user) => driverMatchesFleetNotVerifiedTab(user)).length;
+  });
+
+  readonly orderCount = computed(() => {
+    const status = this.orderStatus();
+    const summary = this.summary();
+    if (summary) return summary.orders[status] ?? 0;
+    const orders = this.orders();
+    if (status === 'all') return orders.length;
+    return orders.filter((order) => orderStatBucket(order) === status).length;
+  });
+
+  readonly trendPeriodLabel = computed(() => TREND_PERIOD_LABEL[this.trendRange()]);
+
   constructor() {
     effect(() => {
-      const list = this.orders();
-      if (list.length === 0) return;
-      untracked(() => this.payload.set(buildAnalyticsFromOrders(list)));
+      const range = this.trendRange();
+      untracked(() => this.loadCharts(range));
     });
     this.loadPlatformWallet();
   }
@@ -251,15 +291,16 @@ export class AdminAnalyticsComponent {
   }
 
   reload(): void {
-    const list = this.orders();
-    if (list.length > 0) {
-      this.payload.set(buildAnalyticsFromOrders(list));
-      return;
-    }
-    this.adminService
-      .getAnalytics({ skipGlobalErrorToast: true })
-      .pipe(catchError(() => EMPTY))
-      .subscribe((data) => this.payload.set(data));
+    this.loadCharts(this.trendRange());
+  }
+
+  private loadCharts(range: AnalyticsTrendRange): void {
+    this.adminService.getAnalytics({ range, skipGlobalErrorToast: true }).subscribe({
+      next: (data) => {
+        this.payload.set(data);
+        this.summary.set(data.summary ?? null);
+      },
+    });
   }
 
   private lineFillGradient(
@@ -272,6 +313,57 @@ export class AdminAnalyticsComponent {
     g.addColorStop(1, 'rgba(4, 116, 196, 0)');
     return g;
   }
+}
+
+type AdminOrderStat =
+  | 'all'
+  | 'pending_payment'
+  | 'pending_driver'
+  | 'accepted'
+  | 'on_the_way'
+  | 'picked_up'
+  | 'delivered'
+  | 'cancelled';
+
+function orderStatBucket(order: { status: string; paymentStatus?: string }): AdminOrderStat | null {
+  const status = String(order.status ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_');
+  if (status === 'cancelled' || status === 'canceled') return 'cancelled';
+  if (status === 'pending') {
+    return isOrderPaymentReadyForAccept(order) ? 'pending_driver' : 'pending_payment';
+  }
+  if (status === 'accepted') return 'accepted';
+  if (status === 'driver_is_on_the_way') return 'on_the_way';
+  if (status === 'picked_up' || status === 'in_progress' || status === 'delivery_in_progress') {
+    return 'picked_up';
+  }
+  if (status === 'delivered' || status === 'completed') return 'delivered';
+  return null;
+}
+
+const TREND_PERIOD_LABEL: Record<AnalyticsTrendRange, string> = {
+  week: 'Per week',
+  thisMonth: 'Per this month',
+  month: 'Per month',
+  threeMonths: 'Per 3 months',
+  sixMonths: 'Per 6 months',
+  year: 'Per year',
+};
+
+const DISTRICT_COLORS: Record<string, string> = {
+  nicosia: '#3B82F6',
+  limassol: '#22C55E',
+  larnaca: '#F59E0B',
+  paphos: '#A855F7',
+  famagusta: '#06B6D4',
+};
+
+const DISTRICT_FALLBACK_COLORS = ['#F43F5E', '#14B8A6', '#6366F1', '#FB7185', '#EAB308'];
+
+function districtSliceColor(label: string, index: number): string {
+  return DISTRICT_COLORS[label.trim().toLowerCase()] ?? DISTRICT_FALLBACK_COLORS[index % DISTRICT_FALLBACK_COLORS.length];
 }
 
 function darkChartPlugins(): NonNullable<ChartOptions['plugins']> {

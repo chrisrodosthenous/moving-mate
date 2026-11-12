@@ -16,7 +16,85 @@
     />
   </div>
 
-  @if (loading()) {
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="min-w-0">
+      <label for="driver-filter-name" class="mb-1 block text-xs font-medium text-secondary">Driver Name</label>
+      <input
+        id="driver-filter-name"
+        type="text"
+        [class]="table.search + ' !max-w-none'"
+        placeholder="Filter name"
+        [value]="nameFilter()"
+        (input)="nameFilter.set($any($event.target).value)"
+      />
+    </div>
+    <div class="min-w-0">
+      <label for="driver-filter-district" class="mb-1 block text-xs font-medium text-secondary">Current District</label>
+      <select
+        id="driver-filter-district"
+        class="min-h-[44px] w-full rounded-lg border border-border/50 bg-input/70 px-3 py-2.5 text-sm text-foreground"
+        [value]="districtFilter()"
+        (change)="districtFilter.set($any($event.target).value)"
+      >
+        <option value="all">All districts</option>
+        @for (district of districtOptions(); track district) {
+          <option [value]="district">{{ district }}</option>
+        }
+      </select>
+    </div>
+    <div class="min-w-0">
+      <label for="driver-filter-rating" class="mb-1 block text-xs font-medium text-secondary">Driver Rating</label>
+      <input
+        id="driver-filter-rating"
+        type="text"
+        [class]="table.search + ' !max-w-none'"
+        placeholder="Filter rating"
+        [value]="ratingFilter()"
+        (input)="ratingFilter.set($any($event.target).value)"
+      />
+    </div>
+    <div class="min-w-0">
+      <label for="driver-filter-vehicle" class="mb-1 block text-xs font-medium text-secondary">Active Vehicle</label>
+      <input
+        id="driver-filter-vehicle"
+        type="text"
+        [class]="table.search + ' !max-w-none'"
+        placeholder="Filter vehicle"
+        [value]="vehicleFilter()"
+        (input)="vehicleFilter.set($any($event.target).value)"
+      />
+    </div>
+    <div class="min-w-0">
+      <label for="driver-filter-trips" class="mb-1 block text-xs font-medium text-secondary">Completed Trips</label>
+      <input
+        id="driver-filter-trips"
+        type="number"
+        min="0"
+        inputmode="numeric"
+        [class]="table.search + ' !max-w-none'"
+        placeholder="Exact count"
+        [value]="tripsFilter()"
+        (input)="tripsFilter.set($any($event.target).value)"
+      />
+    </div>
+    <div class="min-w-0">
+      <label for="driver-filter-availability" class="mb-1 block text-xs font-medium text-secondary">Availability</label>
+      <select
+        id="driver-filter-availability"
+        class="min-h-[44px] w-full rounded-lg border border-border/50 bg-input/70 px-3 py-2.5 text-sm text-foreground"
+        [value]="availabilityFilter()"
+        (change)="availabilityFilter.set($any($event.target).value)"
+      >
+        <option value="all">All</option>
+        <option value="Online">Online</option>
+        <option value="Offline">Offline</option>
+        <option value="Busy">Busy</option>
+        <option value="Suspended">Suspended</option>
+      </select>
+    </div>
+  </div>
+
+  @if (loading() || listLoading()) {
     <p class="text-sm text-secondary" aria-live="polite">Loading drivers…</p>
   }
 
@@ -54,9 +132,7 @@
                   />
                   {{ ratingDisplay(row.rating) }}
                   @if (row.priority) {
-                    <span class="ml-1 text-[10px] font-bold uppercase tracking-wide text-primary"
-                      >Priority</span
-                    >
+                    <span class="ml-1 text-[10px] font-bold uppercase tracking-wide text-primary">Priority</span>
                   }
                 </span>
               </td>
@@ -70,19 +146,19 @@
                   type="button"
                   variant="outline"
                   [className]="table.actionBtn + ' border-accent/30'"
-                  (click)="viewDriver.emit(row.user)"
+                  (click)="openDriver(row)"
                 >
-                  View / Edit
+                  Edit
                 </ui-button>
               </td>
             </tr>
           } @empty {
             <tr>
               <td [attr.colspan]="7" class="px-4 py-10 text-center text-sm text-secondary">
-                @if (loading()) {
+                @if (loading() || listLoading()) {
                   Loading…
-                } @else if (search()) {
-                  No drivers match your search.
+                } @else if (search() || filtersActive()) {
+                  No drivers match your filters.
                 } @else {
                   No drivers found.
                 }
@@ -105,4 +181,115 @@
       </div>
     }
   </div>
+
+  @if (selected(); as driver) {
+    <div
+      class="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="admin-driver-details-title"
+      (click)="closeDriver()"
+    >
+      <div
+        class="max-h-[min(100dvh,100%)] w-full overflow-y-auto rounded-t-2xl border border-border/30 bg-card p-4 shadow-2xl sm:max-h-[90vh] sm:max-w-2xl sm:rounded-2xl sm:p-6"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <h2 id="admin-driver-details-title" class="text-lg font-semibold text-foreground">
+              {{ driver.fullName }}
+            </h2>
+            <p class="mt-1 text-sm text-secondary">Driver details</p>
+          </div>
+          <ui-button type="button" variant="outline" [className]="table.actionBtn" (click)="closeDriver()">
+            Close
+          </ui-button>
+        </div>
+
+        <dl class="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt class="text-xs text-secondary">Email</dt>
+            <dd class="mt-1 break-words text-foreground">{{ driver.user.email || '—' }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Phone</dt>
+            <dd class="mt-1 text-foreground">{{ driver.user.phoneNumber || '—' }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">District</dt>
+            <dd class="mt-1 text-foreground">{{ driver.district }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Vehicle</dt>
+            <dd class="mt-1 text-foreground">{{ driver.vehicle }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Rating</dt>
+            <dd class="mt-1 text-foreground">{{ ratingDisplay(driver.rating) }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Completed trips</dt>
+            <dd class="mt-1 tabular-nums text-foreground">{{ driver.completedTrips }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Availability</dt>
+            <dd class="mt-1">
+              <span [class]="badgeClass(driver.availability.tone)">{{ driver.availability.label }}</span>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Registered</dt>
+            <dd class="mt-1 text-foreground">
+              {{ driver.user.createdAt ? (driver.user.createdAt | date: 'medium') : '—' }}
+            </dd>
+          </div>
+        </dl>
+
+        <div class="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <ui-button
+            type="button"
+            variant="outline"
+            class="block w-full sm:w-auto"
+            [className]="table.actionBtn"
+            [disabled]="suspensionBusy()"
+            (click)="toggleSuspension(driver)"
+          >
+            {{ suspensionBusy() ? 'Saving…' : (driver.user.isSuspended ? 'Unsuspend' : 'Suspended') }}
+          </ui-button>
+          <ui-button
+            type="button"
+            variant="outline"
+            class="block w-full sm:w-auto"
+            [className]="table.actionBtn"
+            [disabled]="impersonating()"
+            (click)="impersonate(driver)"
+          >
+            {{ impersonating() ? 'Signing in…' : 'Impersonate' }}
+          </ui-button>
+        </div>
+        @if (impersonateError()) {
+          <p class="mt-2 text-sm text-destructive-foreground" role="alert">{{ impersonateError() }}</p>
+        }
+
+        <h3 class="mt-6 text-sm font-semibold text-foreground">Moves</h3>
+        @if (selectedTrips().length === 0) {
+          <p class="mt-2 text-sm text-secondary">This driver has no moves yet.</p>
+        } @else {
+          <ul class="mt-3 space-y-3">
+            @for (order of selectedTrips(); track order._id) {
+              <li class="rounded-xl border border-border/30 bg-secondary/20 px-3 py-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <p class="font-mono text-xs font-semibold text-foreground">#{{ shortId(order._id) }}</p>
+                  <span [class]="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</span>
+                </div>
+                <p class="mt-2 text-sm text-foreground">{{ order.pickupLocation.address }}</p>
+                <p class="text-sm text-secondary">to {{ order.dropoffLocation.address }}</p>
+                <p class="mt-2 text-sm font-semibold tabular-nums text-primary">€{{ order.price | number: '1.2-2' }}</p>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+  }
 </section>

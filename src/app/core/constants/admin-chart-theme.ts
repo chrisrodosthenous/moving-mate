@@ -5,11 +5,11 @@ export const CHART_THEME = {
   secondary: '#4ADE80',
   error: '#1A3D2A',
   hover: '#4ADE80',
-  grid: 'rgba(36, 51, 40, 0.45)',
-  gridDriver: 'rgba(36, 51, 40, 0.25)',
-  label: '#FFFFFF',
-  labelMuted: '#8B9A88',
-  track: 'rgba(34, 197, 94, 0.12)',
+  grid: 'rgba(36, 48, 68, 0.9)',
+  gridDriver: 'rgba(36, 48, 68, 0.55)',
+  label: '#F4F7FB',
+  labelMuted: '#93A4B8',
+  track: 'rgba(34, 197, 94, 0.16)',
 } as const;
 
 /** @deprecated Use {@link CHART_THEME} */

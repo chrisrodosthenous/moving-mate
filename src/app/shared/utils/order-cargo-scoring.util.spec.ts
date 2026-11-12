@@ -6,8 +6,9 @@ import {
 
 describe('order-cargo-scoring.util', () => {
   it('uses the same band edges as the server', () => {
-    expect(vehicleTypeFromCargoScore(5)).toBe('pickup');
-    expect(vehicleTypeFromCargoScore(6)).toBe('minivan');
+    expect(vehicleTypeFromCargoScore(4)).toBe('pickup');
+    expect(vehicleTypeFromCargoScore(5)).toBe('van');
+    expect(vehicleTypeFromCargoScore(15)).toBe('van');
     expect(vehicleTypeFromCargoScore(16)).toBe('van');
     expect(vehicleTypeFromCargoScore(36)).toBe('truck');
   });

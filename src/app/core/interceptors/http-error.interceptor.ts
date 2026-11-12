@@ -91,6 +91,15 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => err);
       }
 
+      const suspended =
+        status === 403 &&
+        err.error &&
+        typeof err.error === 'object' &&
+        (err.error as { code?: string }).code === 'ACCOUNT_SUSPENDED';
+      if (suspended) {
+        return throwError(() => err);
+      }
+
       const fallback = statusFallbackMessage(status);
       const msg = extractHttpErrorMessage(err, fallback);
       toast.show(msg, 'error');

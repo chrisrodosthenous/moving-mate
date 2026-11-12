@@ -75,6 +75,13 @@ export const routes: Routes = [
       import('./features/auth/reset-password/reset-password.component').then(m => m.ResetPasswordComponent),
   },
   {
+    path: 'impersonate',
+    loadComponent: () =>
+      import('./features/auth/impersonate/impersonate-handoff.component').then(
+        (m) => m.ImpersonateHandoffComponent,
+      ),
+  },
+  {
     path: 'dashboard',
     loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),
     data: { pageTitle: 'Dashboard' },
@@ -110,7 +117,7 @@ export const routes: Routes = [
       { path: 'profile', redirectTo: '/profile', pathMatch: 'full' },
       {
         path: 'book',
-        data: { pageTitle: 'New Order', shellFullBleed: true, hideShellPageTitle: true },
+        data: { pageTitle: 'New move', shellFullBleed: true, hideShellPageTitle: true },
         loadComponent: () => import('./features/orders/create-order/create-order.component').then(m => m.CreateOrderComponent),
       },
       {
@@ -123,7 +130,7 @@ export const routes: Routes = [
       },
       {
         path: 'orders/:orderId',
-        data: { pageTitle: 'Order details' },
+        data: { pageTitle: 'Move details', shellFullBleed: true },
         loadComponent: () =>
           import('./features/customer/customer-order-details/customer-order-details.component').then(
             (m) => m.CustomerOrderDetailsComponent,
@@ -132,7 +139,7 @@ export const routes: Routes = [
       {
         path: 'orders',
         /** Full-bleed outlet + `main` overflow-hidden so split map/list matches driver Available / My trips (no shell scroll). */
-        data: { pageTitle: 'My Orders', shellFullBleed: true },
+        data: { pageTitle: 'My moves', shellFullBleed: true },
         loadComponent: () => import('./features/orders/my-orders/my-orders.component').then(m => m.MyOrdersComponent),
       },
     ],
@@ -154,7 +161,7 @@ export const routes: Routes = [
       { path: 'profile', redirectTo: '/profile', pathMatch: 'full' },
       {
         path: 'available',
-        data: { pageTitle: 'Available jobs' },
+        data: { pageTitle: 'Available moves' },
         canActivate: [driverStatusRefreshGuard],
         loadComponent: () =>
           import('./shared/components/driver/driver-available-orders.component').then(m => m.DriverAvailableOrdersComponent),
@@ -170,7 +177,7 @@ export const routes: Routes = [
       },
       {
         path: 'tasks',
-        data: { pageTitle: 'My trips' },
+        data: { pageTitle: 'My moves' },
         canActivate: [driverStatusRefreshGuard],
         loadComponent: () =>
           import('./shared/components/driver/driver-my-tasks.component').then(m => m.DriverMyTasksComponent),
@@ -187,7 +194,7 @@ export const routes: Routes = [
   { path: 'orders/available', redirectTo: 'driver/available', pathMatch: 'full' },
   {
     path: 'orders/my-orders',
-    data: { pageTitle: 'My Orders' },
+    data: { pageTitle: 'My moves' },
     loadComponent: () => import('./features/orders/my-orders/my-orders.component').then(m => m.MyOrdersComponent),
     canActivate: [authGuard, redirectDriverFromMyOrdersGuard],
   },

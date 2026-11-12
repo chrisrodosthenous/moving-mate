@@ -18,7 +18,7 @@
           <ui-button
             type="button"
             variant="ghost"
-            [className]="'inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-lg px-4 py-2 text-sm font-medium'"
+            [className]="'inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-lg px-4 py-2 text-sm font-medium lg:hidden'"
             (click)="onClose()"
           >
             Close
@@ -88,7 +88,7 @@
     </div>
   } @else {
     <!-- Embed: fills parent like booking map column (map edge-to-edge; addresses stay on markers / order rows). -->
-    <div class="relative h-full min-h-0 w-full overflow-hidden bg-muted/35">
+    <div class="relative h-full min-h-0 w-full overflow-hidden bg-background">
       @if (mapsEmbedReady()) {
         <google-map
           class="absolute inset-0 block h-full w-full min-h-0"
@@ -117,7 +117,7 @@
           </google-map>
         } @else {
           <div
-            class="absolute inset-0 flex w-full items-center justify-center bg-muted/35 text-xs text-muted-foreground xs:text-sm"
+            class="absolute inset-0 flex w-full items-center justify-center bg-background text-xs text-muted-foreground xs:text-sm"
           >
             Loading map…
           </div>

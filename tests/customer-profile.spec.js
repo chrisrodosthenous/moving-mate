@@ -4,13 +4,7 @@ function uniqueRunId() {
   return `${Date.now()}-${Math.floor(Math.random() * 100000)}`
 }
 
-function phone8(seed) {
-  let acc = 37
-  for (const ch of String(seed)) acc = (acc * 33 + ch.charCodeAt(0)) % 100000000
-  return String(acc).padStart(8, '0').slice(0, 8)
-}
-
-test('customer profile: phone persists after reload (server truth)', async ({ page, baseURL }) => {
+test('customer profile: name and phone are locked like email', async ({ page, baseURL }) => {
   const runId = uniqueRunId()
   const backend = await request.newContext({ baseURL: 'http://127.0.0.1:3000' })
 
@@ -26,23 +20,11 @@ test('customer profile: phone persists after reload (server truth)', async ({ pa
     await expect(page).toHaveURL(/\/customer\/dashboard$/)
 
     await page.goto(`${baseURL}/profile`)
-    await expect(page.locator('#phoneDigits')).toBeVisible({ timeout: 15000 })
-
-    const newPhone = phone8(`${runId}-p`)
-    await page.locator('#phoneDigits').fill(newPhone)
-    const putProfile = page.waitForResponse(
-      (r) =>
-        r.url().includes('/api/users/profile') &&
-        ['PATCH', 'PUT'].includes(r.request().method()) &&
-        r.status() === 200,
-    )
-    await page.getByRole('button', { name: /save changes/i }).click()
-    const putResp = await putProfile
-    const putJson = await putResp.json()
-    expect(String(putJson.user.phone || putJson.user.phoneNumber || '')).toContain(newPhone)
-
-    await page.reload({ waitUntil: 'domcontentloaded' })
-    await expect(page.locator('#phoneDigits')).toHaveValue(newPhone, { timeout: 15000 })
+    await expect(page.locator('#firstName')).toContainText('E2E', { timeout: 15000 })
+    await expect(page.locator('#lastName')).toContainText('Customer')
+    await expect(page.locator('#phoneNumber')).toBeVisible()
+    await expect(page.locator('input#firstName, input#lastName, input#phoneDigits, input#phoneNumber')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /save changes/i })).toHaveCount(0)
   } finally {
     await backend.post('/api/test/e2e/cleanup', { data: { runId } }).catch(() => {})
     await backend.dispose()

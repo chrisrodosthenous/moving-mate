@@ -19,65 +19,62 @@
     --admin-sidebar-width: var(--admin-sidebar-width-expanded);
 
     /* ══════════════════════════════════════════════════════════════════
-       LOGO PALETTE — green, cream/white, black only
+       NIGHT SHIFT — near-black page, lifted card, green action
        ══════════════════════════════════════════════════════════════════ */
 
-    --background: 0 0% 4%;                /* #090909 */
-    --foreground: 0 0% 69%;             /* #F0EDE6 cream */
+    --background: 218 44% 11%;              /* #101929 */
+    --foreground: 0 0% 100%;             /* #ffffff */
 
-    --card: 0 0% 6%;                      /* #0F0F0F */
-    --card-foreground: 0 0% 100%;         /* #FFFFFF */
+    --card: 217 42% 12%;                   /* #121C2C */
+    --card-foreground: 0 0% 100%;        /* #ffffff */
 
-    --popover: 120 8% 5%;                 /* #0A0D0A */
-    --popover-foreground: 44 14% 85%;   /* #E2DDD4 */
+    --popover: 217 42% 12%;                /* #121C2C */
+    --popover-foreground: 214 47% 97%;     /* #F4F7FB */
 
-    --primary: 142 71% 45%;              /* #22C55E brand green */
-    --primary-foreground: 142 80% 8%;    /* #052E14 */
+    --primary: 142 71% 45%;                /* #22C55E */
+    --primary-foreground: 145 80% 10%;     /* #052E16 */
 
-    --secondary: 120 3% 46%;             /* #1C1F1C */
-    --secondary-foreground: 40 22% 92%;
+    --secondary: 218 31% 20%;              /* #243044 */
+    --secondary-foreground: 214 47% 97%;   /* #F4F7FB */
 
-    --muted: 0 0% 69%;                  /* #141714 */
-    --muted-foreground: 0 0% 75%;      /* #8B9A88 sage */
+    --muted: 218 31% 20%;                  /* #243044 */
+    --muted-foreground: 0 0% 82%;       /* #d1d1d1 */
 
-    --accent: 142 69% 58%;               /* #4ADE80 */
-    --accent-foreground: 142 80% 8%;
+    --accent: 142 69% 58%;                 /* #4ADE80 */
+    --accent-foreground: 145 80% 10%;      /* #052E16 */
 
-    /* Errors: dark forest green + cream text (on-brand, not red) */
-    --destructive: 142 40% 17%;          /* #1A3D2A */
-    --destructive-foreground: 40 21% 92%;
+    --destructive: 218 31% 20%;            /* #243044 */
+    --destructive-foreground: 214 47% 97%; /* #F4F7FB */
 
-    --border: 141 15% 18%;               /* #243328 */
-    --input: 0 0% 6%;                    /* #0F0F0F */
-    --ring: 142 71% 45%;
+    --border: 0 0% 100%;                 /* #ffffff */
+    --input: 215 55% 6%;                   /* #070E18 */
+    --ring: 142 71% 45%;                   /* #22C55E */
 
-    --success: 142 71% 45%;
-    --success-foreground: 142 80% 8%;
-    --warning: 143 45% 35%;              /* #318556 medium green */
-    --warning-foreground: 40 21% 92%;
-    --error: 142 40% 17%;
-    --error-foreground: 40 21% 92%;
-    --info: 142 69% 58%;
-    --info-foreground: 142 80% 8%;
+    --success: 142 71% 45%;                /* #22C55E */
+    --success-foreground: 145 80% 10%;
+    --warning: 142 69% 58%;                /* #4ADE80 */
+    --warning-foreground: 145 80% 10%;
+    --error: 218 31% 20%;                  /* #243044 */
+    --error-foreground: 214 47% 97%;
+    --info: 142 69% 58%;                   /* #4ADE80 */
+    --info-foreground: 145 80% 10%;
 
-    /* Order status — green spectrum only */
-    --status-pending-bg: rgba(139, 154, 136, 0.15);
-    --status-pending-fg: #8B9A88;
+    --status-pending-bg: rgba(147, 164, 184, 0.16);
+    --status-pending-fg: #93A4B8;
     --status-accepted-bg: rgba(74, 222, 128, 0.15);
     --status-accepted-fg: #4ADE80;
-    --status-in-progress-bg: rgba(34, 197, 94, 0.25);
+    --status-in-progress-bg: rgba(34, 197, 94, 0.22);
     --status-in-progress-fg: #22C55E;
-    --status-completed-bg: rgba(22, 163, 74, 0.30);
-    --status-completed-fg: #FFFFFF;
-    /* Cancelled: dimmed sage on near-black, subtle border */
-    --status-cancelled-bg: rgba(9, 9, 9, 0.85);
-    --status-cancelled-fg: #6B7A68;
-    --status-cancelled-border: #243328;
+    --status-completed-bg: rgba(34, 197, 94, 0.30);
+    --status-completed-fg: #052E16;
+    --status-cancelled-bg: rgba(7, 14, 24, 0.85);
+    --status-cancelled-fg: #93A4B8;
+    --status-cancelled-border: #243044;
 
-    --shadow-surface: 0 8px 32px rgba(0, 0, 0, 0.65);
-    --shadow-btn-primary: 0 4px 14px rgba(34, 197, 94, 0.35);
-    --shadow-btn-primary-hover: 0 6px 20px rgba(34, 197, 94, 0.50);
-    --shadow-input-focus: 0 0 10px rgba(34, 197, 94, 0.15);
+    --shadow-surface: 0 8px 32px rgba(0, 0, 0, 0.55);
+    --shadow-btn-primary: none;
+    --shadow-btn-primary-hover: none;
+    --shadow-input-focus: 0 0 10px rgba(34, 197, 94, 0.2);
   }
 
   * {
@@ -378,6 +375,10 @@ html.sidebar-collapsed .sidebar-section-title {
     background-color: hsl(var(--muted-foreground));
   }
 
+  .order-bar-payment {
+    background-color: hsl(var(--accent));
+  }
+
   .order-bar-accepted {
     background-color: hsl(var(--accent));
   }
@@ -408,6 +409,81 @@ html.sidebar-collapsed .sidebar-section-title {
   .bg-glass-secondary {
     background-color: hsl(var(--secondary) / 0.55);
     @apply backdrop-blur-sm;
+  }
+
+  /* Driver and customer muted copy. Admin muted copy is #dbdbdb. */
+  [data-design-scope='driver'] :is(.text-muted, .text-muted-foreground, .text-subtle),
+  [data-design-scope='customer'] :is(.text-muted, .text-muted-foreground, .text-subtle) {
+    color: #bdbdbd;
+  }
+
+  [data-design-scope='admin'] :is(.text-muted, .text-muted-foreground, .text-subtle, .text-secondary) {
+    color: #dbdbdb;
+  }
+
+  [data-design-scope='admin'] [class*='placeholder:text-muted-foreground']::placeholder {
+    color: #dbdbdb;
+  }
+
+  [data-design-scope='customer'] [class*='text-muted-foreground/40'] {
+    color: rgb(189 189 189 / 0.4);
+  }
+
+  [data-design-scope='customer'] [class*='placeholder:text-muted-foreground']::placeholder {
+    color: rgb(189 189 189 / 0.6);
+  }
+
+  [data-design-scope='customer'] :is(
+    input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='range']):not(.checkout-input),
+    textarea,
+    select,
+    .order-text-box
+  ) {
+    border-color: #bdbdbd;
+  }
+
+  /*
+   * Desktop action buttons share one size in the customer and driver apps.
+   * Icon buttons, tabs, sidebar links, and quantity controls stay compact.
+   */
+  @media (min-width: 1024px) {
+    [data-design-scope='customer'] :is(button, a.inline-flex)[class*='rounded']:not(.order-qty-btn):not(.sidebar-nav-link):not(.sidebar-footer-btn):not([class*='rounded-full']):not([class*='h-10 w-10']):not([class*='w-10 h-10']):not([class*='min-w-[44px]']):not([class*='cursor-zoom-in']):not([class*='h-full']),
+    [data-design-scope='driver'] :is(button, a.inline-flex)[class*='rounded']:not(.order-qty-btn):not(.sidebar-nav-link):not(.sidebar-footer-btn):not([class*='rounded-full']):not([class*='h-10 w-10']):not([class*='w-10 h-10']):not([class*='min-w-[44px]']):not([class*='cursor-zoom-in']):not([class*='h-full']) {
+      height: 2.75rem;
+      min-height: 2.75rem;
+      width: auto;
+      min-width: 11rem;
+      flex: 0 0 auto;
+      padding: 0 1.25rem;
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+      font-weight: 600;
+    }
+  }
+
+  /* New-order page: every border uses the same gray, including checkbox rows. */
+  .create-order-root .create-order-drawer-panel,
+  .create-order-root .create-order-drawer-panel *,
+  .create-order-root .create-order-map-wrap,
+  .create-order-root .create-order-map-wrap > p {
+    border-color: #bdbdbd !important;
+  }
+
+  [data-design-scope='driver'] .hover\:text-foreground:hover,
+  [data-design-scope='customer'] .hover\:text-foreground:hover {
+    color: hsl(var(--foreground));
+  }
+
+  [data-design-scope='driver'] .hover\:text-primary:hover,
+  [data-design-scope='customer'] .hover\:text-primary:hover {
+    color: hsl(var(--primary));
+  }
+
+  @media (min-width: 768px) {
+    [data-design-scope='driver'] .md\:text-primary,
+    [data-design-scope='customer'] .md\:text-primary {
+      color: hsl(var(--primary));
+    }
   }
 }
 

@@ -14,160 +14,30 @@
       <app-empty-state
         surface="card"
         title="Verification pending"
-        hint="Quick stats and job counts will appear here after your account is approved."
+        hint="Quick stats and move counts will appear here after your account is approved."
       />
     }
 
     @if (isCustomer) {
-      @if (activeOrderLoading()) {
-        <ui-card [className]="'h-40 animate-pulse border-border/60'" [attr.aria-hidden]="'true'"></ui-card>
-      } @else if (latestActiveOrder(); as order) {
-        <section aria-labelledby="active-order-heading">
-          <ui-card [className]="'shadow-sm'">
-            <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6'">
-              <h2 id="active-order-heading" class="text-lg font-semibold text-card-title">Your move</h2>
-              <p class="mt-1 text-sm text-foreground">{{ moveStatusSentence(order.status) }}</p>
-              <div class="mt-4 space-y-3">
-                <div>
-                  <p class="text-xs font-medium uppercase tracking-wide text-muted">From</p>
-                  <p class="mt-1 break-words text-sm text-card-title">{{ order.pickupLocation.address }}</p>
-                </div>
-                <div>
-                  <p class="text-xs font-medium uppercase tracking-wide text-muted">To</p>
-                  <p class="mt-1 break-words text-sm text-card-title">{{ order.dropoffLocation.address }}</p>
-                </div>
-              </div>
-              <p class="mt-4 text-sm font-semibold tabular-nums text-primary">€{{ order.price | number: '1.2-2' }}</p>
-              <div class="mt-4 space-y-1">
-                <div class="flex gap-1">
-                  <div
-                    class="h-1.5 flex-1 rounded-full"
-                    [class.bg-accent-warning]="orderSegmentFilled(order.status, 0)"
-                    [class.bg-surface-track]="!orderSegmentFilled(order.status, 0)"
-                  ></div>
-                  <div
-                    class="h-1.5 flex-1 rounded-full"
-                    [ngClass]="orderSegmentFilled(order.status, 1) ? orderSegmentBarFilledClass(1) : 'bg-surface-track'"
-                  ></div>
-                  <div
-                    class="h-1.5 flex-1 rounded-full"
-                    [ngClass]="orderSegmentFilled(order.status, 2) ? orderSegmentBarFilledClass(2) : 'bg-surface-track'"
-                  ></div>
-                  <div
-                    class="h-1.5 flex-1 rounded-full"
-                    [ngClass]="orderSegmentFilled(order.status, 3) ? orderSegmentBarFilledClass(3) : 'bg-surface-track'"
-                  ></div>
-                </div>
-                <div class="flex gap-1 text-center text-xs text-muted">
-                  <span class="flex-1">Submitted</span>
-                  <span class="flex-1">Accepted</span>
-                  <span class="flex-1">On the way</span>
-                  <span class="flex-1">Done</span>
-                </div>
-              </div>
-              <a
-                [routerLink]="['/customer/orders', order._id]"
-                class="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-[0_4px_14px_rgba(34,197,94,0.35)] transition hover:bg-[#16A34A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:w-auto"
-              >
-                Open this move
-              </a>
-            </ui-card-content>
-          </ui-card>
-        </section>
-      } @else {
-        <a
-          routerLink="/customer/book"
-          class="group flex min-h-[44px] items-center gap-4 rounded-xl border border-border/30 bg-card/85 p-4 shadow-sm transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:p-6"
-        >
-          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <lucide-icon name="map-plus" [size]="26" />
+      @if (summaryLoading()) {
+        <div class="space-y-6" aria-hidden="true">
+          <div class="h-3 w-28 animate-pulse rounded-md bg-surface-track/80"></div>
+          <div class="grid gap-6 sm:grid-cols-2">
+            <ui-card [className]="'h-28 animate-pulse border-border/60'"></ui-card>
+            <ui-card [className]="'h-28 animate-pulse border-border/60'"></ui-card>
           </div>
-          <div class="min-w-0 flex-1 text-left">
-            <p class="text-lg font-semibold text-card-title">Book a move</p>
-            <p class="text-sm text-muted">Choose pickup and drop-off, then send the request</p>
-          </div>
-          <span class="shrink-0 text-subtle transition group-hover:text-ice" aria-hidden="true">→</span>
-        </a>
-      }
-    }
-
-    @if (isDriver && user?.isVerified) {
-      @if (driverFocusLoading()) {
-        <ui-card [className]="'h-40 animate-pulse border-border/60'" [attr.aria-hidden]="'true'"></ui-card>
-      } @else if (driverActiveTrip(); as trip) {
-        <section aria-labelledby="driver-focus-heading">
-          <ui-card [className]="'shadow-sm'">
-            <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6'">
-              <h2 id="driver-focus-heading" class="text-lg font-semibold text-card-title">Your trip</h2>
-              <p class="mt-1 text-sm text-foreground">{{ driverTripSentence(trip.status) }}</p>
-              <div class="mt-4 space-y-3">
-                <div>
-                  <p class="text-xs font-medium uppercase tracking-wide text-muted">From</p>
-                  <p class="mt-1 break-words text-sm text-card-title">{{ trip.pickupLocation.address }}</p>
-                </div>
-                <div>
-                  <p class="text-xs font-medium uppercase tracking-wide text-muted">To</p>
-                  <p class="mt-1 break-words text-sm text-card-title">{{ trip.dropoffLocation.address }}</p>
-                </div>
-              </div>
-              <p class="mt-4 text-sm font-semibold tabular-nums text-primary">You earn €{{ driverPay(trip) | number: '1.2-2' }}</p>
-              <a
-                [routerLink]="['/driver/active', trip._id]"
-                class="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-[0_4px_14px_rgba(34,197,94,0.35)] transition hover:bg-[#16A34A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:w-auto"
-              >
-                Open this trip
-              </a>
-            </ui-card-content>
-          </ui-card>
-        </section>
-      } @else if (driverNextJob(); as job) {
-        <section aria-labelledby="driver-focus-heading">
-          <ui-card [className]="'shadow-sm'">
-            <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6'">
-              <h2 id="driver-focus-heading" class="text-lg font-semibold text-card-title">Next job</h2>
-              <p class="mt-1 text-sm text-foreground">This job is open in your districts.</p>
-              <div class="mt-4 space-y-3">
-                <div>
-                  <p class="text-xs font-medium uppercase tracking-wide text-muted">From</p>
-                  <p class="mt-1 break-words text-sm text-card-title">{{ job.pickupLocation.address }}</p>
-                </div>
-                <div>
-                  <p class="text-xs font-medium uppercase tracking-wide text-muted">To</p>
-                  <p class="mt-1 break-words text-sm text-card-title">{{ job.dropoffLocation.address }}</p>
-                </div>
-              </div>
-              <p class="mt-4 text-sm font-semibold tabular-nums text-primary">You earn €{{ driverPay(job) | number: '1.2-2' }}</p>
-              <a
-                routerLink="/driver/available"
-                class="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-[0_4px_14px_rgba(34,197,94,0.35)] transition hover:bg-[#16A34A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:w-auto"
-              >
-                Open jobs
-              </a>
-            </ui-card-content>
-          </ui-card>
-        </section>
-      } @else {
-        <ui-card [className]="'shadow-sm'">
-          <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6'">
-            <h2 class="text-lg font-semibold text-card-title">No jobs right now</h2>
-            <p class="mt-1 text-sm text-muted">New requests in your districts show up here.</p>
-          </ui-card-content>
-        </ui-card>
-      }
-    }
-
-    @if ((isCustomer || (isDriver && user?.isVerified)) && !summaryLoading()) {
-      <section aria-labelledby="stats-heading" class="space-y-6">
-        <h2 id="stats-heading" class="text-left text-xs font-semibold uppercase tracking-wide text-brand-teal-light">
-          Quick stats
-        </h2>
-        @if (customerSummary; as s) {
+        </div>
+      } @else if (customerSummary; as s) {
+        <section aria-labelledby="stats-heading" class="space-y-6">
+          <h2 id="stats-heading" class="text-left text-xs font-semibold uppercase tracking-wide text-brand-teal-light">
+            Quick stats
+          </h2>
           <div class="grid gap-6 sm:grid-cols-2">
             <a
               routerLink="/customer/orders"
               class="block min-h-[44px] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <ui-card [className]="'h-full transition duration-300 ease-in-out hover:bg-surface-hover'">
+              <ui-card [className]="'h-full bg-transparent shadow-none backdrop-blur-none transition duration-300 ease-in-out hover:bg-surface-hover'">
                 <ui-card-content [padding]="'standalone'">
                   <div class="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <lucide-icon name="package" [size]="22" />
@@ -182,7 +52,7 @@
               routerLink="/customer/orders"
               class="block min-h-[44px] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <ui-card [className]="'h-full transition duration-300 ease-in-out hover:bg-surface-hover'">
+              <ui-card [className]="'h-full bg-transparent shadow-none backdrop-blur-none transition duration-300 ease-in-out hover:bg-surface-hover'">
                 <ui-card-content [padding]="'standalone'">
                   <div class="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <lucide-icon name="clock" [size]="22" />
@@ -194,7 +64,111 @@
               </ui-card>
             </a>
           </div>
-        }
+        </section>
+      }
+      @if (activeOrderLoading()) {
+        <ui-card [className]="'h-40 animate-pulse border-border/60'" [attr.aria-hidden]="'true'"></ui-card>
+      } @else if (activeOrders().length > 0) {
+        <section aria-labelledby="active-order-heading" class="active-order-copy space-y-4">
+          <h2 id="active-order-heading" class="text-lg font-semibold text-card-title">
+            {{ activeOrders().length === 1 ? 'Your move' : 'Your moves' }}
+          </h2>
+          <div class="flex flex-col gap-4">
+          @for (order of activeOrders(); track order._id) {
+          <ui-card class="block" [className]="'shadow-sm'">
+            <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6'">
+              <div class="space-y-3">
+                <div>
+                  <p class="text-xs font-medium uppercase tracking-wide text-muted">From</p>
+                  <p class="mt-1 break-words text-sm text-card-title">{{ order.pickupLocation.address }}</p>
+                </div>
+                <div>
+                  <p class="text-xs font-medium uppercase tracking-wide text-muted">To</p>
+                  <p class="mt-1 break-words text-sm text-card-title">{{ order.dropoffLocation.address }}</p>
+                </div>
+              </div>
+              <p class="mt-4 text-sm font-semibold tabular-nums text-primary">€{{ order.price | number: '1.2-2' }}</p>
+              @if (driverPlates(order); as plates) {
+                <p class="mt-2 text-sm font-semibold uppercase tracking-wide text-[#21c45d]">
+                  Vehicle plates {{ plates }}
+                </p>
+              }
+              <div class="mt-4 space-y-1">
+                <div class="flex gap-1">
+                  <div
+                    class="h-1.5 flex-1 rounded-full"
+                    [class.bg-accent-warning]="orderSegmentFilled(order, 0)"
+                    [class.bg-surface-track]="!orderSegmentFilled(order, 0)"
+                  ></div>
+                  <div
+                    class="h-1.5 flex-1 rounded-full"
+                    [ngClass]="orderSegmentFilled(order, 1) ? orderSegmentBarFilledClass(1) : 'bg-surface-track'"
+                  ></div>
+                  <div
+                    class="h-1.5 flex-1 rounded-full"
+                    [ngClass]="orderSegmentFilled(order, 2) ? orderSegmentBarFilledClass(2) : 'bg-surface-track'"
+                  ></div>
+                  <div
+                    class="h-1.5 flex-1 rounded-full"
+                    [ngClass]="orderSegmentFilled(order, 3) ? orderSegmentBarFilledClass(3) : 'bg-surface-track'"
+                  ></div>
+                  <div
+                    class="h-1.5 flex-1 rounded-full"
+                    [ngClass]="orderSegmentFilled(order, 4) ? orderSegmentBarFilledClass(4) : 'bg-surface-track'"
+                  ></div>
+                </div>
+                <div class="flex gap-1 text-center text-[10px] leading-tight text-muted sm:text-xs">
+                  <span class="flex-1">Submitted</span>
+                  <span class="flex-1">Payment</span>
+                  <span class="flex-1">Accepted</span>
+                  <span class="flex-1">Driver is on the way</span>
+                  <span class="flex-1">Mark picked up</span>
+                </div>
+              </div>
+              <a
+                [routerLink]="['/customer/orders', order._id]"
+                class="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:bg-[#76b28c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:w-auto"
+              >
+                Open this move
+              </a>
+            </ui-card-content>
+          </ui-card>
+          }
+          </div>
+        </section>
+      } @else {
+        <a
+          routerLink="/customer/book"
+          class="group flex min-h-[44px] items-center gap-4 rounded-xl border border-border/30 bg-card/85 p-4 shadow-sm transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:p-6"
+        >
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <lucide-icon name="map-plus" [size]="26" />
+          </div>
+          <div class="min-w-0 flex-1 text-left">
+            <p class="text-lg font-semibold text-card-title">Book a move</p>
+            <p class="text-sm text-[#bdbdbd]">Choose pickup and drop-off, then send the request</p>
+          </div>
+          <span class="shrink-0 text-subtle transition group-hover:text-ice" aria-hidden="true">→</span>
+        </a>
+      }
+    }
+
+    @if (isDriver && user?.isVerified && summaryLoading()) {
+      <div class="space-y-6" aria-hidden="true">
+        <div class="h-3 w-28 animate-pulse rounded-md bg-surface-track/80"></div>
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <ui-card [className]="'h-28 animate-pulse border-border/60'"></ui-card>
+          <ui-card [className]="'h-28 animate-pulse border-border/60'"></ui-card>
+          <ui-card [className]="'h-28 animate-pulse border-border/60'"></ui-card>
+        </div>
+      </div>
+    }
+
+    @if (isDriver && user?.isVerified && !summaryLoading()) {
+      <section aria-labelledby="driver-stats-heading" class="space-y-6">
+        <h2 id="driver-stats-heading" class="text-left text-xs font-semibold uppercase tracking-wide text-brand-teal-light">
+          Quick stats
+        </h2>
         @if (driverSummary; as s) {
           <div class="grid grid-cols-1 items-stretch gap-6 md:grid-cols-3">
             <a
@@ -208,9 +182,9 @@
                 >
                   <lucide-icon name="truck" [size]="22" />
                 </div>
-                <p class="text-sm font-medium text-muted">Available jobs</p>
+                <p class="text-sm font-medium text-muted">Available moves</p>
                 <p class="mt-2 text-3xl font-bold tabular-nums text-primary">{{ s.available }}</p>
-                <p class="mt-1 text-sm text-muted">Open the jobs list</p>
+                <p class="mt-1 text-sm text-muted">Open the moves list</p>
               </ui-card-content>
             </ui-card>
             </a>
@@ -227,7 +201,7 @@
                 </div>
                 <p class="text-sm font-medium text-muted">Active tasks</p>
                 <p class="mt-2 text-3xl font-bold tabular-nums text-primary">{{ s.accepted }}</p>
-                <p class="mt-1 text-sm text-muted">Open your trips</p>
+                <p class="mt-1 text-sm text-muted">Open your moves</p>
               </ui-card-content>
             </ui-card>
             </a>
@@ -265,29 +239,83 @@
     }
 
     @if (isDriver && user?.isVerified) {
+      @if (driverFocusLoading()) {
+        <ui-card [className]="'h-40 animate-pulse border-border/60'" [attr.aria-hidden]="'true'"></ui-card>
+      } @else if (driverActiveTrips().length > 0) {
+        <section aria-labelledby="driver-focus-heading" class="space-y-4">
+          <h2 id="driver-focus-heading" class="text-lg font-semibold text-card-title">
+            {{ driverActiveTrips().length === 1 ? 'Your move' : 'Your moves' }}
+          </h2>
+          <div class="flex flex-col gap-4">
+            @for (trip of driverActiveTrips(); track trip._id) {
+              <ui-card class="block" [className]="'shadow-sm'">
+                <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6'">
+                  <p class="text-sm text-foreground">{{ driverTripSentence(trip.status) }}</p>
+                  <div class="mt-4 space-y-3">
+                    <div>
+                      <p class="text-xs font-medium uppercase tracking-wide text-muted">From</p>
+                      <p class="mt-1 break-words text-sm text-card-title">{{ trip.pickupLocation.address }}</p>
+                    </div>
+                    <div>
+                      <p class="text-xs font-medium uppercase tracking-wide text-muted">To</p>
+                      <p class="mt-1 break-words text-sm text-card-title">{{ trip.dropoffLocation.address }}</p>
+                    </div>
+                  </div>
+                  <p class="mt-4 text-sm font-semibold tabular-nums text-primary">You earn €{{ driverPay(trip) | number: '1.2-2' }}</p>
+                  <a
+                    [routerLink]="['/driver/active', trip._id]"
+                    class="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:bg-[#76b28c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:w-auto"
+                  >
+                    Open this move
+                  </a>
+                </ui-card-content>
+              </ui-card>
+            }
+          </div>
+        </section>
+      } @else if (driverNextJob(); as job) {
+        <section aria-labelledby="driver-focus-heading">
+          <ui-card [className]="'shadow-sm'">
+            <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6'">
+              <h2 id="driver-focus-heading" class="text-lg font-semibold text-card-title">Next move</h2>
+              <p class="mt-1 text-sm text-foreground">This move is open in your districts.</p>
+              <div class="mt-4 space-y-3">
+                <div>
+                  <p class="text-xs font-medium uppercase tracking-wide text-muted">From</p>
+                  <p class="mt-1 break-words text-sm text-card-title">{{ job.pickupLocation.address }}</p>
+                </div>
+                <div>
+                  <p class="text-xs font-medium uppercase tracking-wide text-muted">To</p>
+                  <p class="mt-1 break-words text-sm text-card-title">{{ job.dropoffLocation.address }}</p>
+                </div>
+              </div>
+              <p class="mt-4 text-sm font-semibold tabular-nums text-primary">You earn €{{ driverPay(job) | number: '1.2-2' }}</p>
+              <a
+                routerLink="/driver/available"
+                class="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:bg-[#76b28c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:w-auto"
+              >
+                Open moves
+              </a>
+            </ui-card-content>
+          </ui-card>
+        </section>
+      } @else {
+        <ui-card [className]="'shadow-sm'">
+          <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6'">
+            <h2 class="text-lg font-semibold text-card-title">No moves right now</h2>
+            <p class="mt-1 text-sm text-muted">New moves in your districts show up here.</p>
+          </ui-card-content>
+        </ui-card>
+      }
+    }
+
+
+    @if (isDriver && user?.isVerified) {
       <app-driver-analytics
         [loading]="summaryLoading()"
         [fallbackOrders]="driverChartOrders()"
         [fallbackRating]="driverRating()?.averageRating ?? null"
       />
-    }
-
-    @if (summaryLoading() && (isCustomer || (isDriver && user?.isVerified))) {
-      <div class="space-y-6">
-        <div class="h-3 w-28 animate-pulse rounded-md bg-surface-track/80" aria-hidden="true"></div>
-        @if (isDriver && user?.isVerified) {
-          <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <ui-card [className]="'h-28 animate-pulse border-border/60'" [attr.aria-hidden]="'true'"></ui-card>
-            <ui-card [className]="'h-28 animate-pulse border-border/60'" [attr.aria-hidden]="'true'"></ui-card>
-            <ui-card [className]="'h-28 animate-pulse border-border/60'" [attr.aria-hidden]="'true'"></ui-card>
-          </div>
-        } @else {
-          <div class="grid gap-6 sm:grid-cols-2">
-            <ui-card [className]="'h-28 animate-pulse border-border/60'" [attr.aria-hidden]="'true'"></ui-card>
-            <ui-card [className]="'h-28 animate-pulse border-border/60'" [attr.aria-hidden]="'true'"></ui-card>
-          </div>
-        }
-      </div>
     }
 
     @if (!isCustomer && !isDriver) {

@@ -1,5 +1,6 @@
 <div
   class="flex min-h-dvh flex-col overflow-x-hidden bg-background font-sans md:min-h-dvh md:flex-row"
+  [attr.data-design-scope]="user()?.role === 'customer' ? 'customer' : null"
 >
   <app-sidebar class="app-sidebar-host" />
   <main
@@ -11,7 +12,10 @@
     </header>
     <div class="flex flex-col overflow-x-hidden">
       <div class="app-shell-main-pad lg:!py-4">
-        <div class="app-page-container space-y-4 overflow-x-hidden sm:space-y-6">
+        <div
+          class="app-page-container space-y-4 overflow-x-hidden sm:space-y-6"
+          [attr.data-profile-role]="user()?.role"
+        >
           <div
             [ngClass]="
           user()?.role === 'customer' || user()?.role === 'driver'
@@ -20,11 +24,11 @@
         "
           >
         <!-- Personal information -->
-        <section>
+        <section [attr.data-profile-role]="user()?.role">
           <ui-card [className]="'rounded-xl shadow-sm'">
             <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-5'">
           <h2 class="text-lg font-semibold text-card-title">Personal information</h2>
-          <p class="mt-0.5 text-sm text-muted">Update your name and contact details</p>
+          <p class="profile-hint mt-0.5 text-sm text-muted">Your name and contact details</p>
           <div
             class="mb-6 mt-6 flex border-b border-brand-slate/30 pb-6 lg:mb-3 lg:mt-3 lg:pb-3"
           >
@@ -38,113 +42,66 @@
               <p class="truncate text-sm font-medium text-card-title">
                 {{ firstName || '—' }} {{ lastName || '' }}
               </p>
-              <p class="text-xs text-muted">Account avatar (initials)</p>
+              <p class="profile-hint text-xs text-muted">Account avatar (initials)</p>
             </div>
           </div>
 
-          <form (ngSubmit)="onSubmit()" class="space-y-6 lg:space-y-3">
-            @if (error()) {
-              <div
-                class="alert-error px-5 py-4 text-sm"
-                role="alert"
-              >
-                {{ error() }}
-              </div>
-            }
-            @if (success()) {
-              <div
-                class="rounded-lg border border-primary/20/60 bg-primary/10 px-5 py-4 text-sm text-primary"
-                role="status"
-              >
-                Profile updated successfully
-              </div>
-            }
-
+          <div class="space-y-6 lg:space-y-3">
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-3">
               <div>
                 <label
                   for="firstName"
-                  class="mb-2 block text-sm font-medium text-muted"
+                  class="profile-hint mb-2 block text-sm font-medium text-muted"
                   >First name</label
                 >
-                <input
+                <p
                   id="firstName"
-                  name="firstName"
-                  type="text"
-                  uiInput
-                  [(ngModel)]="firstName"
-                  placeholder="First name"
-                  [className]="'w-full px-4 py-3'"
-                  autocomplete="given-name"
-                />
+                  class="profile-field w-full break-all rounded-lg border border-brand-slate/45 bg-brand-nav/40 px-4 py-3 text-sm text-foreground opacity-80"
+                >
+                  {{ firstName || '—' }}
+                </p>
               </div>
               <div>
                 <label
                   for="lastName"
-                  class="mb-2 block text-sm font-medium text-muted"
+                  class="profile-hint mb-2 block text-sm font-medium text-muted"
                   >Last name</label
                 >
-                <input
+                <p
                   id="lastName"
-                  name="lastName"
-                  type="text"
-                  uiInput
-                  [(ngModel)]="lastName"
-                  placeholder="Last name"
-                  [className]="'w-full px-4 py-3'"
-                  autocomplete="family-name"
-                />
+                  class="profile-field w-full break-all rounded-lg border border-brand-slate/45 bg-brand-nav/40 px-4 py-3 text-sm text-foreground opacity-80"
+                >
+                  {{ lastName || '—' }}
+                </p>
               </div>
             </div>
             <div>
               <label
                 for="emailAddress"
-                class="mb-2 block text-sm font-medium text-muted"
+                class="profile-hint mb-2 block text-sm font-medium text-muted"
                 >Email address</label
               >
               <p
                 id="emailAddress"
-                class="w-full break-all rounded-lg border border-brand-slate/45 bg-brand-nav/40 px-4 py-3 text-sm text-foreground opacity-80"
+                class="profile-field w-full break-all rounded-lg border border-brand-slate/45 bg-brand-nav/40 px-4 py-3 text-sm text-foreground opacity-80"
               >
                 {{ user()?.email || '—' }}
               </p>
             </div>
             <div>
               <label
-                for="phoneDigits"
-                class="mb-2 block text-sm font-medium text-muted"
+                for="phoneNumber"
+                class="profile-hint mb-2 block text-sm font-medium text-muted"
                 >Phone number</label
               >
-              <div
-                class="flex overflow-hidden rounded-lg border border-brand-slate/45 bg-brand-nav/50 shadow-sm"
+              <p
+                id="phoneNumber"
+                class="profile-field w-full break-all rounded-lg border border-brand-slate/45 bg-brand-nav/40 px-4 py-3 text-sm text-foreground opacity-80"
               >
-                <span
-                  class="flex shrink-0 items-center border-r border-brand-slate/45 bg-brand-slate/30 px-3 py-3 text-sm text-muted"
-                  >+357</span
-                >
-                <input
-                  id="phoneDigits"
-                  name="phoneDigits"
-                  type="tel"
-                  uiInput
-                  [(ngModel)]="phoneDigits"
-                  placeholder="99123456"
-                  maxlength="8"
-                  inputmode="numeric"
-                  [className]="'min-w-0 flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3'"
-                />
-              </div>
-              <p class="mt-1 text-xs text-muted">Exactly 8 digits.</p>
+                {{ user()?.phone || '—' }}
+              </p>
             </div>
-
-            <ui-button
-              type="submit"
-              [disabled]="loading()"
-              [className]="'min-h-[48px] w-full justify-center rounded-lg'"
-            >
-              {{ loading() ? 'Saving…' : 'Save changes' }}
-            </ui-button>
-          </form>
+          </div>
             </ui-card-content>
           </ui-card>
         </section>
@@ -155,7 +112,7 @@
             <ui-card [className]="'rounded-xl shadow-sm'">
               <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-5'">
             <h2 class="text-lg font-semibold text-card-title">Security</h2>
-            <p class="mt-0.5 text-sm text-muted">Change the password for your account</p>
+            <p class="profile-hint mt-0.5 text-sm text-muted">Change the password for your account</p>
             <div class="mb-2 mt-6 border-b border-brand-slate/30 lg:mt-3" aria-hidden="true"></div>
             <form
               (ngSubmit)="onPasswordSubmit()"
@@ -181,7 +138,7 @@
               <div>
                 <label
                   for="currentPassword"
-                  class="mb-2 block text-sm font-medium text-muted"
+                  class="profile-hint mb-2 block text-sm font-medium text-muted"
                   >Current password</label
                 >
                 <input
@@ -192,13 +149,13 @@
                   [(ngModel)]="currentPassword"
                   [disabled]="passwordChangeLoading()"
                   autocomplete="current-password"
-                  [className]="'w-full px-4 py-3'"
+                  [className]="'profile-field w-full px-4 py-3'"
                 />
               </div>
               <div>
                 <label
                   for="newPassword"
-                  class="mb-2 block text-sm font-medium text-muted"
+                  class="profile-hint mb-2 block text-sm font-medium text-muted"
                   >New password</label
                 >
                 <input
@@ -209,7 +166,7 @@
                   [(ngModel)]="newPassword"
                   [disabled]="passwordChangeLoading()"
                   autocomplete="new-password"
-                  [className]="'w-full px-4 py-3'"
+                  [className]="'profile-field w-full px-4 py-3'"
                 />
                 @if (newPassword.length > 0 && newPasswordErrors.length > 0) {
                   <ul
@@ -224,7 +181,7 @@
               <div>
                 <label
                   for="confirmPassword"
-                  class="mb-2 block text-sm font-medium text-muted"
+                  class="profile-hint mb-2 block text-sm font-medium text-muted"
                   >Confirm new password</label
                 >
                 <input
@@ -235,7 +192,7 @@
                   [(ngModel)]="confirmNewPassword"
                   [disabled]="passwordChangeLoading()"
                   autocomplete="new-password"
-                  [className]="'w-full px-4 py-3'"
+                  [className]="'profile-field w-full px-4 py-3'"
                 />
                 @if (passwordsMismatch) {
                   <p class="mt-1.5 text-sm text-destructive-foreground" role="alert">Passwords do not match</p>
@@ -339,7 +296,7 @@
             <ui-card [className]="'rounded-xl shadow-sm'">
               <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-5'">
             <h2 class="text-lg font-semibold text-card-title">Vehicle details</h2>
-            <p class="mt-0.5 text-sm text-muted">Registered vehicle category and verification photo</p>
+            <p class="mt-0.5 text-sm text-muted">Registered vehicle category, plates, and verification photo</p>
             <div
               class="mb-6 mt-6 border-b border-brand-slate/30"
               aria-hidden="true"
@@ -356,6 +313,15 @@
               }
             </div>
 
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+              <span class="text-sm font-medium text-muted">Vehicle plates</span>
+              @if (vehiclePlates()) {
+                <span class="text-sm font-semibold uppercase tracking-wide text-card-title">{{ vehiclePlates() }}</span>
+              } @else {
+                <span class="text-sm text-muted">Not set</span>
+              }
+            </div>
+
             @if (showVehiclePendingBadge()) {
               <div class="mt-4">
                 <ui-badge variant="warning" [className]="'text-xs'">
@@ -364,24 +330,23 @@
               </div>
             }
 
-            @if (vehiclePhotoUrl()) {
+            @if (user()?.vehiclePhotoUrl && user()?.id) {
               <div class="mt-6">
                 <p class="mb-2 text-sm font-medium text-muted">Vehicle photo</p>
-                <a
-                  [href]="vehiclePhotoUrl()"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-block overflow-hidden rounded-lg border border-brand-slate/45 shadow-sm transition hover:border-primary/40"
-                >
-                  <img
-                    [src]="vehiclePhotoUrl()"
-                    alt="Vehicle verification photo"
-                    class="h-28 w-auto max-w-full object-cover sm:h-32"
-                  />
-                </a>
+                <p class="mb-2 text-sm text-muted">The vehicle plates should be displayed in the photo.</p>
+                <app-private-doc-image
+                  [userId]="user()!.id"
+                  docType="vehicle-photo"
+                  alt="Vehicle verification photo"
+                  imgClass="h-28 w-auto max-w-full rounded-lg border border-brand-slate/45 object-cover shadow-sm sm:h-32"
+                />
               </div>
             } @else {
-              <p class="mt-4 text-sm text-muted">No vehicle photo on file.</p>
+              <div class="mt-6">
+                <p class="mb-2 text-sm font-medium text-muted">Vehicle photo</p>
+                <p class="text-sm text-muted">The vehicle plates should be displayed in the photo.</p>
+                <p class="mt-2 text-sm text-muted">No vehicle photo on file.</p>
+              </div>
             }
 
             <div class="mt-4">
@@ -424,7 +389,7 @@
               <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-5'">
             <h2 class="text-lg font-semibold text-card-title">Working districts</h2>
             <p class="mt-0.5 text-sm text-muted">
-              Choose where you want to receive available orders. At least one district
+              Choose where you want to receive available moves. At least one district
               is required.
             </p>
             <div
@@ -498,19 +463,13 @@
               @if (driverHasUploadedLicense()) {
                 <div class="mb-4" data-testid="driver-license-preview">
                   <p class="mb-2 text-sm font-medium text-muted">License / ID document</p>
-                  @if (driverLicenseIsImage()) {
-                    <a
-                      [href]="driverLicenseFullUrl()"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="inline-block overflow-hidden rounded-lg border border-brand-slate/45 shadow-sm transition hover:border-primary/40"
-                    >
-                      <img
-                        [src]="driverLicenseFullUrl()"
-                        alt="License document on file"
-                        class="h-28 w-auto max-w-full object-cover sm:h-32"
-                      />
-                    </a>
+                  @if (driverLicenseIsImage() && user()?.id) {
+                    <app-private-doc-image
+                      [userId]="user()!.id"
+                      docType="license"
+                      alt="License document on file"
+                      imgClass="h-28 w-auto max-w-full rounded-lg border border-brand-slate/45 object-cover sm:h-32"
+                    />
                   } @else if (driverLicenseIsPdf()) {
                     <ui-button
                       type="button"
@@ -549,20 +508,13 @@
               @if (driverHasUploadedLicense()) {
                 <div class="mb-4" data-testid="driver-license-preview">
                   <p class="mb-2 text-sm font-medium text-muted">Submitted license / ID document</p>
-                  @if (driverLicenseIsImage()) {
-                    <a
-                      [href]="driverLicenseFullUrl()"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="inline-block overflow-hidden rounded-lg border border-brand-slate/45 shadow-sm transition hover:border-primary/40"
-                    >
-                      <img
-                        [src]="driverLicenseFullUrl()"
-                        alt="Submitted license document"
-                        class="h-28 w-auto max-w-full object-cover sm:h-32"
-                      />
-                    </a>
-                    <p class="mt-1 text-xs text-muted">Tap to open full size</p>
+                  @if (driverLicenseIsImage() && user()?.id) {
+                    <app-private-doc-image
+                      [userId]="user()!.id"
+                      docType="license"
+                      alt="Submitted license document"
+                      imgClass="h-28 w-auto max-w-full rounded-lg border border-brand-slate/45 object-cover sm:h-32"
+                    />
                   } @else if (driverLicenseIsPdf()) {
                     <ui-button
                       type="button"
@@ -644,20 +596,13 @@
               @if (driverHasUploadedLicense()) {
                 <div class="mt-4" data-testid="driver-license-preview">
                   <p class="mb-2 text-sm font-medium text-muted">Uploaded document preview</p>
-                  @if (driverLicenseIsImage()) {
-                    <a
-                      [href]="driverLicenseFullUrl()"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="inline-block overflow-hidden rounded-lg border border-brand-slate/45 shadow-sm transition hover:border-primary/40"
-                    >
-                      <img
-                        [src]="driverLicenseFullUrl()"
-                        alt="Uploaded license document"
-                        class="h-28 w-auto max-w-full object-cover sm:h-32"
-                      />
-                    </a>
-                    <p class="mt-1 text-xs text-muted">Tap to open full size</p>
+                  @if (driverLicenseIsImage() && user()?.id) {
+                    <app-private-doc-image
+                      [userId]="user()!.id"
+                      docType="license"
+                      alt="Uploaded license document"
+                      imgClass="h-28 w-auto max-w-full rounded-lg border border-brand-slate/45 object-cover sm:h-32"
+                    />
                   } @else if (driverLicenseIsPdf()) {
                     <ui-button
                       type="button"

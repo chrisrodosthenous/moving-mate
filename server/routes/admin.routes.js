@@ -3,11 +3,17 @@ const { authMiddleware } = require('../middleware/auth');
 const { adminMiddleware } = require('../middleware/admin');
 const {
   getOverview,
+  getCustomerDirectory,
+  getDriverDirectory,
+  getOrderDirectory,
   getAnalytics,
   getPendingVerifications,
   verifyUser,
   getDriverDocument,
   getAdminOrderDetail,
+  setCustomerSuspension,
+  impersonateUser,
+  redeemImpersonation,
 } = require('../controllers/adminController');
 const {
   getNotificationSettings,
@@ -31,8 +37,15 @@ router.patch('/notification-settings/:id', patchNotificationSetting);
 router.post('/test/send-email', postAdminTestSendEmail);
 
 router.get('/overview', getOverview);
+router.get('/customers', getCustomerDirectory);
+router.get('/drivers', getDriverDirectory);
+router.get('/orders', getOrderDirectory);
 router.get('/analytics', getAnalytics);
 router.get('/orders/:id', getAdminOrderDetail);
+router.patch('/customers/:id/suspension', setCustomerSuspension);
+router.post('/impersonate/redeem', redeemImpersonation);
+router.post('/impersonate/:id', impersonateUser);
+router.patch('/drivers/:id/suspension', setCustomerSuspension);
 router.get('/pending-verifications', getPendingVerifications);
 router.get('/driver-documents/:id/:docType', getDriverDocument);
 router.patch('/verify-user/:id', verifyUser);

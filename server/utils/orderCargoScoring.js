@@ -40,8 +40,7 @@ function cargoInventoryScore(inv) {
 }
 
 function vehicleTypeFromScore(score) {
-  if (score <= 5) return 'pickup';
-  if (score <= 15) return 'minivan';
+  if (score <= 4) return 'pickup';
   if (score <= 35) return 'van';
   return 'truck';
 }

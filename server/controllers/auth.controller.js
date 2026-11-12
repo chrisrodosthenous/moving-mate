@@ -17,6 +17,7 @@ const { emitToAdmins } = require('../services/realtimeService');
 const { sendVerificationRequestToAdminsPush } = require('../services/pushNotificationService');
 const { sendPasswordResetEmail, clientBaseUrl } = require('../services/notificationService');
 const { persistMulterFile, deleteStoredUpload } = require('../services/storedUploadService');
+const { CUSTOMER_SUSPENDED_MESSAGE } = require('../constants/accountStatus');
 
 const JWT_SECRET = getJwtSecret();
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '30d';
@@ -162,6 +163,10 @@ async function register(req, res, next) {
       if (!vehiclePhotoFile) {
         return res.status(400).json({ message: 'vehiclePhoto is required for driver registration' });
       }
+      const plate = req.body?.plateNumber != null ? String(req.body.plateNumber).trim().toUpperCase() : '';
+      if (!plate || plate.length > 16 || !/^[A-Z0-9][A-Z0-9 -]{0,15}$/.test(plate)) {
+        return res.status(400).json({ message: 'Vehicle plates are required for driver registration' });
+      }
     }
 
     const existing = await User.findOne({
@@ -212,9 +217,7 @@ async function register(req, res, next) {
         if (req.body?.carModel != null) {
           userFields.carModel = String(req.body.carModel).trim();
         }
-        if (req.body?.plateNumber != null) {
-          userFields.plateNumber = String(req.body.plateNumber).trim();
-        }
+        userFields.plateNumber = String(req.body.plateNumber).trim().toUpperCase();
       }
       try {
         for (const item of uploadsToStore) {
@@ -318,6 +321,13 @@ async function login(req, res, next) {
       return res.status(401).json({ message: 'Invalid email/phone or password' });
     }
 
+    if (user.role !== 'admin' && user.isSuspended) {
+      return res.status(403).json({
+        message: CUSTOMER_SUSPENDED_MESSAGE,
+        code: 'ACCOUNT_SUSPENDED',
+      });
+    }
+
     const token = jwt.sign(
       { userId: user._id, phone: user.phoneNumber, role: user.role },
       JWT_SECRET,
@@ -340,8 +350,8 @@ const FORGOT_PASSWORD_SENT_MESSAGE =
 
 /**
  * POST /api/auth/forgot-password
- * Body: { email }. Issues a reset token for any registered account (any role).
- * Returns 404 if the email is not registered so the UI can show a clear message.
+ * Body: { email }. Sends a reset link when the address is registered.
+ * Unknown addresses get the same success response.
  */
 async function forgotPassword(req, res, next) {
   try {
@@ -352,35 +362,31 @@ async function forgotPassword(req, res, next) {
     }
 
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: 'This email is not registered.' });
-    }
+    if (user) {
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken, 'utf8').digest('hex');
+      user.passwordResetTokenHash = tokenHash;
+      user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
+      await user.save();
 
-    const rawToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(rawToken, 'utf8').digest('hex');
-    user.passwordResetTokenHash = tokenHash;
-    user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
-    await user.save();
+      const baseUrl = clientBaseUrl();
+      const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(rawToken)}`;
 
-    const baseUrl = clientBaseUrl();
-    const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(rawToken)}`;
-
-    try {
-      await sendPasswordResetEmail({
-        to: user.email,
-        firstName: user.firstName,
-        resetUrl: resetLink,
-      });
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[PASSWORD RESET] Email queued for:', user.email);
-        console.log('[PASSWORD RESET] Reset link:', resetLink);
+      try {
+        await sendPasswordResetEmail({
+          to: user.email,
+          firstName: user.firstName,
+          resetUrl: resetLink,
+        });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[PASSWORD RESET] Email queued for:', user.email);
+        }
+      } catch (mailErr) {
+        console.error('[PASSWORD RESET] Email send failed:', mailErr.message);
+        return res.status(502).json({
+          message: 'We could not send the reset email right now. Please try again later.',
+        });
       }
-    } catch (mailErr) {
-      console.error('[PASSWORD RESET] Email send failed:', mailErr.message);
-      console.log('[PASSWORD RESET] Reset link (use manually):', resetLink);
-      return res.status(502).json({
-        message: 'We could not send the reset email right now. Please try again later.',
-      });
     }
 
     return res.json({ message: FORGOT_PASSWORD_SENT_MESSAGE });
@@ -430,4 +436,4 @@ async function resetPassword(req, res, next) {
   }
 }
 
-module.exports = { register, login, forgotPassword, resetPassword };
+module.exports = { register, login, forgotPassword, resetPassword, buildUserOut };

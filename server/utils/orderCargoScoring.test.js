@@ -27,9 +27,9 @@ describe('parseCargoInventory', () => {
 describe('vehicleTypeFromScore', () => {
   it('uses the published band edges', () => {
     assert.equal(vehicleTypeFromScore(0), 'pickup');
-    assert.equal(vehicleTypeFromScore(5), 'pickup');
-    assert.equal(vehicleTypeFromScore(6), 'minivan');
-    assert.equal(vehicleTypeFromScore(15), 'minivan');
+    assert.equal(vehicleTypeFromScore(4), 'pickup');
+    assert.equal(vehicleTypeFromScore(5), 'van');
+    assert.equal(vehicleTypeFromScore(15), 'van');
     assert.equal(vehicleTypeFromScore(16), 'van');
     assert.equal(vehicleTypeFromScore(35), 'van');
     assert.equal(vehicleTypeFromScore(36), 'truck');

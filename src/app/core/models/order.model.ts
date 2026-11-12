@@ -27,7 +27,10 @@ export interface OrderLogistics {
   vehicleType: OrderVehicleType;
   pickupFloor: string;
   destinationFloor: string;
+  /** True only when both stops have an elevator. Kept for older orders and readers. */
   hasElevator: boolean;
+  pickupHasElevator?: boolean;
+  dropoffHasElevator?: boolean;
   laborRequired: OrderLaborRequired;
   cargoInventory?: OrderCargoInventory;
 }
@@ -38,6 +41,8 @@ export const DEFAULT_ORDER_LOGISTICS: Readonly<OrderLogistics> = {
   pickupFloor: '0',
   destinationFloor: '0',
   hasElevator: false,
+  pickupHasElevator: false,
+  dropoffHasElevator: false,
   laborRequired: 'none',
   cargoInventory: { boxes: 0, mediumItems: 0, largeFurniture: 0, heavyAppliances: 0 },
 };

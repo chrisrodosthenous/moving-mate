@@ -5,7 +5,7 @@ import { badgeVariants, type BadgeVariant } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ToastType, ToastService } from '../../../core/services/toast.service';
 
-const TOAST_TYPE_VARIANT: Record<ToastType, BadgeVariant> = {
+const TOAST_TYPE_VARIANT: Record<Exclude<ToastType, 'point'>, BadgeVariant> = {
   success: 'success',
   error: 'destructive',
   warning: 'warning',
@@ -44,10 +44,14 @@ export class ToastComponent {
 
   /** Aligned with {@linkcode badgeVariants} (light) — success = emerald, error = rose. */
   classForType(type: ToastType): string {
+    const shared =
+      'pointer-events-auto flex w-full min-w-0 items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm font-sans antialiased leading-snug shadow-md [text-wrap:balance]';
+    if (type === 'point') {
+      return cn(shared, 'border-[#bdbdbd] bg-background text-[#21c45d]');
+    }
     return cn(
       badgeVariants({ variant: TOAST_TYPE_VARIANT[type], surface: 'light' }),
-      'pointer-events-auto flex w-full min-w-0 items-center justify-between gap-3 rounded-lg px-4 py-3 text-sm font-sans antialiased leading-snug shadow-md',
-      '[text-wrap:balance]',
+      shared,
     );
   }
 }

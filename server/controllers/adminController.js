@@ -1,113 +1,15 @@
 const { sendDriverWelcome, sendDriverVerificationEmail, clientBaseUrl } = require('../services/notificationService');
 const { emitVerificationStatusUpdated } = require('../services/realtimeService');
-const { normalizedDriverDistricts } = require('../constants/cyprusDistricts');
 const User = require('../models/User');
 const TransportOrder = require('../models/TransportOrder');
 const mongoose = require('mongoose');
-const { sendPublicUpload } = require('../services/storedUploadService');
+const { createImpersonationGrant, redeemImpersonationGrant } = require('../services/impersonationService');
+const { shapeOrderDocForClient, shapeDriverForAdmin } = require('../services/adminShapes');
+const { computeOrderCommission } = require('../utils/orderCommission');
 
 function toObjectId(id) {
   if (!id) return null;
   return mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id;
-}
-
-/** Populated User subdoc for orders — matches Angular `customer` / `driver` + `fullName` / `phone`. */
-function shapeUserForOrder(u) {
-  if (!u || typeof u !== 'object') return null;
-  const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
-  const phone = u.phoneNumber != null ? String(u.phoneNumber) : '';
-  return {
-    _id: u._id,
-    firstName: u.firstName,
-    lastName: u.lastName,
-    fullName: fullName || '—',
-    email: u.email || '',
-    phone,
-    phoneNumber: u.phoneNumber,
-    carModel: u.carModel,
-    plateNumber: u.plateNumber,
-  };
-}
-
-function shapeOrderDocForClient(o) {
-  const cust = shapeUserForOrder(
-    o.customerId && typeof o.customerId === 'object' ? o.customerId : null
-  );
-  const drv = shapeUserForOrder(o.driverId && typeof o.driverId === 'object' ? o.driverId : null);
-  return {
-    _id: o._id,
-    customerId: o.customerId,
-    driverId: o.driverId,
-    customer: cust,
-    driver: drv,
-    pickupDistrict: o.pickupDistrict,
-    pickupLocation: o.pickupLocation,
-    dropoffLocation: o.dropoffLocation,
-    status: o.status,
-    price: o.price,
-    driverEarnings: o.driverEarnings != null ? Number(o.driverEarnings) : 0,
-    platformCommission: o.platformCommission != null ? Number(o.platformCommission) : 0,
-    commissionRate: o.commissionRate != null ? Number(o.commissionRate) : 20,
-    scheduledAt: o.scheduledAt,
-    distanceKm: o.distanceKm,
-    insuranceStatus: o.insuranceStatus,
-    smallBoxes: o.smallBoxes,
-    mediumBoxes: o.mediumBoxes,
-    largeBoxes: o.largeBoxes,
-    cargoImageUrl: o.cargoImageUrl,
-    createdAt: o.createdAt,
-    /** Same semantics as customer/driver APIs: when the order was submitted (mirrors createdAt). */
-    submittedAt: o.createdAt,
-    driverLocation:
-      o.driverLocation?.lat != null && o.driverLocation?.lng != null
-        ? {
-            lat: o.driverLocation.lat,
-            lng: o.driverLocation.lng,
-            heading: typeof o.driverLocation.heading === 'number' ? o.driverLocation.heading : undefined,
-          }
-        : null,
-    vehicleType: o.vehicleType || 'pickup',
-    pickupFloor: o.pickupFloor != null && o.pickupFloor !== '' ? String(o.pickupFloor) : '0',
-    destinationFloor:
-      o.destinationFloor != null && o.destinationFloor !== '' ? String(o.destinationFloor) : '0',
-    ...(o.hasElevator != null ? { hasElevator: Boolean(o.hasElevator) } : {}),
-    laborRequired:
-      o.laborRequired === 'driver' || o.laborRequired === 'driver_plus_helper'
-        ? o.laborRequired
-        : 'none',
-  };
-}
-
-function shapeDriverForAdmin(u) {
-  return {
-    _id: u._id,
-    firstName: u.firstName,
-    lastName: u.lastName,
-    email: u.email,
-    phoneNumber: u.phoneNumber,
-    dateOfBirth: u.dateOfBirth,
-    role: u.role,
-    district: u.district || null,
-    isVerified: u.isVerified,
-    verificationStatus: u.verificationStatus,
-    rejectionReason: u.rejectionReason || '',
-    licenseUrl: u.licenseUrl || '',
-    idCardPath: u.idCardPath || '',
-    licensePath: u.licensePath || '',
-    vehicleType: u.vehicleType || '',
-    vehiclePhotoUrl: u.vehiclePhotoUrl || '',
-    districts: normalizedDriverDistricts(u),
-    carModel: u.carModel || '',
-    plateNumber: u.plateNumber || '',
-    averageRating: u.averageRating != null ? Number(u.averageRating) : null,
-    reviewCount:
-      typeof u.reviewCount === 'number'
-        ? u.reviewCount
-        : typeof u.totalReviews === 'number'
-          ? u.totalReviews
-          : 0,
-    createdAt: u.createdAt,
-  };
 }
 
 /**
@@ -247,6 +149,30 @@ async function verifyUser(req, res, next) {
   }
 }
 
+async function getCustomerDirectory(req, res, next) {
+  try {
+    return res.json(await listCustomers(req.query));
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function getDriverDirectory(req, res, next) {
+  try {
+    return res.json(await listDrivers(req.query));
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function getOrderDirectory(req, res, next) {
+  try {
+    return res.json(await listOrders(req.query));
+  } catch (err) {
+    return next(err);
+  }
+}
+
 /**
  * GET /api/admin/overview - All users and all orders (admin only).
  */
@@ -305,16 +231,18 @@ async function getAdminOrderDetail(req, res, next) {
 async function getDriverDocument(req, res, next) {
   try {
     const { id, docType } = req.params;
-    if (!['id-card', 'license'].includes(docType)) {
+    if (!['id-card', 'license', 'vehicle-photo'].includes(docType)) {
       return res.status(400).json({ message: 'Invalid document type' });
     }
-    const user = await User.findById(toObjectId(id)).select('idCardPath licensePath licenseUrl').lean();
+    const user = await User.findById(toObjectId(id)).select('idCardPath licensePath licenseUrl vehiclePhotoUrl').lean();
     if (!user) return res.status(404).json({ message: 'Driver not found' });
 
     const relPath =
       docType === 'id-card'
         ? user.idCardPath || ''
-        : user.licenseUrl || user.licensePath || '';
+        : docType === 'vehicle-photo'
+          ? user.vehiclePhotoUrl || ''
+          : user.licenseUrl || user.licensePath || '';
     if (!relPath) {
       return res.status(404).json({ message: 'Document not uploaded' });
     }
@@ -356,29 +284,151 @@ function lastNDayBuckets(days) {
   return buckets;
 }
 
+function lastNMonthBuckets(count) {
+  const buckets = [];
+  const now = new Date();
+  const span = Math.max(1, Math.floor(count));
+  for (let offset = span - 1; offset >= 0; offset--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    buckets.push({
+      key,
+      label: d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
+    });
+  }
+  return buckets;
+}
+
+function trendWindow(range) {
+  if (range === 'week') return { buckets: lastNDayBuckets(7), byMonth: false };
+  if (range === 'thisMonth') {
+    const today = new Date();
+    return { buckets: lastNDayBuckets(today.getDate()), byMonth: false };
+  }
+  if (range === 'threeMonths') return { buckets: lastNMonthBuckets(3), byMonth: true };
+  if (range === 'sixMonths') return { buckets: lastNMonthBuckets(6), byMonth: true };
+  if (range === 'year') return { buckets: lastNMonthBuckets(12), byMonth: true };
+  return { buckets: lastNDayBuckets(CHART_TREND_DAYS), byMonth: false };
+}
+
+async function analyticsSummary() {
+  const [
+    clients,
+    driversAll,
+    driversVerified,
+    driversPending,
+    driversNotVerified,
+    statusGroups,
+    completed,
+  ] = await Promise.all([
+    User.countDocuments({ role: 'customer' }),
+    User.countDocuments({ role: 'driver' }),
+    User.countDocuments({
+      role: 'driver',
+      $or: [{ isVerified: true }, { verificationStatus: 'approved' }],
+    }),
+    User.countDocuments({ role: 'driver', verificationStatus: 'pending' }),
+    User.countDocuments({ role: 'driver', verificationStatus: { $in: ['none', 'rejected'] } }),
+    TransportOrder.aggregate([
+      {
+        $group: {
+          _id: { status: '$status', paymentStatus: { $ifNull: ['$paymentStatus', 'unpaid'] } },
+          count: { $sum: 1 },
+        },
+      },
+    ]),
+    TransportOrder.find({ status: { $in: COMPLETED_ORDER_STATUSES } })
+      .select('price driverEarnings platformCommission')
+      .lean(),
+  ]);
+
+  const orders = {
+    all: 0,
+    pending_payment: 0,
+    pending_driver: 0,
+    accepted: 0,
+    on_the_way: 0,
+    picked_up: 0,
+    delivered: 0,
+    cancelled: 0,
+  };
+  for (const row of statusGroups) {
+    const status = String(row._id?.status ?? '').toLowerCase();
+    const payment = String(row._id?.paymentStatus ?? 'unpaid').toLowerCase();
+    const count = row.count || 0;
+    orders.all += count;
+    if (status === 'cancelled' || status === 'canceled') orders.cancelled += count;
+    else if (status === 'pending') {
+      if (payment === 'authorized' || payment === 'captured') orders.pending_driver += count;
+      else orders.pending_payment += count;
+    } else if (status === 'accepted') orders.accepted += count;
+    else if (status === 'driver_is_on_the_way') orders.on_the_way += count;
+    else if (status === 'picked_up' || status === 'in_progress' || status === 'delivery_in_progress') {
+      orders.picked_up += count;
+    } else if (status === 'delivered' || status === 'completed') orders.delivered += count;
+  }
+
+  let grossTurnover = 0;
+  let platformRevenue = 0;
+  let driverEarnings = 0;
+  for (const order of completed) {
+    const price = Number(order.price) || 0;
+    grossTurnover += price;
+    const stored = Number(order.driverEarnings) > 0 || Number(order.platformCommission) > 0;
+    if (stored) {
+      platformRevenue += Number(order.platformCommission) || 0;
+      driverEarnings += Number(order.driverEarnings) || 0;
+    } else {
+      const split = computeOrderCommission(price);
+      platformRevenue += split.platformCommission;
+      driverEarnings += split.driverEarnings;
+    }
+  }
+
+  return {
+    clients,
+    drivers: {
+      all: driversAll,
+      verified: driversVerified,
+      not_verified: driversNotVerified,
+      pending: driversPending,
+    },
+    orders,
+    ledger: {
+      grossTurnover: Math.round(grossTurnover * 100) / 100,
+      platformRevenue: Math.round(platformRevenue * 100) / 100,
+      driverEarnings: Math.round(driverEarnings * 100) / 100,
+      completedCount: completed.length,
+    },
+  };
+}
+
 /**
- * GET /api/admin/analytics — aggregates for admin dashboard charts (30-day trend, districts, top drivers).
+ * GET /api/admin/analytics — chart buckets plus counts. Does not return order documents.
  */
 async function getAnalytics(req, res, next) {
   try {
-    const dayBuckets = lastNDayBuckets(CHART_TREND_DAYS);
-    const rangeStart = new Date();
-    rangeStart.setHours(0, 0, 0, 0);
-    rangeStart.setDate(rangeStart.getDate() - (CHART_TREND_DAYS - 1));
+    const { buckets, byMonth } = trendWindow(String(req.query.range || 'month'));
+    const oldest = buckets[0]?.key;
+    const rangeStart = byMonth
+      ? new Date(`${oldest}-01T00:00:00`)
+      : new Date(`${oldest}T00:00:00`);
 
     const recentOrders = await TransportOrder.find({ createdAt: { $gte: rangeStart } })
       .select('createdAt price')
       .lean();
 
-    const ordersByDay = Object.fromEntries(dayBuckets.map((b) => [b.key, 0]));
-    const revenueByDay = Object.fromEntries(dayBuckets.map((b) => [b.key, 0]));
+    const ordersByBucket = Object.fromEntries(buckets.map((b) => [b.key, 0]));
+    const revenueByBucket = Object.fromEntries(buckets.map((b) => [b.key, 0]));
     for (const o of recentOrders) {
       const created = new Date(o.createdAt);
       if (Number.isNaN(created.getTime())) continue;
-      const key = localDateKey(created);
-      if (!(key in ordersByDay)) continue;
-      ordersByDay[key]++;
-      revenueByDay[key] += Number(o.price) || 0;
+      const key = byMonth
+        ? `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, '0')}`
+        : localDateKey(created);
+      if (!(key in ordersByBucket)) continue;
+      ordersByBucket[key]++;
+      revenueByBucket[key] += Number(o.price) || 0;
     }
 
     const districtAgg = await TransportOrder.aggregate([
@@ -388,12 +438,7 @@ async function getAnalytics(req, res, next) {
     ]);
 
     const driverAgg = await TransportOrder.aggregate([
-      {
-        $match: {
-          status: { $in: COMPLETED_ORDER_STATUSES },
-          driverId: { $ne: null },
-        },
-      },
+      { $match: { status: { $in: COMPLETED_ORDER_STATUSES }, driverId: { $ne: null } } },
       { $group: { _id: '$driverId', trips: { $sum: 1 } } },
       { $sort: { trips: -1 } },
       { $limit: 5 },
@@ -418,9 +463,9 @@ async function getAnalytics(req, res, next) {
     res.json({
       success: true,
       trend: {
-        labels: dayBuckets.map((b) => b.label),
-        orders: dayBuckets.map((b) => ordersByDay[b.key] ?? 0),
-        revenue: dayBuckets.map((b) => Math.round((revenueByDay[b.key] ?? 0) * 100) / 100),
+        labels: buckets.map((b) => b.label),
+        orders: buckets.map((b) => ordersByBucket[b.key] ?? 0),
+        revenue: buckets.map((b) => Math.round((revenueByBucket[b.key] ?? 0) * 100) / 100),
       },
       districts: {
         labels: districtAgg.map((r) => String(r._id)),
@@ -430,6 +475,7 @@ async function getAnalytics(req, res, next) {
         labels: driverLabels,
         trips: driverAgg.map((r) => r.trips),
       },
+      summary: await analyticsSummary(),
     });
   } catch (err) {
     next(err);
@@ -437,8 +483,81 @@ async function getAnalytics(req, res, next) {
 }
 
 exports.getOverview = getOverview;
+exports.getCustomerDirectory = getCustomerDirectory;
+exports.getDriverDirectory = getDriverDirectory;
+exports.getOrderDirectory = getOrderDirectory;
 exports.getAnalytics = getAnalytics;
 exports.getPendingVerifications = getPendingVerifications;
 exports.verifyUser = verifyUser;
 exports.getDriverDocument = getDriverDocument;
 exports.getAdminOrderDetail = getAdminOrderDetail;
+exports.setCustomerSuspension = setCustomerSuspension;
+exports.impersonateUser = impersonateUser;
+exports.redeemImpersonation = redeemImpersonation;
+
+/** POST /api/admin/impersonate/:id — returns a one-time code, not a login token. */
+async function impersonateUser(req, res, next) {
+  try {
+    const userId = toObjectId(req.params.id);
+    if (!userId) {
+      return res.status(400).json({ message: 'Invalid account id' });
+    }
+    const user = await User.findById(userId);
+    if (!user || (user.role !== 'customer' && user.role !== 'driver')) {
+      return res.status(404).json({ message: 'Account not found' });
+    }
+    if (String(user._id) === String(req.user?.userId)) {
+      return res.status(400).json({ message: 'You are already signed in as this account' });
+    }
+    if (user.isSuspended) {
+      return res.status(400).json({
+        message: 'This account is suspended. Unsuspend it before signing in as this user.',
+      });
+    }
+    const code = await createImpersonationGrant({ adminId: req.user.userId, user });
+    console.log(`[admin] impersonate admin=${req.user?.userId ?? 'unknown'} target=${user._id} role=${user.role}`);
+    return res.json({ code, role: user.role });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/** POST /api/admin/impersonate/redeem — exchanges a one-time code for an 8-hour session. */
+async function redeemImpersonation(req, res, next) {
+  try {
+    const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
+    if (!code) {
+      return res.status(400).json({ message: 'A sign-in code is required' });
+    }
+    const session = await redeemImpersonationGrant({ adminId: req.user.userId, code });
+    if (!session) {
+      return res.status(400).json({ message: 'This sign-in link has expired. Click Impersonate again.' });
+    }
+    return res.json({ message: 'Signed in', token: session.token, user: session.user });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * PATCH /api/admin/customers/:id/suspension
+ * Body: { suspended: boolean }
+ * Suspended customers and drivers cannot sign in.
+ */
+async function setCustomerSuspension(req, res, next) {
+  try {
+    const userId = toObjectId(req.params.id);
+    if (!userId) {
+      return res.status(400).json({ message: 'Invalid customer id' });
+    }
+    const user = await User.findById(userId);
+    if (!user || (user.role !== 'customer' && user.role !== 'driver')) {
+      return res.status(404).json({ message: 'Account not found' });
+    }
+    user.isSuspended = req.body?.suspended === true;
+    await user.save();
+    return res.json({ success: true, user: shapeDriverForAdmin(user) });
+  } catch (err) {
+    next(err);
+  }
+}

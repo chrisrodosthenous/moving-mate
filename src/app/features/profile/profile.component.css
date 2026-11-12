@@ -1,3 +1,19 @@
 :host {
   display: block;
 }
+
+[data-profile-role='customer'] .profile-hint,
+[data-profile-role='driver'] :is(.text-muted, .text-muted-foreground, .text-subtle) {
+  color: #bdbdbd;
+}
+
+[data-profile-role='customer'] .profile-field {
+  background-color: hsl(var(--background));
+  border-color: #bdbdbd;
+  opacity: 1;
+}
+
+[data-profile-role='customer'] .profile-phone-prefix {
+  background-color: transparent;
+  border-right-color: #bdbdbd;
+}

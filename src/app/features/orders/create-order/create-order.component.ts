@@ -9,7 +9,6 @@ import { catchError, debounceTime, finalize, map, switchMap, take } from 'rxjs/o
 import { LucideAngularModule } from 'lucide-angular';
 import { MapDirectionsService } from '@angular/google-maps';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
-import { customerBookingSuccess } from '../../../shared/components/customer/customer-animations';
 import { OrderMapViewComponent } from '../../../components/orders/order-map-view.component';
 import { OrderFormComponent } from '../../../components/orders/order-form.component';
 import { OrderSummaryComponent } from '../../../components/orders/order-summary.component';
@@ -17,7 +16,7 @@ import { MapService } from '../../../core/services/map.service';
 import { GoogleMapsLoaderService } from '../../../core/services/google-maps-loader.service';
 import { OrdersService } from '../../../core/services/orders.service';
 import type { CreateOrderPayload } from '../../../core/services/orders.service';
-import type { OrderLaborRequired, OrderVehicleType, OrderCargoInventory } from '../../../core/models/order.model';
+import type { OrderVehicleType, OrderCargoInventory } from '../../../core/models/order.model';
 import {
   EMPTY_CARGO_INVENTORY,
   computeCargoScore,
@@ -100,7 +99,6 @@ function tomorrowDateString(): string {
   ],
   templateUrl: './create-order.component.html',
   styleUrl: './create-order.component.css',
-  animations: [customerBookingSuccess],
 })
 export class CreateOrderComponent implements OnInit, OnDestroy {
   private readonly store = inject(Store);
@@ -131,8 +129,8 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
       cargo.heavyAppliances,
       logistics.pickupFloor,
       logistics.destinationFloor,
-      logistics.hasElevator ? '1' : '0',
-      logistics.laborRequired,
+      logistics.pickupHasElevator ? '1' : '0',
+      logistics.dropoffHasElevator ? '1' : '0',
     ].join('|');
   });
   private readonly logger = inject(LoggerService);
@@ -149,13 +147,14 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
     }),
   });
 
-  /** Logistics details collected on the New Order form (floors, elevator, labor; vehicleType is auto-assigned). */
+  /** Logistics details collected on the New Order form (floors, elevator; vehicleType is auto-assigned). */
   readonly logisticsForm = this.fb.nonNullable.group({
     vehicleType: this.fb.nonNullable.control<OrderVehicleType>('pickup'),
     pickupFloor: this.fb.nonNullable.control('0'),
     destinationFloor: this.fb.nonNullable.control('0'),
     hasElevator: this.fb.nonNullable.control(false),
-    laborRequired: this.fb.nonNullable.control<OrderLaborRequired>('none'),
+    pickupHasElevator: this.fb.nonNullable.control(false),
+    dropoffHasElevator: this.fb.nonNullable.control(false),
   });
 
   /** Customer cargo inventory — drives automatic vehicle tier selection. */
@@ -192,8 +191,10 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
       cargoInventory: this.cargoInventory(),
       pickupFloor: logistics.pickupFloor,
       destinationFloor: logistics.destinationFloor,
-      hasElevator: logistics.hasElevator,
-      laborRequired: logistics.laborRequired,
+      hasElevator: logistics.pickupHasElevator && logistics.dropoffHasElevator,
+      pickupHasElevator: logistics.pickupHasElevator,
+      dropoffHasElevator: logistics.dropoffHasElevator,
+      laborRequired: 'none',
     });
   });
 
@@ -212,7 +213,6 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
   directionsResult = signal<google.maps.DirectionsResult | null>(null);
   loading = signal(false);
   error = signal('');
-  showBookingSuccess = signal(false);
 
   readonly createSubmitting = toSignal(this.store.select(selectCustomerCreateSubmitting), {
     initialValue: false,
@@ -381,8 +381,10 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
             cargoInventory: { ...cargo },
             pickupFloor: logistics.pickupFloor,
             destinationFloor: logistics.destinationFloor,
-            hasElevator: logistics.hasElevator,
-            laborRequired: logistics.laborRequired,
+            hasElevator: logistics.pickupHasElevator && logistics.dropoffHasElevator,
+            pickupHasElevator: logistics.pickupHasElevator,
+            dropoffHasElevator: logistics.dropoffHasElevator,
+            laborRequired: 'none',
           }).pipe(
             map((quote) => ({ key, quote })),
             catchError(() => of(null)),
@@ -492,23 +494,17 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
     this.actions$
       .pipe(ofType(CustomerActions.createCustomerOrderSuccess), takeUntilDestroyed())
       .subscribe(({ order }) => {
-        this.showBookingSuccess.set(true);
+        this.toast.show('Order Submitted. Please proceed with payment.', 'point', 5000);
         const file = this.cargoFile;
         this.cargoFile = null;
-        const go = () => {
-          this.showBookingSuccess.set(false);
-          this.store.dispatch(CustomerActions.clearLastCreatedOrder());
-          void this.router.navigate(this.hideShell() ? ['/customer/orders'] : ['/customer/dashboard']);
-        };
         if (file && order._id) {
           this.ordersService.uploadOrderCargo(order._id, file, { skipGlobalErrorToast: true }).subscribe({
             next: () => this.toast.show('Cargo photo saved!', 'success'),
             error: () => this.toast.show('Order created; cargo photo upload failed.', 'info'),
-            complete: () => setTimeout(go, 520),
           });
-        } else {
-          setTimeout(go, 620);
         }
+        this.store.dispatch(CustomerActions.clearLastCreatedOrder());
+        void this.router.navigate(this.hideShell() ? ['/customer/orders'] : ['/customer/dashboard']);
       });
   }
 
@@ -579,24 +575,24 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
   }
 
   clearPickupOnly(): void {
-    this.pickup.set(null);
+      this.pickup.set(null);
     this.pickupAddressText = '';
     this.pickupGeocoding.set(false);
-    this.pickupCoordinatesFallback.set(false);
-    this.directionsResult.set(null);
-    this.distanceKm.set(null);
-    this.durationText.set('');
+      this.pickupCoordinatesFallback.set(false);
+      this.directionsResult.set(null);
+      this.distanceKm.set(null);
+      this.durationText.set('');
     this.error.set('');
   }
 
   clearDropoffOnly(): void {
-    this.dropoff.set(null);
+      this.dropoff.set(null);
     this.dropoffAddressText = '';
     this.dropoffGeocoding.set(false);
-    this.dropoffCoordinatesFallback.set(false);
-    this.directionsResult.set(null);
-    this.distanceKm.set(null);
-    this.durationText.set('');
+      this.dropoffCoordinatesFallback.set(false);
+      this.directionsResult.set(null);
+      this.distanceKm.set(null);
+      this.durationText.set('');
     this.error.set('');
   }
 
@@ -636,9 +632,7 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
           this.pickupAddressText = isCoordinatesFallback ? 'Point selected on map' : address;
           this.pickupCoordinatesFallback.set(isCoordinatesFallback);
           this.error.set('');
-          if (isCoordinatesFallback) {
-              this.toast.show('Address not found; location still saved for the route.', 'info');
-          }
+          this.toast.show('From (pickup) point selected', 'point', 5000);
           if (this.dropoff()) this.updateRouteAndPrice();
           this.drawerOpen.set(true);
         },
@@ -658,9 +652,7 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
           this.dropoffAddressText = isCoordinatesFallback ? 'Point selected on map' : address;
           this.dropoffCoordinatesFallback.set(isCoordinatesFallback);
           this.error.set('');
-          if (isCoordinatesFallback) {
-              this.toast.show('Address not found; location still saved for the route.', 'info');
-          }
+          this.toast.show('To (destination) point selected', 'point', 5000);
           if (this.pickup()) this.updateRouteAndPrice();
         },
       });
@@ -813,8 +805,10 @@ export class CreateOrderComponent implements OnInit, OnDestroy {
       vehicleType: quoteMatches ? quoted.quote.vehicleType : logistics.vehicleType,
       pickupFloor: logistics.pickupFloor,
       destinationFloor: logistics.destinationFloor,
-      hasElevator: logistics.hasElevator,
-      laborRequired: logistics.laborRequired,
+      hasElevator: logistics.pickupHasElevator && logistics.dropoffHasElevator,
+      pickupHasElevator: logistics.pickupHasElevator,
+      dropoffHasElevator: logistics.dropoffHasElevator,
+      laborRequired: 'none',
       ...(this.scheduledDate?.trim() && this.scheduledTime?.trim() && {
         scheduledAt: new Date(`${this.scheduledDate}T${this.scheduledTime}:00`).toISOString(),
       }),

@@ -21,7 +21,7 @@
     <!-- Order summary (Stripe-style left pane) -->
     <aside
       class="checkout-summary-pane order-1 flex w-full shrink-0 flex-col px-5 py-8 sm:px-8 lg:w-[min(100%,28rem)] lg:min-h-0 lg:flex-1 lg:px-10 lg:py-12 xl:w-[38%]"
-      aria-label="Order summary"
+      aria-label="Move summary"
     >
       <p class="text-sm text-white/70">Pay Moving Mate</p>
       <p class="mt-2 text-4xl font-semibold tabular-nums tracking-tight sm:text-5xl">
@@ -44,7 +44,7 @@
       </div>
 
       @if (orderId()) {
-        <p class="mt-6 font-mono text-xs text-white/45">Order #{{ orderShortId() }}</p>
+        <p class="mt-6 font-mono text-xs text-white/45">Move #{{ orderShortId() }}</p>
       }
     </aside>
 
@@ -66,7 +66,7 @@
             role="status"
           >
             <p class="font-semibold">Payment authorized</p>
-            <p class="mt-1 text-emerald-800/90">Drivers can now accept your order. Redirecting…</p>
+            <p class="mt-1 text-emerald-800/90">Drivers can now accept your move. Redirecting…</p>
           </div>
         } @else {
           <h1 class="text-xl font-semibold text-[#0a2540]">Payment details</h1>

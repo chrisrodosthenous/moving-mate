@@ -23,6 +23,36 @@
           <map-marker [position]="drv" [options]="driverMarkerOptions()" />
         }
       </google-map>
+      @if (navigationTarget(); as target) {
+        <div class="pointer-events-none absolute inset-x-3 top-3 z-10 flex flex-col gap-2 sm:inset-x-4">
+          <div class="pointer-events-auto rounded-xl border border-border/30 bg-card/95 px-3 py-2 shadow-sm">
+            <p class="text-xs font-semibold text-[#21c45d]">
+              @if (target === 'pickup') {
+                @if (driverPosition()) {
+                  From your location to the pickup
+                } @else {
+                  Waiting for your location to navigate to the pickup
+                }
+              } @else {
+                From the pickup to the drop-off
+              }
+            </p>
+            @if (navigationHint(); as hint) {
+              <p class="mt-1 text-sm text-foreground">{{ hint.instruction }}</p>
+              @if (hint.distance) {
+                <p class="text-xs text-muted">{{ hint.distance }}</p>
+              }
+            }
+            <button
+              type="button"
+              class="mt-2 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-[#76b28c]"
+              (click)="openGoogleNavigation()"
+            >
+              Open in Google Maps
+            </button>
+          </div>
+        </div>
+      }
     </div>
 
     <div class="active-delivery-panel w-full min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 md:space-y-5 md:p-6 lg:max-w-md lg:shrink-0">
@@ -30,12 +60,12 @@
         routerLink="/driver/tasks"
         class="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-primary transition hover:text-primary"
       >
-        ← Back to My trips
+        ← Back to My moves
       </a>
       <div class="rounded-xl border border-border/30 bg-card/85 backdrop-blur-sm p-5 shadow-sm">
         <div class="mb-3 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p class="text-sm text-muted">Order #{{ o._id }}</p>
+            <p class="font-mono text-xs font-semibold tracking-wide text-card-title">#{{ orderShortId(o._id) }}</p>
           </div>
           @if (canTrack()) {
             <span
@@ -60,13 +90,22 @@
         }
         @if (canTrack()) {
           <p class="mb-4 text-sm text-muted">
-            Your position is shared with the customer while this job is active. Keep the app open and allow location.
+            Your position is shared with the customer while this move is active. Keep the app open and allow location.
           </p>
         }
-        @if (canMarkPickedUp()) {
+        @if (canMarkOnTheWay()) {
           <button
             type="button"
-            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:opacity-60"
+            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-60"
+            [disabled]="tripBusy()"
+            (click)="markOnTheWay()"
+          >
+            {{ tripBusy() ? 'Updating…' : 'Driver is on the way' }}
+          </button>
+        } @else if (canMarkPickedUp()) {
+          <button
+            type="button"
+            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-60"
             [disabled]="tripBusy()"
             (click)="markPickedUp()"
           >
@@ -75,14 +114,14 @@
         } @else if (canMarkDelivered()) {
           <button
             type="button"
-            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:opacity-60"
+            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-60"
             [disabled]="tripBusy()"
             (click)="markDelivered()"
           >
             {{ tripBusy() ? 'Updating…' : 'Mark delivered' }}
           </button>
         } @else if (!canTrack()) {
-          <p class="text-sm text-muted">This trip is finished. Open My trips to see the record.</p>
+          <p class="text-sm text-muted">This move is finished. Open My moves to see the record.</p>
         }
 
         <div class="mt-4 space-y-2 border-t border-border/20 pt-4 text-sm text-muted-foreground">
@@ -100,8 +139,8 @@
     <p class="flex-1 py-12 text-center text-muted">Loading…</p>
   } @else {
     <div class="mx-4 rounded-xl border border-border/30 bg-card/85 backdrop-blur-sm p-8 text-center shadow-sm md:mx-auto md:max-w-lg">
-      <p class="mb-2 text-muted">This order was not found in your trips.</p>
-      <a routerLink="/driver/tasks" class="font-medium text-primary hover:text-primary">Return to My trips</a>
+      <p class="mb-2 text-muted">This move was not found in your moves.</p>
+      <a routerLink="/driver/tasks" class="font-medium text-primary hover:text-primary">Return to My moves</a>
     </div>
   }
 </div>

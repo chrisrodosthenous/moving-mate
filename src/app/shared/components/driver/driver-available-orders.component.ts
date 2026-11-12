@@ -13,7 +13,6 @@ import { AuthService } from '../../../core/services/auth.service';
 import type { AuthUser } from '../../../store/auth.store';
 import * as DriverActions from '../../../features/driver/state/driver.actions';
 import { DriverJobCardComponent } from './driver-job-card/driver-job-card.component';
-import { DRIVER_JOB_CTA_CLASS } from './driver-job-card/driver-job-card.theme';
 import { routeEndpointMarkerOptions, routeLineRendererOptions } from '../../utils/route-map-markers';
 import { UiButtonComponent } from '@/components/ui/button';
 import {
@@ -69,7 +68,8 @@ export interface RouteInfo {
   styleUrl: './driver-available-orders.component.css',
 })
 export class DriverAvailableOrdersComponent {
-  readonly acceptBtnClass = DRIVER_JOB_CTA_CLASS;
+  readonly acceptBtnClass =
+    'inline-flex min-h-[48px] w-full min-w-0 flex-1 items-center justify-center rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 sm:w-auto sm:min-w-[12rem] sm:flex-none';
 
   private readonly store = inject(Store);
   private readonly auth = inject(AuthService);
@@ -106,7 +106,7 @@ export class DriverAvailableOrdersComponent {
     if (this.hasLicenseFile()) {
       return 'License uploaded. Waiting for admin approval.';
     }
-    return 'Please upload your driving license to start accepting orders. Status: Pending Approval.';
+    return 'Please upload your driving license to start accepting moves. Status: Pending Approval.';
   });
 
   readonly orders = toSignal(this.store.select(selectDriverAvailableOrders), { initialValue: [] });
@@ -142,7 +142,6 @@ export class DriverAvailableOrdersComponent {
     /** We call `fitBounds` ourselves; default `false` makes the renderer pan/zoom too — double viewport updates read as flicker. */
     preserveViewport: true,
     polylineOptions: {
-      strokeColor: '#22C55E',
       strokeOpacity: 1,
       strokeWeight: 5,
     },

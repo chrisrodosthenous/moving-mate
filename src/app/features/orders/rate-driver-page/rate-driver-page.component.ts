@@ -24,6 +24,7 @@ import {
   imports: [RouterLink, FormsModule, SidebarComponent, EmptyStateComponent],
   templateUrl: './rate-driver-page.component.html',
   styleUrl: './rate-driver-page.component.css',
+  host: { 'data-design-scope': 'customer' },
 })
 export class RateDriverPageComponent {
   private readonly store = inject(Store);

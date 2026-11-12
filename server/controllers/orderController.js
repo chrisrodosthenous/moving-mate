@@ -8,7 +8,6 @@ const {
   sendOrderAcceptedPush,
   sendStartTripPush,
   sendRatingRequestPush,
-  sendNewOrderToDriversPush,
 } = require('../services/pushNotificationService');
 const {
   normalizedDriverDistricts,
@@ -17,7 +16,6 @@ const {
 } = require('../constants/cyprusDistricts');
 const { derivePickupDistrictFromLocation } = require('../services/mapsService');
 const {
-  emitNewOrderAvailable,
   emitToUser,
   emitToAdmins,
   orderPayloadForEmit,
@@ -359,7 +357,7 @@ function notifyDriverAccepted(orderDoc) {
  * POST /api/orders - Create a new transport order (customer).
  * Body: { pickupLocation, dropoffLocation, pickupDistrict, price, distanceKm?, insuranceStatus?, scheduledAt?, cargoInventory, vehicleType, pickupFloor, destinationFloor, hasElevator, laborRequired, smallBoxes?, mediumBoxes?, largeBoxes? }
  * cargoInventory required with non-negative integer counts; total items must be > 0.
- * vehicleType must match the score-derived tier (pickup | minivan | van | truck).
+ * vehicleType must match the score-derived tier (pickup | van | truck).
  */
 async function createOrder(req, res, next) {
   try {
@@ -379,6 +377,8 @@ async function createOrder(req, res, next) {
       pickupFloor,
       destinationFloor,
       hasElevator,
+      pickupHasElevator,
+      dropoffHasElevator,
       laborRequired,
       quoteToken,
     } = req.body;
@@ -513,6 +513,14 @@ async function createOrder(req, res, next) {
     if (hasElevator == null || typeof hasElevator !== 'boolean') {
       return res.status(400).json({ message: 'hasElevator must be a boolean' });
     }
+    if (pickupHasElevator != null && typeof pickupHasElevator !== 'boolean') {
+      return res.status(400).json({ message: 'pickupHasElevator must be a boolean' });
+    }
+    if (dropoffHasElevator != null && typeof dropoffHasElevator !== 'boolean') {
+      return res.status(400).json({ message: 'dropoffHasElevator must be a boolean' });
+    }
+    const pickupLift = typeof pickupHasElevator === 'boolean' ? pickupHasElevator : Boolean(hasElevator);
+    const dropoffLift = typeof dropoffHasElevator === 'boolean' ? dropoffHasElevator : Boolean(hasElevator);
     if (!laborRequired || !LOGISTICS_LABOR.has(laborRequired)) {
       return res.status(400).json({ message: 'laborRequired must be none, driver, or driver_plus_helper' });
     }
@@ -525,7 +533,9 @@ async function createOrder(req, res, next) {
     orderData.largeBoxes = l;
     orderData.pickupFloor = String(pickupFloor);
     orderData.destinationFloor = String(destinationFloor);
-    orderData.hasElevator = Boolean(hasElevator);
+    orderData.hasElevator = pickupLift && dropoffLift;
+    orderData.pickupHasElevator = pickupLift;
+    orderData.dropoffHasElevator = dropoffLift;
     orderData.laborRequired = laborRequired;
 
     const { config } = await getActivePricingConfig();
@@ -539,6 +549,8 @@ async function createOrder(req, res, next) {
         pickupFloor,
         destinationFloor,
         hasElevator,
+        pickupHasElevator: pickupLift,
+        dropoffHasElevator: dropoffLift,
         laborRequired,
       });
       if (!verified.ok) {
@@ -556,6 +568,8 @@ async function createOrder(req, res, next) {
         pickupFloor,
         destinationFloor,
         hasElevator,
+        pickupHasElevator: pickupLift,
+        dropoffHasElevator: dropoffLift,
         laborRequired,
       }, config);
       if (!pricesMatch(price, serverPricing.total)) {
@@ -601,20 +615,9 @@ async function createOrder(req, res, next) {
     }
 
     const io = req.app.get('io');
-    const districtForEvents = populated.pickupDistrict || district || '';
     if (io) {
-      await emitNewOrderAvailable(io, districtForEvents, populated);
       emitToAdmins(io, 'order_updated', orderPayloadForEmit(populated));
     }
-
-    // Push: verified drivers whose districts + vehicle tier match this order only.
-    sendNewOrderToDriversPush({
-      orderId: String(populated._id),
-      district: districtForEvents,
-      vehicleType: populated.vehicleType,
-    }).catch((err) =>
-      console.warn('[Push] sendNewOrderToDriversPush failed:', err.message)
-    );
 
     res.status(201).json(populated);
   } catch (err) {
@@ -632,7 +635,11 @@ async function getOrders(req, res, next) {
     if (role !== 'driver' && role !== 'admin') {
       return res.status(403).json({ message: 'Only drivers can list available orders' });
     }
-    const query = { status: 'pending', driverId: null };
+    const query = {
+      status: 'pending',
+      driverId: null,
+      paymentStatus: { $in: ['authorized', 'captured'] },
+    };
 
     if (role === 'driver') {
       const userId = req.user?.userId ?? req.user?._id;
@@ -756,7 +763,7 @@ async function updateOrder(req, res, next) {
         { returnDocument: 'after' },
       )
         .populate('customerId', 'firstName lastName phoneNumber email fcmTokens')
-        .populate('driverId', 'firstName lastName phoneNumber email fcmTokens');
+        .populate('driverId', 'firstName lastName phoneNumber plateNumber vehicleType email fcmTokens');
 
       if (!acceptedOrder) {
         await refundCaptureAfterFailedAccept(id);
@@ -797,8 +804,8 @@ async function updateOrder(req, res, next) {
       if (order.driverId?.toString() !== driverId) {
         return res.status(403).json({ message: 'Only the assigned driver can complete this order' });
       }
-      if (!['accepted', 'picked_up', 'driver_is_on_the_way'].includes(order.status)) {
-        return res.status(400).json({ message: 'Order cannot be completed from current status' });
+      if (!['picked_up', 'in_progress'].includes(order.status)) {
+        return res.status(400).json({ message: 'Mark the load picked up before delivering it' });
       }
       await finalizeOrderDelivery(order);
     } else if (status === 'cancelled') {
@@ -816,7 +823,7 @@ async function updateOrder(req, res, next) {
     await order.save();
     const updated = await TransportOrder.findById(order._id)
     .populate('customerId', 'firstName lastName phoneNumber email fcmTokens')
-    .populate('driverId', 'firstName lastName phoneNumber email fcmTokens');
+    .populate('driverId', 'firstName lastName phoneNumber plateNumber vehicleType email fcmTokens');
 
     const io = req.app.get('io');
     const customerId = order.customerId?.toString?.() ?? order.customerId;
@@ -916,7 +923,7 @@ async function getMyOrders(req, res, next) {
 
     if (view === 'summary') {
       query = query.select(
-        '_id status price paymentStatus driverEarnings platformCommission commissionRate createdAt customerId driverId pickupLocation dropoffLocation pickupDistrict distanceKm insuranceStatus scheduledAt smallBoxes mediumBoxes largeBoxes cargoInventory cargoImageUrl rating review driverLocation vehicleType pickupFloor destinationFloor hasElevator laborRequired',
+        '_id status price paymentStatus driverEarnings platformCommission commissionRate createdAt customerId driverId pickupLocation dropoffLocation pickupDistrict distanceKm insuranceStatus scheduledAt smallBoxes mediumBoxes largeBoxes cargoInventory cargoImageUrl rating review driverLocation vehicleType pickupFloor destinationFloor hasElevator pickupHasElevator dropoffHasElevator laborRequired',
       );
     }
 
@@ -926,7 +933,7 @@ async function getMyOrders(req, res, next) {
 
     const orders = await query
       .populate('customerId', 'firstName lastName phoneNumber')
-      .populate('driverId', 'firstName lastName phoneNumber averageRating totalReviews reviewCount')
+      .populate('driverId', 'firstName lastName phoneNumber plateNumber vehicleType averageRating totalReviews reviewCount')
       .lean();
 
     const orderIds = orders.map((o) => o._id).filter(Boolean);
@@ -960,10 +967,10 @@ async function getMyOrders(req, res, next) {
 
 /**
  * PATCH /api/orders/:id/status - Driver updates status.
- * Body: { status: 'in-transit' | 'completed' }.
- * Maps to new lifecycle statuses:
- * - 'in-transit' -> 'driver_is_on_the_way'
- * - 'completed' -> 'delivered'
+ * Body: { status: 'in-transit' | 'picked-up' | 'completed' }.
+ * - 'in-transit' from accepted -> 'driver_is_on_the_way' and notifies the customer
+ * - 'picked-up' from driver_is_on_the_way -> 'picked_up'
+ * - 'completed' from picked_up -> 'delivered'
  */
 async function updateOrderStatus(req, res, next) {
   try {
@@ -977,9 +984,9 @@ async function updateOrderStatus(req, res, next) {
       return res.status(400).json({ message: 'Order ID is required in the URL (PATCH /api/orders/:id/status)' });
     }
 
-    if (!requestedStatus || !['in-transit', 'completed'].includes(requestedStatus)) {
+    if (!requestedStatus || !['in-transit', 'picked-up', 'completed'].includes(requestedStatus)) {
       return res.status(400).json({
-        message: "status must be 'in-transit' or 'completed'",
+        message: "status must be 'in-transit', 'picked-up', or 'completed'",
       });
     }
 
@@ -989,24 +996,31 @@ async function updateOrderStatus(req, res, next) {
       return res.status(403).json({ message: 'Only the assigned driver can update this order' });
     }
 
-    const statusToSet = requestedStatus === 'in-transit' ? 'driver_is_on_the_way' : 'delivered';
-
-    if (statusToSet === 'driver_is_on_the_way') {
+    let statusToSet = 'delivered';
+    if (requestedStatus === 'in-transit') {
       if (order.status !== 'accepted') {
-        return res.status(400).json({ message: 'Order must be accepted before starting the trip' });
+        return res.status(400).json({ message: 'Order must be accepted before the driver is on the way' });
       }
       order.status = 'driver_is_on_the_way';
+      statusToSet = 'driver_is_on_the_way';
+    } else if (requestedStatus === 'picked-up') {
+      if (order.status !== 'driver_is_on_the_way') {
+        return res.status(400).json({ message: 'The driver must be on the way before marking the load picked up' });
+      }
+      order.status = 'picked_up';
+      statusToSet = 'picked_up';
     } else {
-      if (!['accepted', 'picked_up', 'driver_is_on_the_way'].includes(order.status)) {
-        return res.status(400).json({ message: 'Order cannot be completed from current status' });
+      if (!['picked_up', 'in_progress'].includes(order.status)) {
+        return res.status(400).json({ message: 'Mark the load picked up before delivering it' });
       }
       await finalizeOrderDelivery(order);
+      statusToSet = 'delivered';
     }
 
     await order.save();
     const updated = await TransportOrder.findById(order._id)
     .populate('customerId', 'firstName lastName phoneNumber email fcmTokens')
-    .populate('driverId', 'firstName lastName phoneNumber email fcmTokens');
+    .populate('driverId', 'firstName lastName phoneNumber plateNumber vehicleType email fcmTokens');
 
     const io = req.app.get('io');
     const customerId = order.customerId?.toString?.() ?? order.customerId;
@@ -1056,7 +1070,7 @@ async function pickupOrder(req, res, next) {
 
     const updated = await TransportOrder.findById(order._id)
     .populate('customerId', 'firstName lastName phoneNumber email fcmTokens')
-    .populate('driverId', 'firstName lastName phoneNumber email fcmTokens');
+    .populate('driverId', 'firstName lastName phoneNumber plateNumber vehicleType email fcmTokens');
 
     const io = req.app.get('io');
     const customerId = order.customerId?.toString?.() ?? order.customerId;
@@ -1093,8 +1107,8 @@ async function deliverOrder(req, res, next) {
     if (order.driverId?.toString() !== driverId) {
       return res.status(403).json({ message: 'Only the assigned driver can update this order' });
     }
-    if (!['accepted', 'picked_up', 'driver_is_on_the_way'].includes(order.status)) {
-      return res.status(400).json({ message: 'Order cannot be delivered from current status' });
+    if (!['picked_up', 'in_progress'].includes(order.status)) {
+      return res.status(400).json({ message: 'Mark the load picked up before delivering it' });
     }
 
     await finalizeOrderDelivery(order);
@@ -1102,7 +1116,7 @@ async function deliverOrder(req, res, next) {
 
     const updated = await TransportOrder.findById(order._id)
     .populate('customerId', 'firstName lastName phoneNumber email fcmTokens')
-    .populate('driverId', 'firstName lastName phoneNumber email fcmTokens');
+    .populate('driverId', 'firstName lastName phoneNumber plateNumber vehicleType email fcmTokens');
 
     const io = req.app.get('io');
     const customerId = order.customerId?.toString?.() ?? order.customerId;
@@ -1149,7 +1163,7 @@ async function cancelOrder(req, res, next) {
 
     const updated = await TransportOrder.findById(order._id)
       .populate('customerId', 'firstName lastName phoneNumber email')
-      .populate('driverId', 'firstName lastName phoneNumber email');
+      .populate('driverId', 'firstName lastName phoneNumber plateNumber vehicleType email');
 
     const io = req.app.get('io');
     const payload = orderPayloadForEmit(updated);
@@ -1193,7 +1207,7 @@ async function completeOrder(req, res, next) {
     await order.save();
     const updated = await TransportOrder.findById(order._id)
       .populate('customerId', 'firstName lastName phoneNumber email fcmTokens')
-      .populate('driverId', 'firstName lastName phoneNumber email fcmTokens')
+      .populate('driverId', 'firstName lastName phoneNumber plateNumber vehicleType email fcmTokens')
       .lean();
 
     const io = req.app.get('io');
@@ -1258,7 +1272,11 @@ async function getOrderSummary(req, res, next) {
         return res.status(403).json({ message: 'Driver not verified' });
       }
       const scope = normalizedDriverDistricts(me);
-      const availableQuery = { status: 'pending', driverId: null };
+      const availableQuery = {
+        status: 'pending',
+        driverId: null,
+        paymentStatus: { $in: ['authorized', 'captured'] },
+      };
       if (scope.length > 0) {
         availableQuery.pickupDistrict = { $in: scope };
       }
@@ -1318,7 +1336,7 @@ async function rateOrder(req, res, next) {
     await order.save();
     const updated = await TransportOrder.findById(order._id)
       .populate('customerId', 'firstName lastName phoneNumber')
-      .populate('driverId', 'firstName lastName phoneNumber');
+      .populate('driverId', 'firstName lastName phoneNumber plateNumber vehicleType');
     res.json(updated);
   } catch (err) {
     next(err);

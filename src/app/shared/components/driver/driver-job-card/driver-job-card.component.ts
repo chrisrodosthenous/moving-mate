@@ -6,27 +6,23 @@ import {
   input,
   output,
 } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { LucideAngularModule } from 'lucide-angular';
 import type { TransportOrder } from '../../../../core/services/orders.service';
+
+function sideHasElevator(order: TransportOrder, side: 'pickup' | 'dropoff'): boolean {
+  const specific = side === 'pickup' ? order.pickupHasElevator : order.dropoffHasElevator;
+  const other = side === 'pickup' ? order.dropoffHasElevator : order.pickupHasElevator;
+  if (specific === true || other === true) return specific === true;
+  return order.hasElevator === true;
+}
 import type { BadgeVariant } from '@/components/ui/badge';
 import { UiBadgeComponent } from '@/components/ui/badge';
 import {
   driverFloorLabel,
-  driverHasLaborHelp,
-  driverLaborHelpLabel,
-  driverShowElevatorAvailable,
-  driverShowNoElevatorWarning,
   driverVehicleTypeIcon,
   driverVehicleTypeLabel,
 } from '../../../utils/driver-job-logistics.utils';
-import {
-  DRIVER_JOB_BODY_TEXT,
-  DRIVER_JOB_CARD_BASE,
-  DRIVER_JOB_CARD_HIGHLIGHT,
-  DRIVER_JOB_CARD_SELECTED,
-  DRIVER_JOB_MUTED_TEXT,
-} from './driver-job-card.theme';
 import {
   driverNetEarningsForOrder,
   isCompletedOrderStatus,
@@ -36,7 +32,7 @@ import {
   selector: 'app-driver-job-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, DecimalPipe, LucideAngularModule, UiBadgeComponent],
+  imports: [DatePipe, DecimalPipe, NgTemplateOutlet, LucideAngularModule, UiBadgeComponent],
   templateUrl: './driver-job-card.component.html',
   host: {
     tabindex: '0',
@@ -62,6 +58,8 @@ export class DriverJobCardComponent {
   readonly hostTestId = input<string | null>(null);
   /** Optional `data-testid` on the status badge (E2E). */
   readonly statusTestId = input<string | null>(null);
+  /** Driver lists show payout. Customer orders show the trip price only. */
+  readonly showEarnings = input(true);
 
   readonly cardActivate = output<Event>();
 
@@ -77,32 +75,49 @@ export class DriverJobCardComponent {
   }
 
   readonly shellClass = computed(() => {
-    const parts = [DRIVER_JOB_CARD_BASE];
-    if (this.selected()) parts.push(DRIVER_JOB_CARD_SELECTED);
-    if (this.highlighted()) parts.push(DRIVER_JOB_CARD_HIGHLIGHT);
-    if (this.completedMuted()) parts.push('opacity-90');
-    return parts.join(' ');
+    const base =
+      'driver-job-card relative block w-full cursor-pointer rounded-xl border border-border/30 border-l-4 bg-secondary/45 p-4 shadow-surface outline-none backdrop-blur-sm transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+    const state = this.selected()
+      ? 'border-l-primary bg-primary/15'
+      : 'border-l-transparent hover:border-border/50 hover:bg-secondary/90';
+    const highlight = this.highlighted()
+      ? 'ring-2 ring-primary/40 ring-offset-1 ring-offset-background'
+      : '';
+    const muted = this.completedMuted() ? 'opacity-90' : '';
+    return [base, state, highlight, muted].filter(Boolean).join(' ');
   });
 
   readonly vehicleLabel = computed(() => driverVehicleTypeLabel(this.order().vehicleType));
+  /** Customer cards show the assigned driver's plates next to the vehicle. */
+  readonly vehiclePlates = computed(() => {
+    if (this.showEarnings()) return '';
+    const driver = this.order().driverId;
+    if (!driver || typeof driver !== 'object') return '';
+    return (driver.plateNumber ?? '').trim();
+  });
   readonly vehicleIcon = computed(() => driverVehicleTypeIcon(this.order().vehicleType));
   readonly pickupFloorText = computed(() => driverFloorLabel(this.order().pickupFloor));
   readonly destinationFloorText = computed(() => driverFloorLabel(this.order().destinationFloor));
-  readonly laborLabel = computed(() => driverLaborHelpLabel(this.order().laborRequired));
-  readonly showLaborBadge = computed(() => driverHasLaborHelp(this.order().laborRequired));
-  readonly laborIconName = computed(() =>
-    this.order().laborRequired === 'driver_plus_helper' ? 'users' : 'user',
-  );
-  readonly showNoElevator = computed(() => driverShowNoElevatorWarning(this.order().hasElevator));
-  readonly showElevatorOk = computed(() => driverShowElevatorAvailable(this.order().hasElevator));
+  readonly pickupElevator = computed(() => sideHasElevator(this.order(), 'pickup'));
+  readonly dropoffElevator = computed(() => sideHasElevator(this.order(), 'dropoff'));
 
   readonly showNetEarnings = computed(
     () => this.completedMuted() && isCompletedOrderStatus(this.order().status),
   );
   readonly netEarningsAmount = computed(() => driverNetEarningsForOrder(this.order()));
 
-  readonly bodyText = DRIVER_JOB_BODY_TEXT;
-  readonly mutedText = DRIVER_JOB_MUTED_TEXT;
+  /** Both driver lists use the customer My orders card colors. */
+  tone(_available: string, shared: string): string {
+    return shared;
+  }
+
+  bodyClass(): string {
+    return 'text-card-title';
+  }
+
+  mutedClass(): string {
+    return 'text-muted';
+  }
 
   onHostClick(event: Event): void {
     const target = event.target as HTMLElement | null;

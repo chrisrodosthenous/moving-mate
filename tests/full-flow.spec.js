@@ -121,7 +121,7 @@ test('clean migration flow: driver register/login + customer register/login/orde
     await customerPage.goto(`${baseURL}/login`);
     await login(customerPage, baseURL, customerEmail, customerPassword);
     await expect(customerPage).toHaveURL(/\/customer\/dashboard$/);
-    await customerPage.getByTestId('sidebar').getByRole('link', { name: /new order/i }).click();
+    await customerPage.getByTestId('sidebar').getByRole('link', { name: /new move/i }).click();
     await expect(customerPage).toHaveURL(/\/customer\/book$/);
     await expect(customerPage.getByTestId('sidebar')).toBeVisible();
     await expect(customerPage.getByTestId('google-map-shell')).toBeVisible();
@@ -138,7 +138,7 @@ test('clean migration flow: driver register/login + customer register/login/orde
       return req.url().includes('/api/orders') && req.method() === 'POST';
     });
 
-    await customerPage.getByRole('button', { name: /confirm order/i }).click();
+    await customerPage.getByRole('button', { name: /confirm move/i }).click();
     const createOrderReq = await createOrderReqPromise;
     const createOrderPayload = createOrderReq.postDataJSON?.() ?? JSON.parse(createOrderReq.postData());
     expect(createOrderPayload.pickupLocation.lat).toBeDefined();

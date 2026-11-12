@@ -40,6 +40,7 @@ test('admin: login, see pending driver, approve, removed from pending', async ({
         role: 'driver',
         districts: JSON.stringify(['Nicosia']),
         vehicleType: 'pickup',
+        plateNumber: 'KAA 123',
         drivingLicense: {
           name: 'lic.jpg',
           mimeType: 'image/jpeg',
@@ -149,6 +150,7 @@ test('admin: reject with reason; driver profile shows exact message', async ({ b
         role: 'driver',
         districts: JSON.stringify(['Nicosia']),
         vehicleType: 'pickup',
+        plateNumber: 'KAA 123',
         drivingLicense: {
           name: 'lic.jpg',
           mimeType: 'image/jpeg',
@@ -177,7 +179,7 @@ test('admin: reject with reason; driver profile shows exact message', async ({ b
     await adminPage.getByRole('button', { name: /sign in/i }).click()
     await expect(adminPage).toHaveURL(/\/admin$/)
 
-    await adminPage.getByRole('button', { name: /driver approvals/i }).click()
+    await adminPage.getByRole('link', { name: /driver approvals/i }).click()
     await adminPage.getByTestId(`admin-pending-card-${driverId}`).click()
     await expect(adminPage.getByTestId(`admin-reject-${driverId}`)).toBeVisible({ timeout: 15000 })
     await adminPage.getByTestId(`admin-reject-${driverId}`).click()

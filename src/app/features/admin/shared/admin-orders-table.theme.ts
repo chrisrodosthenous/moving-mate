@@ -21,4 +21,4 @@ export const ADMIN_ORDERS_TABLE = {
   loadMoreBar: 'flex justify-center border-t border-border/20 px-4 py-4',
 } as const;
 
-export const ADMIN_ORDERS_COL_COUNT = 11;
+export const ADMIN_ORDERS_COL_COUNT = 10;

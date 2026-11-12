@@ -90,6 +90,17 @@ test.describe('Mock payment lifecycle', () => {
       });
       expect(acceptOk.status()).toBe(200);
 
+      const onTheWay = await backend.patch(`/api/orders/${orderId}/status`, {
+        headers: { Authorization: `Bearer ${driverToken}` },
+        data: { status: 'in-transit' },
+      });
+      expect(onTheWay.ok()).toBeTruthy();
+      const pickedUp = await backend.patch(`/api/orders/${orderId}/status`, {
+        headers: { Authorization: `Bearer ${driverToken}` },
+        data: { status: 'picked-up' },
+      });
+      expect(pickedUp.ok()).toBeTruthy();
+
       const deliverRes = await backend.patch(`/api/orders/${orderId}/deliver`, {
         headers: { Authorization: `Bearer ${driverToken}` },
       });

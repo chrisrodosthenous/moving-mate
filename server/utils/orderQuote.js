@@ -42,6 +42,10 @@ function buildQuoteInputs(raw) {
     pickupFloor: String(raw?.pickupFloor ?? '0'),
     destinationFloor: String(raw?.destinationFloor ?? '0'),
     hasElevator: Boolean(raw?.hasElevator),
+    pickupHasElevator:
+      raw?.pickupHasElevator === undefined ? Boolean(raw?.hasElevator) : Boolean(raw.pickupHasElevator),
+    dropoffHasElevator:
+      raw?.dropoffHasElevator === undefined ? Boolean(raw?.hasElevator) : Boolean(raw.dropoffHasElevator),
     laborRequired: String(raw?.laborRequired ?? 'none'),
   };
 }
@@ -58,7 +62,8 @@ function fingerprint(inputs) {
     i.cargoInventory.heavyAppliances,
     i.pickupFloor,
     i.destinationFloor,
-    i.hasElevator ? '1' : '0',
+    i.pickupHasElevator ? '1' : '0',
+    i.dropoffHasElevator ? '1' : '0',
     i.laborRequired,
   ].join('|');
 }

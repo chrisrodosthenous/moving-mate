@@ -1,6 +1,6 @@
 <section class="admin-analytics">
   <div
-    class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
+    class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
     data-testid="admin-platform-ledger"
   >
     <article class="ui-card rounded-xl border border-border/30 bg-card/85 px-5 py-4 shadow-sm">
@@ -19,21 +19,94 @@
       </p>
       <p class="mt-1 text-xs text-muted-foreground">Gross customer payments (completed)</p>
     </article>
+    <article class="ui-card rounded-xl border border-border/30 bg-card/85 px-5 py-4 shadow-sm">
+      <p class="text-sm font-medium text-muted-foreground">Driver earnings</p>
+      <p class="mt-2 text-3xl font-bold tabular-nums text-primary" data-testid="admin-driver-earnings">
+        €{{ platformLedger().driverEarnings | number: '1.2-2' }}
+      </p>
+      <p class="mt-1 text-xs text-muted-foreground">Total paid to drivers, excluding commission</p>
+    </article>
+    <article class="ui-card rounded-xl border border-border/30 bg-card/85 px-5 py-4 shadow-sm">
+      <p class="text-sm font-medium text-muted-foreground">Clients</p>
+      <p class="mt-2 text-3xl font-bold tabular-nums text-primary" data-testid="admin-client-count">
+        {{ clientCount() }}
+      </p>
+      <p class="mt-1 text-xs text-muted-foreground">Registered customers</p>
+    </article>
+    <article class="ui-card rounded-xl border border-border/30 bg-card/85 px-5 py-4 shadow-sm">
+      <label for="admin-driver-status" class="text-sm font-medium text-muted-foreground">Drivers</label>
+      <p class="mt-2 text-3xl font-bold tabular-nums text-primary" data-testid="admin-driver-count">
+        {{ driverCount() }}
+      </p>
+      <select
+        id="admin-driver-status"
+        class="mt-3 min-h-[44px] w-full rounded-lg border border-border/30 bg-secondary/45 px-3 py-2 text-sm text-foreground"
+        [ngModel]="driverStatus()"
+        (ngModelChange)="driverStatus.set($event)"
+        data-testid="admin-driver-status"
+      >
+        <option value="all">Total</option>
+        <option value="verified">Verified</option>
+        <option value="not_verified">Not verified</option>
+        <option value="pending">Pending</option>
+      </select>
+    </article>
+    <article class="ui-card rounded-xl border border-border/30 bg-card/85 px-5 py-4 shadow-sm">
+      <label for="admin-order-status" class="text-sm font-medium text-muted-foreground">Orders</label>
+      <p class="mt-2 text-3xl font-bold tabular-nums text-primary" data-testid="admin-order-count">
+        {{ orderCount() }}
+      </p>
+      <select
+        id="admin-order-status"
+        class="mt-3 min-h-[44px] w-full rounded-lg border border-border/30 bg-secondary/45 px-3 py-2 text-sm text-foreground"
+        [ngModel]="orderStatus()"
+        (ngModelChange)="orderStatus.set($event)"
+        data-testid="admin-order-status"
+      >
+        <option value="all">Total</option>
+        <option value="pending_payment">Pending Payment</option>
+        <option value="pending_driver">Pending Driver Acceptance</option>
+        <option value="accepted">Accepted</option>
+        <option value="on_the_way">Driver is on the way</option>
+        <option value="picked_up">Picked up</option>
+        <option value="delivered">Delivered</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </article>
   </div>
 
   <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
     <div>
       <h2 class="text-lg font-semibold text-foreground">Analytics</h2>
-      <p class="mt-1 text-sm text-primary">Last 30 days · from your existing orders</p>
+      <p class="mt-1 text-sm text-primary">{{ trendPeriodLabel() }} · from your existing orders</p>
     </div>
-    <div class="flex flex-wrap gap-4 text-sm">
-      <div class="rounded-lg border border-border/40 bg-secondary/60 px-4 py-2 shadow-sm">
-        <p class="text-xs uppercase tracking-wide text-foreground">7-day orders</p>
-        <p class="text-xl font-bold tabular-nums text-foreground">{{ trendSummary().orders }}</p>
+    <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-end">
+      <div class="min-w-0 sm:w-52">
+        <label for="admin-trend-range" class="mb-1 block text-xs font-medium text-foreground">Orders &amp; revenue</label>
+        <select
+          id="admin-trend-range"
+          class="min-h-[44px] w-full rounded-lg border border-border/30 bg-secondary/45 px-3 py-2 text-sm text-foreground"
+          [ngModel]="trendRange()"
+          (ngModelChange)="trendRange.set($event)"
+          data-testid="admin-trend-range"
+        >
+          <option value="week">Per week</option>
+          <option value="thisMonth">Per this month</option>
+          <option value="month">Per month</option>
+          <option value="threeMonths">Per 3 months</option>
+          <option value="sixMonths">Per 6 months</option>
+          <option value="year">Per year</option>
+        </select>
       </div>
-      <div class="rounded-lg border border-primary/40 bg-primary/15 px-4 py-2 shadow-[0_0_12px_rgba(34,197,94,0.12)]">
-        <p class="text-xs uppercase tracking-wide text-foreground">30-day revenue</p>
-        <p class="text-xl font-bold tabular-nums text-foreground">€{{ trendSummary().revenue | number: '1.0-0' }}</p>
+      <div class="flex flex-wrap gap-4 text-sm">
+        <div class="rounded-lg border border-border/40 bg-secondary/60 px-4 py-2 shadow-sm">
+          <p class="text-xs uppercase tracking-wide text-foreground">Orders</p>
+          <p class="text-xl font-bold tabular-nums text-foreground">{{ trendSummary().orders }}</p>
+        </div>
+        <div class="rounded-lg border border-primary/40 bg-primary/15 px-4 py-2 shadow-[0_0_12px_rgba(34,197,94,0.12)]">
+          <p class="text-xs uppercase tracking-wide text-foreground">Revenue</p>
+          <p class="text-xl font-bold tabular-nums text-foreground">€{{ trendSummary().revenue | number: '1.0-0' }}</p>
+        </div>
       </div>
     </div>
   </div>
@@ -45,7 +118,7 @@
   <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
     <article class="admin-theme-surface md:col-span-2 rounded-xl p-4">
       <h3 class="mb-1 text-sm font-semibold text-foreground">Orders &amp; revenue trend</h3>
-      <p class="mb-4 text-xs text-foreground">Daily volume and revenue</p>
+      <p class="mb-4 text-xs text-foreground">{{ trendPeriodLabel() }}</p>
       <div class="h-72 w-full min-w-0 sm:h-80">
         <canvas
           baseChart

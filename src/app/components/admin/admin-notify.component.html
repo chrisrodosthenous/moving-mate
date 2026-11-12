@@ -35,25 +35,6 @@
 
   @if (notifyTab() === 'push') {
     <div @notifyPanelEnter class="space-y-6 flex flex-col min-h-0">
-      <ui-card [className]="'rounded-xl border-border/40 bg-secondary/75 p-4 shadow-sm !border'">
-        <p class="text-xs font-bold uppercase tracking-wide text-brand-400">View simulations</p>
-        <p class="mt-1 text-xs text-primary">Open customer or driver shells (admin bypass on those routes).</p>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <a
-            routerLink="/customer/orders"
-            class="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary"
-          >
-            Customer view
-          </a>
-          <a
-            routerLink="/driver/available"
-            class="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-[#16A34A] transition"
-          >
-            Driver view
-          </a>
-        </div>
-      </ui-card>
-
       <div class="min-h-0 flex-1">
         <app-admin-push-deep-link-tester (toast)="pushTesterToast.emit($event)" />
       </div>

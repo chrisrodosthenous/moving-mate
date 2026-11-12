@@ -26,7 +26,6 @@ export class DriverAnalyticsComponent {
   private readonly payload = signal<DriverAnalyticsPayload>(emptyDriverAnalytics());
 
   readonly barChartType = 'bar' as const;
-  readonly doughnutChartType = 'doughnut' as const;
 
   readonly earningsChartData = computed((): ChartData<'bar'> => {
     const w = this.payload().weeklyEarnings;
@@ -40,43 +39,6 @@ export class DriverAnalyticsComponent {
           hoverBackgroundColor: CHART_THEME.hover,
           borderRadius: 8,
           maxBarThickness: 40,
-        },
-      ],
-    };
-  });
-
-  readonly tripStatsChartData = computed((): ChartData<'doughnut'> => {
-    const t = this.payload().tripStats;
-    const hasData = t.completed + t.cancelled + t.declined > 0;
-    return {
-      labels: ['Completed', 'Cancelled', 'Declined'],
-      datasets: [
-        {
-          data: hasData ? [t.completed, t.cancelled, t.declined] : [1, 0, 0],
-          backgroundColor: hasData
-            ? [CHART_THEME.primary, CHART_THEME.error, CHART_THEME.accent]
-            : [CHART_THEME.track, CHART_THEME.track, CHART_THEME.track],
-          borderColor: CHART_THEME.grid,
-          borderWidth: 2,
-          hoverOffset: 10,
-        },
-      ],
-    };
-  });
-
-  readonly ratingGaugeData = computed((): ChartData<'doughnut'> => {
-    const avg = this.payload().rating.average;
-    const max = this.payload().rating.max;
-    const score = avg != null && Number.isFinite(avg) ? Math.min(max, Math.max(0, avg)) : 0;
-    const remainder = Math.max(0, max - score);
-    return {
-      labels: ['Rating', 'Remaining'],
-      datasets: [
-        {
-          data: [score, remainder],
-          backgroundColor: [CHART_THEME.primary, CHART_THEME.track],
-          borderWidth: 0,
-          hoverOffset: 0,
         },
       ],
     };
@@ -109,55 +71,6 @@ export class DriverAnalyticsComponent {
       },
     },
   };
-
-  readonly tripStatsChartOptions: ChartOptions<'doughnut'> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '58%',
-    plugins: {
-      ...driverChartPlugins(),
-      legend: {
-        position: 'bottom',
-        labels: {
-          color: CHART_THEME.labelMuted,
-          padding: 12,
-          usePointStyle: true,
-          pointStyle: 'circle',
-        },
-      },
-    },
-  };
-
-  readonly ratingGaugeOptions: ChartOptions<'doughnut'> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '78%',
-    rotation: -90,
-    circumference: 180,
-    plugins: {
-      legend: { display: false },
-      tooltip: { enabled: false },
-    },
-  };
-
-  readonly ratingDisplay = computed(() => {
-    const avg = this.payload().rating.average;
-    return avg != null && Number.isFinite(avg) ? avg.toFixed(1) : '—';
-  });
-
-  readonly ratingCaption = computed(() => {
-    const r = this.payload().rating;
-    const avg = r.average;
-    if (avg == null || !Number.isFinite(avg)) {
-      return 'Current Rating: —/5.0. Complete trips to earn your first reviews!';
-    }
-    const line = `Current Rating: ${avg.toFixed(1)}/${r.max.toFixed(1)}.`;
-    const tip =
-      avg >= r.priorityThreshold
-        ? ' Priority access unlocked — keep it up!'
-        : ' Keep it above 4.5 for Priority Access!';
-    return line + tip;
-  });
 
   readonly weekEarningsTotal = computed(() =>
     this.payload()

@@ -31,6 +31,7 @@ export interface AuthUser {
   fcmTokens?: string[];
   vehicleType?: DriverVehicleType;
   vehiclePhotoUrl?: string;
+  plateNumber?: string;
 }
 
 interface AuthState {
@@ -43,6 +44,8 @@ interface AuthState {
 
 const TOKEN_KEY = 'moving_mate_token';
 const USER_KEY = 'moving_mate_user';
+const SESSION_TOKEN_KEY = 'moving_mate_session_token';
+const SESSION_USER_KEY = 'moving_mate_session_user';
 
 function readStoredToken(): string | null {
   try {
@@ -61,13 +64,43 @@ function readStoredUser(): AuthUser | null {
   }
 }
 
-/** Hydrate initial state from localStorage (30-day persistent login). */
-function initialState(): AuthState {
+function readSessionToken(): string | null {
+  try {
+    return sessionStorage.getItem(SESSION_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function readSessionUser(): AuthUser | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_USER_KEY);
+    return raw ? (JSON.parse(raw) as AuthUser) : null;
+  } catch {
+    return null;
+  }
+}
+
+function isolatedSessionActive(): boolean {
+  return Boolean(readSessionToken() && readSessionUser());
+}
+
+function readActiveAuth(): { token: string; user: AuthUser } | null {
+  const sessionToken = readSessionToken();
+  const sessionUser = readSessionUser();
+  if (sessionToken && sessionUser) return { token: sessionToken, user: sessionUser };
   const token = readStoredToken();
   const user = readStoredUser();
+  if (token && user) return { token, user };
+  return null;
+}
+
+/** Hydrate initial state. A tab opened by Impersonate keeps its own session. */
+function initialState(): AuthState {
+  const active = readActiveAuth();
   return {
-    token: token && user ? token : null,
-    user: token && user ? user : null,
+    token: active?.token ?? null,
+    user: active?.user ?? null,
     loading: false,
     error: null,
   };
@@ -108,9 +141,22 @@ export const AuthStore = signalStore(
      * Same path for customer, driver, and admin — no role branching; FCM registration is triggered from AuthService / AppComponent.
      */
     loginSuccess(token: string, user: AuthUser): void {
+      sessionStorage.removeItem(SESSION_TOKEN_KEY);
+      sessionStorage.removeItem(SESSION_USER_KEY);
       localStorage.setItem(TOKEN_KEY, token);
       localStorage.setItem(USER_KEY, JSON.stringify(user));
       patchState(store, { token, user, loading: false, error: null });
+    },
+
+    /** Sign-in that stays in this tab and leaves the saved admin session untouched. */
+    beginIsolatedSession(token: string, user: AuthUser): void {
+      sessionStorage.setItem(SESSION_TOKEN_KEY, token);
+      sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(user));
+      patchState(store, { token, user, loading: false, error: null });
+    },
+
+    hasIsolatedSession(): boolean {
+      return isolatedSessionActive();
     },
 
     /** Mark an auth HTTP call as in-flight. */
@@ -125,7 +171,11 @@ export const AuthStore = signalStore(
 
     /** Update the user object (e.g. after a profile refresh). */
     updateUser(user: AuthUser): void {
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      if (isolatedSessionActive()) {
+        sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(user));
+      } else {
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+      }
       patchState(store, { user });
     },
 
@@ -135,6 +185,21 @@ export const AuthStore = signalStore(
      * and match MongoDB (push while logged out relies on DB tokens).
      */
     logout(): void {
+      if (isolatedSessionActive()) {
+        sessionStorage.removeItem(SESSION_TOKEN_KEY);
+        sessionStorage.removeItem(SESSION_USER_KEY);
+        sessionStorage.removeItem('fcmTokenRegisteredThisSession');
+        sessionStorage.removeItem('fcmTokenRegisteredUserId');
+        const persisted = readStoredToken();
+        const persistedUser = readStoredUser();
+        patchState(store, {
+          token: persisted && persistedUser ? persisted : null,
+          user: persisted && persistedUser ? persistedUser : null,
+          loading: false,
+          error: null,
+        });
+        return;
+      }
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       sessionStorage.removeItem('fcmTokenRegisteredThisSession');

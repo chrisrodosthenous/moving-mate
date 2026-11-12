@@ -117,7 +117,8 @@ test.describe('operations lifecycle', () => {
       const unknown = await backend.post('/api/auth/forgot-password', {
         data: { email: `missing-${runId}@movingmate.test` },
       });
-      expect(unknown.status()).toBe(404);
+      expect(unknown.status()).toBe(200);
+      expect((await unknown.json()).message).toMatch(/reset link has been sent/i);
 
       const reset = await backend.post('/api/auth/forgot-password', { data: { email } });
       expect([200, 502]).toContain(reset.status());
@@ -384,6 +385,13 @@ test.describe('operations lifecycle', () => {
       });
       expect(pickup.status()).toBe(200);
       expect((await pickup.json()).status).toBe('driver_is_on_the_way');
+
+      const pickedUp = await backend.patch(`/api/orders/${orderId}/status`, {
+        headers: authHeaders(driverSession.token),
+        data: { status: 'picked-up' },
+      });
+      expect(pickedUp.status()).toBe(200);
+      expect((await pickedUp.json()).status).toBe('picked_up');
 
       const delivered = await backend.patch(`/api/orders/${orderId}/deliver`, {
         headers: authHeaders(driverSession.token),

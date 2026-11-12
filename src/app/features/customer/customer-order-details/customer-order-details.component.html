@@ -1,98 +1,85 @@
-<div class="flex min-h-dvh min-h-[100svh] w-full min-w-0 flex-col overflow-x-hidden bg-background">
-  <div class="shrink-0 px-4 pb-3 pt-4 sm:px-6">
-    <a
-      routerLink="/customer/orders"
-      class="inline-flex min-h-[44px] max-w-full items-center gap-1 text-[13px] font-medium text-primary hover:text-primary xs:text-sm"
-    >
-      ← My orders
-    </a>
-  </div>
-
+<div class="order-details-split flex min-h-0 w-full flex-1 flex-col lg:flex-row">
   @if (order(); as o) {
-    <div class="flex min-h-0 min-w-0 w-full flex-1 flex-col lg:flex-row">
-      <div
-        class="order-live-map-slot relative flex min-w-0 shrink-0 flex-col overflow-hidden border-b border-border/30 lg:h-auto lg:min-h-0 lg:flex-1 lg:border-b-0 lg:border-r"
-        style="width: 100%"
-      >
-        @if (mapsEmbedReady()) {
-          @if (showLiveTracking()) {
-            <app-tracking
-              [orderId]="o._id"
-              [mapsReady]="true"
-              [pickup]="{ lat: o.pickupLocation.lat, lng: o.pickupLocation.lng }"
-              [dropoff]="{ lat: o.dropoffLocation.lat, lng: o.dropoffLocation.lng }"
-              [seedDriverLocation]="o.driverLocation ?? null"
-            />
-          } @else {
-            <google-map
-              class="block h-full min-h-0 w-full min-w-0 flex-1"
-              width="100%"
-              height="100%"
-              style="height: 100%; min-height: 0; width: 100%"
-              [center]="mapBaselineCenter()"
-              [zoom]="mapBaselineZoom"
-              [options]="mapOptions"
-              (mapInitialized)="onStaticMapInitialized()"
-            >
-              @if (routePath().length >= 2) {
-                <map-polyline [path]="routePath()" [options]="routePolylineOptions"></map-polyline>
-              }
-              <map-marker
-                [position]="{ lat: o.pickupLocation.lat, lng: o.pickupLocation.lng }"
-                [options]="pickupMarkerOptions"
-              ></map-marker>
-              <map-marker
-                [position]="{ lat: o.dropoffLocation.lat, lng: o.dropoffLocation.lng }"
-                [options]="dropoffMarkerOptions"
-              ></map-marker>
-            </google-map>
-          }
+    <div class="order-details-map relative min-h-0 w-full border-b border-border/30 bg-muted/35 lg:h-full lg:min-h-0 lg:flex-1 lg:border-b-0 lg:border-r">
+      @if (mapsEmbedReady()) {
+        @if (showLiveTracking()) {
+          <app-tracking
+            class="absolute inset-0 block h-full w-full"
+            [orderId]="o._id"
+            [mapsReady]="true"
+            [pickup]="{ lat: o.pickupLocation.lat, lng: o.pickupLocation.lng }"
+            [dropoff]="{ lat: o.dropoffLocation.lat, lng: o.dropoffLocation.lng }"
+            [seedDriverLocation]="o.driverLocation ?? null"
+            [vehicleType]="mapDriverVehicle(o)"
+          />
         } @else {
-          <div
-            class="map-viewport flex flex-1 items-center justify-center px-3 py-6 text-xs text-muted xs:text-sm sm:p-4"
+          <google-map
+            class="absolute inset-0 block h-full w-full"
+            width="100%"
+            height="100%"
+            [center]="mapBaselineCenter()"
+            [zoom]="mapBaselineZoom"
+            [options]="mapOptions"
+            (mapInitialized)="onStaticMapInitialized()"
           >
-            Loading map…
-          </div>
+            @if (routePath().length >= 2) {
+              <map-polyline [path]="routePath()" [options]="routePolylineOptions"></map-polyline>
+            }
+            <map-marker
+              [position]="{ lat: o.pickupLocation.lat, lng: o.pickupLocation.lng }"
+              [options]="pickupMarkerOptions"
+            ></map-marker>
+            <map-marker
+              [position]="{ lat: o.dropoffLocation.lat, lng: o.dropoffLocation.lng }"
+              [options]="dropoffMarkerOptions"
+            ></map-marker>
+          </google-map>
         }
-      </div>
-
-      <div
-        class="w-full min-w-0 max-w-full shrink-0 space-y-3 bg-card/90 backdrop-blur-sm text-card-foreground px-2 py-3 xs:space-y-4 xs:px-3 sm:p-4 lg:max-w-md"
-      >
-        <div>
-          <p class="break-all font-mono text-[10px] text-muted xs:text-xs">#{{ o._id }}</p>
+      } @else {
+        <div class="absolute inset-0 flex items-center justify-center px-4 text-sm text-muted">
+          Loading map…
         </div>
+      }
+    </div>
+
+    <div class="order-details-panel w-full min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 md:space-y-5 md:p-6 lg:max-w-md lg:shrink-0">
+      <a
+        routerLink="/customer/orders"
+        class="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-primary transition hover:text-primary"
+      >
+        ← Back to My moves
+      </a>
+      <div class="rounded-xl border border-border/30 bg-card/85 p-5 shadow-sm backdrop-blur-sm">
+        <p class="font-mono text-xs font-semibold tracking-wide text-card-title">#{{ orderShortId(o._id) }}</p>
 
         @if (showLiveTracking()) {
           @if (socketConnectionState() === 'connecting') {
             <div
-              class="rounded-lg border border-border/30 bg-muted/40 px-2 py-2 text-xs text-foreground xs:px-3 xs:text-sm"
+              class="mt-4 rounded-lg border border-border/30 bg-muted/40 px-3 py-2 text-sm text-foreground"
               role="status"
             >
               <span class="font-medium">Connecting…</span>
-              <span class="mt-1 block text-[10px] text-muted xs:text-xs">Establishing live location link.</span>
+              <span class="mt-1 block text-xs text-muted">Establishing live location link.</span>
             </div>
           } @else if (socketConnectionState() === 'disconnected') {
-            <div
-              class="alert-warning px-2 py-2 text-xs xs:px-3 xs:text-sm"
-              role="alert"
-            >
+            <div class="alert-warning mt-4 px-3 py-2 text-sm" role="alert">
               <span class="font-medium">Driver offline</span>
-              <span class="mt-1 block text-[10px] text-foreground xs:text-xs"
-                >Live location is unavailable until the connection returns.</span
-              >
+              <span class="mt-1 block text-xs text-foreground">Live location is unavailable until the connection returns.</span>
             </div>
           } @else {
-            <div
-              class="rounded-lg border border-primary/20 bg-primary/10 px-2 py-2 text-xs text-foreground xs:px-3 xs:text-sm"
-              role="status"
+            <span
+              class="mt-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary ring-1 ring-primary/20"
             >
-              <span class="font-medium">Live tracking</span>
-            </div>
+              <span class="relative flex h-2 w-2">
+                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75"></span>
+                <span class="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
+              </span>
+              Live tracking
+            </span>
           }
         }
 
-        <div class="space-y-1">
+        <div class="mt-4 space-y-1">
           @switch (o.status) {
             @case ('pending') {
               <p class="text-sm font-semibold text-foreground">Waiting for a driver.</p>
@@ -116,11 +103,11 @@
             }
             @case ('delivered') {
               <p class="text-sm font-semibold text-foreground">This move is finished.</p>
-              <p class="text-sm text-muted">You can rate the driver from your orders.</p>
+              <p class="text-sm text-muted">You can rate the driver from your moves.</p>
             }
             @case ('completed') {
               <p class="text-sm font-semibold text-foreground">This move is finished.</p>
-              <p class="text-sm text-muted">You can rate the driver from your orders.</p>
+              <p class="text-sm text-muted">You can rate the driver from your moves.</p>
             }
             @default {
               <p class="text-sm font-semibold text-foreground">Move update</p>
@@ -128,15 +115,7 @@
           }
         </div>
 
-        <div class="space-y-2 text-xs text-muted xs:text-sm">
-          <p>
-            <span class="font-medium text-muted">Status:</span>
-            {{ o.status }}
-          </p>
-          <p>
-            <span class="font-medium text-muted">Price:</span>
-            €{{ o.price | number: '1.2-2' }}
-          </p>
+        <div class="mt-4 space-y-2 border-t border-border/20 pt-4 text-sm text-muted-foreground">
           <p class="break-words">
             <span class="font-medium text-muted">From:</span>
             {{ o.pickupLocation.address }}
@@ -145,25 +124,31 @@
             <span class="font-medium text-muted">To:</span>
             {{ o.dropoffLocation.address }}
           </p>
+          <p>
+            <span class="font-medium text-muted">Price:</span>
+            €{{ o.price | number: '1.2-2' }}
+          </p>
+          <p>
+            <span class="font-medium text-muted">Vehicle:</span>
+            {{ vehicleTypeLabel(o.vehicleType) }}
+          </p>
+          <p>
+            <span class="font-medium text-muted">Floors:</span>
+            Pickup: floor {{ o.pickupFloor ?? '0' }} → Delivery: floor {{ o.destinationFloor ?? '0' }}
+          </p>
+          <p>
+            <span class="font-medium text-muted">Elevator:</span>
+            {{ o.hasElevator === true ? 'Yes' : o.hasElevator === false ? 'No' : 'Not specified' }}
+          </p>
         </div>
-
-        <section class="rounded-lg border border-border/30 bg-card/85 p-4 text-sm mt-4" aria-label="Logistics Summary">
-          <h3 class="mb-2 font-semibold text-card-foreground">Logistics details</h3>
-          <ul class="space-y-1 text-muted-foreground">
-            <li><strong>Vehicle type:</strong> {{ vehicleTypeLabel(o.vehicleType) }}</li>
-            <li><strong>Floors:</strong> Pickup: floor {{ o.pickupFloor ?? '0' }} → Delivery: floor {{ o.destinationFloor ?? '0' }}</li>
-            <li><strong>Elevator:</strong> {{ o.hasElevator === true ? 'Yes' : o.hasElevator === false ? 'No' : 'Not specified' }}</li>
-            <li><strong>Loading help:</strong> {{ o.laborRequired === 'driver_plus_helper' ? 'Driver + 1 helper' : o.laborRequired === 'driver' ? 'Driver assistance' : 'None (transport only)' }}</li>
-          </ul>
-        </section>
       </div>
     </div>
   } @else if (loading()) {
-    <p class="px-3 py-12 text-center text-sm text-muted">Loading order…</p>
+    <p class="flex-1 py-12 text-center text-muted">Loading…</p>
   } @else {
-    <div class="mx-auto max-w-full px-4 py-8 text-center sm:max-w-md">
-      <p class="mb-3 text-sm text-muted">We couldn’t find this order in your account.</p>
-      <a routerLink="/customer/orders" class="font-medium text-primary hover:text-primary">Back to My orders</a>
+    <div class="mx-4 rounded-xl border border-border/30 bg-card/85 p-8 text-center shadow-sm backdrop-blur-sm md:mx-auto md:max-w-lg">
+      <p class="mb-2 text-muted">We couldn’t find this move in your account.</p>
+      <a routerLink="/customer/orders" class="font-medium text-primary hover:text-primary">Back to My moves</a>
     </div>
   }
 </div>

@@ -191,7 +191,9 @@ function attachDriverLocationHandlers(socket, io) {
 
       let order;
       try {
-        order = await TransportOrder.findById(orderIdStr).select('customerId status').lean();
+        order = await TransportOrder.findById(orderIdStr)
+          .select('customerId status driverLocation')
+          .lean();
       } catch (dbErr) {
         if (isDevEnv()) {
           console.error('[join_order_tracking] DB error:', dbErr?.message ?? dbErr);
@@ -213,6 +215,17 @@ function attachDriverLocationHandlers(socket, io) {
       const room = `${ORDER_TRACKING_ROOM_PREFIX}${orderIdStr}`;
       socket.join(room);
       devLogLocation('customer joined room ' + room);
+      const saved = order.driverLocation;
+      const savedLat = Number(saved?.lat);
+      const savedLng = Number(saved?.lng);
+      if (Number.isFinite(savedLat) && Number.isFinite(savedLng)) {
+        const replay = { lat: savedLat, lng: savedLng };
+        const savedHeading = Number(saved?.heading);
+        if (Number.isFinite(savedHeading) && savedHeading >= 0 && savedHeading <= 360) {
+          replay.heading = savedHeading;
+        }
+        socket.emit('customer_location_update', replay);
+      }
     } catch (err) {
       if (isDevEnv()) {
         console.error('[join_order_tracking] unexpected:', err?.message ?? err);

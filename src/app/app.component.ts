@@ -63,7 +63,7 @@ export class AppComponent implements OnDestroy {
       )
       .subscribe(() => {
         void this.fcm.subscribeForeground().catch(() => {});
-        if (!this.authStore.token()) return;
+        if (!this.authStore.token() || this.authStore.hasIsolatedSession()) return;
         void this.fcm.registerToken().catch(() => {});
         void this.fcm.syncStoredTokenToBackend();
 
@@ -76,7 +76,7 @@ export class AppComponent implements OnDestroy {
     // Save the device token only while a session exists. Logout must not drop the listener.
     effect(() => {
       const token = this.authStore.token();
-      if (token) {
+      if (token && !this.authStore.hasIsolatedSession()) {
         void this.fcm.registerToken().catch(() => {});
       }
     });

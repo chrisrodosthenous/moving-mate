@@ -9,6 +9,7 @@ const {
   getDriverRating,
   getDriverAnalytics,
   getProfile,
+  getUserDocument,
   uploadLicense,
   uploadVehiclePhoto,
   updateFcmToken,
@@ -20,6 +21,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
+router.get('/documents/:userId/:docType', getUserDocument);
 router.get('/driver-rating', getDriverRating);
 router.get('/driver-analytics', getDriverAnalytics);
 router.get('/profile', getProfile);

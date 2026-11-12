@@ -11,13 +11,13 @@ export const DRIVER_VEHICLE_OPTIONS: ReadonlyArray<{
   value: DriverVehicleType;
   label: string;
 }> = [
-  { value: 'pickup', label: 'Pickup (small items / boxes)' },
-  { value: 'minivan', label: 'Mini Van (medium loads / many boxes)' },
+  { value: 'pickup', label: 'Pick up (small items/up to 4 boxes)' },
   { value: 'van', label: 'Van (large furniture & appliances)' },
   { value: 'truck', label: 'Truck (full moves / heavy items)' },
 ] as const;
 
 export function driverVehicleTypeLabel(type: DriverVehicleType | string | undefined | null): string {
+  if (type === 'minivan') return 'Mini Van (medium loads / many boxes)';
   const found = DRIVER_VEHICLE_OPTIONS.find((o) => o.value === type);
   return found?.label ?? '—';
 }

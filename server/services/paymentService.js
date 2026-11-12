@@ -102,7 +102,7 @@ async function confirmMockCheckout(orderId, customerId) {
 
   const intent = await ensurePaymentIntentForOrder(order);
   if (intent.status === 'authorized') {
-    return { ok: true, intent, paymentStatus: 'authorized' };
+    return { ok: true, intent, paymentStatus: 'authorized', newlyAuthorized: false };
   }
   if (intent.status !== 'requires_payment') {
     return { ok: false, status: 400, message: `Payment cannot be authorized from status: ${intent.status}` };
@@ -112,7 +112,7 @@ async function confirmMockCheckout(orderId, customerId) {
   intent.authorizedAt = new Date();
   await intent.save();
   const paymentStatus = await syncOrderPaymentStatus(orderId, intent.status);
-  return { ok: true, intent, paymentStatus };
+  return { ok: true, intent, paymentStatus, newlyAuthorized: true };
 }
 
 /** Capture customer funds when a driver accepts (mock charge). */

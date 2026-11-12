@@ -791,3 +791,34 @@ exports.uploadVehiclePhoto = uploadVehiclePhoto;
 exports.updateFcmToken = updateFcmToken;
 exports.removeFcmToken = removeFcmToken;
 exports.changePassword = changePassword;
+
+async function getUserDocument(req, res, next) {
+  try {
+    const actorId = String(req.user?.userId ?? req.user?._id ?? '');
+    const targetId = String(req.params.userId ?? '');
+    const docType = String(req.params.docType ?? '');
+    if (!['license', 'vehicle-photo', 'id-card'].includes(docType)) {
+      return res.status(400).json({ message: 'Invalid document type' });
+    }
+    if (req.user?.role !== 'admin' && actorId !== targetId) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    const user = await User.findById(targetId).select('idCardPath licensePath licenseUrl vehiclePhotoUrl').lean();
+    if (!user) return res.status(404).json({ message: 'Document not found' });
+    const relPath =
+      docType === 'id-card'
+        ? user.idCardPath || ''
+        : docType === 'vehicle-photo'
+          ? user.vehiclePhotoUrl || ''
+          : user.licenseUrl || user.licensePath || '';
+    if (!relPath) return res.status(404).json({ message: 'Document not uploaded' });
+    const { sendPublicUpload } = require('../services/storedUploadService');
+    const sent = await sendPublicUpload(res, relPath);
+    if (!sent) return res.status(404).json({ message: 'Document file not found' });
+    return undefined;
+  } catch (err) {
+    return next(err);
+  }
+}
+
+exports.getUserDocument = getUserDocument;

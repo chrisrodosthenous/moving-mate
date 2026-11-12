@@ -4,6 +4,7 @@ import { Store } from '@ngrx/store';
 import { catchError, map, mergeMap, switchMap, tap, withLatestFrom } from 'rxjs/operators';
 import { of } from 'rxjs';
 import type { TransportOrder, AvailableOrdersListResponse } from '../../../core/services/orders.service';
+import { isOrderPaymentReadyForAccept } from '../../../shared/utils/order-payment.util';
 import { OrdersService } from '../../../core/services/orders.service';
 import { ORDER_LIST_PAGE_SIZE } from '../../../core/constants/list-page-size';
 import { ToastService } from '../../../core/services/toast.service';
@@ -22,10 +23,10 @@ function parseAvailableList(
   res: TransportOrder[] | AvailableOrdersListResponse,
 ): { orders: TransportOrder[]; total: number } {
   if (Array.isArray(res)) {
-    const orders = res.filter((o) => o.status === 'pending');
+    const orders = res.filter((o) => o.status === 'pending' && isOrderPaymentReadyForAccept(o));
     return { orders, total: orders.length };
   }
-  const orders = (res.orders ?? []).filter((o) => o.status === 'pending');
+  const orders = (res.orders ?? []).filter((o) => o.status === 'pending' && isOrderPaymentReadyForAccept(o));
   return { orders, total: res.total ?? orders.length };
 }
 
@@ -73,7 +74,7 @@ export class DriverEffects {
             }
             return of(
               DriverActions.loadDriverAvailableFailure({
-                error: err?.error?.message ?? 'Could not load available orders',
+                error: err?.error?.message ?? 'Could not load available moves',
                 silent,
               }),
             );
@@ -119,7 +120,7 @@ export class DriverEffects {
             if (silent) return of();
             return of(
               DriverActions.loadDriverActiveTripsFailure({
-                error: err?.error?.message ?? 'Could not load your tasks',
+                error: err?.error?.message ?? 'Could not load your moves',
                 silent,
               }),
             );
@@ -201,7 +202,7 @@ export class DriverEffects {
           catchError((err) =>
             of(
               DriverActions.acceptDriverOrderFailure({
-                error: err?.error?.message ?? 'Could not accept order',
+                error: err?.error?.message ?? 'Could not accept move',
               }),
             ),
           ),

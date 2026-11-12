@@ -65,6 +65,7 @@ export class RegisterComponent implements OnDestroy {
   /** Reactive controls for driver vehicle categorization + verification photo. */
   readonly driverVehicleForm = this.fb.nonNullable.group({
     vehicleType: ['' as DriverVehicleType | '', Validators.required],
+    plateNumber: ['', [Validators.required, Validators.maxLength(16), Validators.pattern(/^[A-Za-z0-9][A-Za-z0-9 -]{0,15}$/)]],
     vehiclePhoto: [null as File | null, Validators.required],
   });
 
@@ -181,6 +182,17 @@ export class RegisterComponent implements OnDestroy {
     return '';
   }
 
+  get driverPlateError(): string {
+    if (this.role !== 'driver') return '';
+    const ctrl = this.driverVehicleForm.controls.plateNumber;
+    if (!ctrl.touched && !ctrl.dirty) return '';
+    if (ctrl.hasError('required')) return 'Vehicle plates are required.';
+    if (ctrl.hasError('pattern') || ctrl.hasError('maxlength')) {
+      return 'Use letters and numbers, up to 16 characters.';
+    }
+    return '';
+  }
+
   get formValid(): boolean {
     return (
       !!this.firstName.trim() &&
@@ -262,9 +274,10 @@ export class RegisterComponent implements OnDestroy {
       }
 
       if (this.role === 'driver') {
-        const { vehicleType, vehiclePhoto } = this.driverVehicleForm.getRawValue();
-        if (!vehiclePhoto || !vehicleType) {
-          this.error = 'Vehicle type and photo are required for driver registration.';
+        const { vehicleType, vehiclePhoto, plateNumber } = this.driverVehicleForm.getRawValue();
+        const plates = plateNumber.trim().toUpperCase();
+        if (!vehiclePhoto || !vehicleType || !plates) {
+          this.error = 'Vehicle type, plates, and photo are required for driver registration.';
           this.loading = false;
           this.cdr.detectChanges();
           return;
@@ -279,6 +292,7 @@ export class RegisterComponent implements OnDestroy {
         formData.append('dateOfBirth', this.dateOfBirth);
         formData.append('role', 'driver');
         formData.append('vehicleType', vehicleType);
+        formData.append('plateNumber', plates);
         formData.append('vehiclePhoto', vehiclePhoto, vehiclePhoto.name);
         formData.append('districts', JSON.stringify(this.selectedDistricts));
 

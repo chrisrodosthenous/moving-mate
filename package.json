@@ -49,6 +49,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "firebase": "^12.12.0",
+    "jspdf": "^4.2.1",
     "lucide-angular": "^0.576.0",
     "ng2-charts": "^10.0.0",
     "rxjs": "~7.8.0",
@@ -69,6 +70,7 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "moving-mate-karma-glob": "file:scripts/karma-glob-adapter",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.12",
     "tailwindcss-animate": "^1.0.7",
@@ -77,6 +79,9 @@
   "overrides": {
     "@grpc/grpc-js": "1.14.7",
     "minimatch": "^11.0.1",
-    "glob": "14.0.3"
+    "glob": "14.0.3",
+    "karma": {
+      "glob": "$moving-mate-karma-glob"
+    }
   }
 }

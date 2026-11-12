@@ -18,7 +18,7 @@ import type { DesignScopeId } from '../../../core/config/admin-design-preview.co
   imports: [CommonModule, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (!embedded()) {
+    @if (!embedded() && !themeEditor.pageEdit() && !designListOpen()) {
       <button
         type="button"
         (click)="preview.toggle()"
@@ -46,7 +46,7 @@ import type { DesignScopeId } from '../../../core/config/admin-design-preview.co
         >
           <div>
             <h2 class="text-sm font-bold text-white">Design preview</h2>
-            <p class="text-[10px] text-slate-400">Jump to any screen · edit global theme</p>
+            <p class="text-[10px] text-slate-400">Open theme colors, then click any part of the page</p>
           </div>
           <button
             type="button"
@@ -85,7 +85,7 @@ import type { DesignScopeId } from '../../../core/config/admin-design-preview.co
                   {{ preview.groupLabel(group) }}
                 </p>
                 <ul class="space-y-1">
-                  @for (item of items; track item.path) {
+                  @for (item of items; track item.path + (item.query ?? '')) {
                     <li>
                       <button
                         type="button"
@@ -95,7 +95,7 @@ import type { DesignScopeId } from '../../../core/config/admin-design-preview.co
                         [style.border]="preview.isActiveDestination(item) ? '1px solid rgba(16,185,129,0.45)' : '1px solid transparent'"
                       >
                         <span class="text-xs font-medium text-slate-100">{{ item.label }}</span>
-                        <span class="font-mono text-[9px] text-slate-500">{{ item.path }}</span>
+                        <span class="font-mono text-[9px] text-slate-500">{{ item.query ? item.path + '?' + item.query : item.path }}</span>
                         <span class="mt-1 flex flex-wrap gap-1">
                           @for (scope of item.scopes; track scope) {
                             <span class="rounded bg-slate-800 px-1 py-px text-[8px] text-slate-400">
@@ -155,6 +155,7 @@ export class AdminDesignHubComponent {
   readonly themeEditor = inject(ThemeEditorService);
 
   readonly currentDestination = computed(() => this.preview.currentDestination());
+  readonly designListOpen = computed(() => this.preview.currentUrl().includes('section=design'));
 
   go(dest: AdminPreviewDestination): void {
     this.preview.navigateTo(dest);

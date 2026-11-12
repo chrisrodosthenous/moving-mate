@@ -7,33 +7,27 @@
 
   @if (section() === 'analytics') {
     <div class="app-page-container mx-auto w-full max-w-7xl">
-      <app-admin-analytics [orders]="orders()" [loading]="loading()" />
+      <app-admin-analytics [orders]="orders()" [users]="users()" [loading]="loading()" />
     </div>
   } @else if (section() === 'customers') {
     <div class="app-page-container mx-auto w-full max-w-7xl">
       <app-admin-customers
-        [users]="users()"
         [orders]="orders()"
         [loading]="loading()"
-        (viewCustomer)="onViewCustomer($event)"
+        (suspensionChanged)="onCustomerSuspension($event)"
       />
     </div>
   } @else if (section() === 'driversTable') {
     <div class="app-page-container mx-auto w-full max-w-7xl">
       <app-admin-drivers
-        [users]="users()"
         [orders]="orders()"
         [loading]="loading()"
-        (viewDriver)="onViewDriver($event)"
+        (suspensionChanged)="onCustomerSuspension($event)"
       />
     </div>
   } @else if (section() === 'ordersTable') {
     <div class="app-page-container mx-auto w-full max-w-7xl">
-      <app-admin-orders
-        [orders]="orders()"
-        [loading]="loading()"
-        (viewOrder)="onViewOrderFromTable($event)"
-      />
+      <app-admin-orders [loading]="loading()" />
     </div>
   } @else if (section() === 'drivers') {
     <app-admin-fleet
@@ -42,9 +36,7 @@
       [driverTab]="driverTab()"
       [notVerifiedDrivers]="notVerifiedDrivers()"
       [pendingDrivers]="pendingDrivers()"
-      [verifiedDrivers]="verifiedDrivers()"
       [selectedDriver]="selectedDriver()"
-      [licenseBaseUrl]="licenseBaseUrl"
       [verifyingId]="verifyingId()"
       (driverTabChange)="setDriverTab($event)"
       (selectDriver)="selectDriver($event)"
@@ -66,6 +58,10 @@
       (closeDrawer)="closeOrderDrawer()"
       (openImagePreview)="openLicensePreview($event)"
     />
+  } @else if (section() === 'design') {
+    <div class="app-page-container mx-auto w-full max-w-7xl">
+      <app-admin-design-colors [orders]="orders()" />
+    </div>
   } @else if (section() === 'notify') {
     <div class="app-page-container mx-auto w-full max-w-7xl">
       <app-admin-notify

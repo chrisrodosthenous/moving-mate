@@ -137,7 +137,7 @@ test('full app flow: license pending → verify → order → complete → revie
     await driverPage.getByTestId(`accept-order-${orderId}`).click()
     await acceptP
 
-    await driverPage.getByRole('link', { name: /my trips/i }).click()
+    await driverPage.getByRole('link', { name: /my moves/i }).click()
     await expect(driverPage).toHaveURL(/\/driver\/tasks$/)
 
     const startP = driverPage.waitForResponse(
@@ -145,6 +145,12 @@ test('full app flow: license pending → verify → order → complete → revie
     )
     await driverPage.getByTestId(`start-delivery-${orderId}`).click()
     await startP
+
+    const pickupP = driverPage.waitForResponse(
+      (resp) => resp.url().includes(`/api/orders/${orderId}/status`) && resp.request().method() === 'PATCH'
+    )
+    await driverPage.getByTestId(`mark-picked-up-${orderId}`).click()
+    await pickupP
 
     const completeP = driverPage.waitForResponse(
       (resp) => resp.url().includes(`/api/orders/${orderId}/status`) && resp.request().method() === 'PATCH'

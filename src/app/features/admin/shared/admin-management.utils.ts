@@ -27,7 +27,7 @@ export function driverDistrictLabel(user: AdminUser): string {
 }
 
 export function customerAccountStatus(user: AdminUser): { label: 'Active' | 'Suspended'; tone: AdminTableBadgeTone } {
-  if (user.verificationStatus === 'rejected') {
+  if (user.isSuspended) {
     return { label: 'Suspended', tone: 'cancelled' };
   }
   return { label: 'Active', tone: 'active' };
@@ -55,13 +55,16 @@ export function countDriverCompletedTrips(driverId: string, orders: AdminOrder[]
   }).length;
 }
 
-export type DriverAvailability = 'Online' | 'Offline' | 'Busy';
+export type DriverAvailability = 'Online' | 'Offline' | 'Busy' | 'Suspended';
 
 export function driverAvailability(
   driver: AdminUser,
   orders: AdminOrder[],
 ): { label: DriverAvailability; tone: AdminTableBadgeTone } {
   const id = String(driver._id);
+  if (driver.isSuspended) {
+    return { label: 'Suspended', tone: 'cancelled' };
+  }
   if (!driver.isVerified || driver.verificationStatus === 'rejected') {
     return { label: 'Offline', tone: 'muted' };
   }
@@ -90,6 +93,7 @@ export function vehicleLabel(driver: AdminUser): string {
 
 export function orderStatusAdminLabel(status: string): string {
   const s = (status ?? '').toLowerCase();
+  if (s === 'driver_is_on_the_way') return 'Driver is on the way';
   if (s === 'pending') return 'Available';
   if (IN_PROGRESS.has(s)) return 'In Progress';
   if (COMPLETED.has(s)) return 'Delivered';

@@ -251,8 +251,8 @@ async function sendPush(tokenOrTokens, title, body, data = {}, options = {}) {
 async function sendOrderAcceptedPush(orderData) {
   const orderId = String(orderData?.orderId || '');
   const customerUserId = String(orderData?.customerUserId || '');
-  const title = 'Order accepted';
-  const body = 'Your order has been accepted by a driver.';
+  const title = 'Move accepted';
+  const body = 'Your move has been accepted by a driver.';
   return sendPush(
     orderData?.customerFcmToken,
     title,
@@ -267,7 +267,7 @@ async function sendOrderAcceptedPush(orderData) {
 }
 
 async function send30MinReminderPush(orderData) {
-  const payload = { title: 'Upcoming Order', body: 'Your order starts in 30 minutes. Please be ready!' };
+  const payload = { title: 'Upcoming move', body: 'Your move starts in 30 minutes. Please be ready!' };
   const oid = orderData?.orderId || '';
   const [customerResult, driverResult] = await Promise.all([
     sendPush(orderData?.customerFcmToken, payload.title, payload.body, {
@@ -303,7 +303,7 @@ async function sendRatingRequestPush(orderData) {
   const customerUserId = String(orderData?.customerUserId || '');
   return sendPush(
     orderData?.customerFcmToken,
-    'Order Completed',
+    'Move completed',
     'How was your experience? Tap here to rate your driver.',
     { orderId: oid, type: 'rating_request', url: `/rate-driver/${oid}` },
     {
@@ -357,8 +357,8 @@ async function sendNewOrderToDriversPush({ orderId, district, vehicleType }) {
 
   const result = await sendPush(
     tokenList,
-    'New Order Available!',
-    'A new job is available in your area. Tap to view.',
+    'New move available!',
+    'A new move is available in your area. Tap to view.',
     { orderId: oid, type: 'new_order', url: '/available-orders' },
     {
       eventKey: 'push_new_order',

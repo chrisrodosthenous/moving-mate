@@ -1,8 +1,9 @@
-/** Customer-facing lifecycle segments: Submitted → Accepted → On the way → Done */
+/** Customer-facing lifecycle segments: Submitted → Payment → Accepted → Driver is on the way → Mark picked up */
 
 import type { BadgeVariant } from '@/components/ui/badge';
+import { isOrderPaymentReadyForAccept } from './order-payment.util';
 
-export type OrderSegmentIndex = 0 | 1 | 2 | 3;
+export type OrderSegmentIndex = 0 | 1 | 2 | 3 | 4;
 
 const IN_PROGRESS_STATUSES = new Set([
   'in_progress',
@@ -38,33 +39,37 @@ export function orderStatusToBadgeVariant(status: string): BadgeVariant {
   return 'default';
 }
 
-export function customerOrderSegmentFilled(status: string, index: OrderSegmentIndex): boolean {
-  if (status === 'cancelled') return false;
-  if (index === 0) {
-    return [
-      'pending',
-      'accepted',
-      'in_progress',
-      'picked_up',
-      'driver_is_on_the_way',
-      'delivered',
-      'completed',
-    ].includes(status);
-  }
-  if (index === 1) {
-    return [
-      'accepted',
-      'in_progress',
-      'picked_up',
-      'driver_is_on_the_way',
-      'delivered',
-      'completed',
-    ].includes(status);
-  }
-  if (index === 2) {
-    return ['in_progress', 'picked_up', 'driver_is_on_the_way', 'delivered', 'completed'].includes(status);
-  }
-  return ['delivered', 'completed'].includes(status);
+const AFTER_SUBMITTED = [
+  'pending',
+  'accepted',
+  'in_progress',
+  'picked_up',
+  'driver_is_on_the_way',
+  'delivered',
+  'completed',
+];
+
+const AFTER_ACCEPTED = [
+  'accepted',
+  'in_progress',
+  'picked_up',
+  'driver_is_on_the_way',
+  'delivered',
+  'completed',
+];
+
+export function customerOrderSegmentFilled(
+  status: string,
+  index: OrderSegmentIndex,
+  paymentStatus?: string | null,
+): boolean {
+  if (status === 'cancelled' || status === 'canceled') return false;
+  const paid = isOrderPaymentReadyForAccept({ paymentStatus: paymentStatus ?? undefined }) || AFTER_ACCEPTED.includes(status);
+  if (index === 0) return AFTER_SUBMITTED.includes(status);
+  if (index === 1) return paid;
+  if (index === 2) return AFTER_ACCEPTED.includes(status);
+  if (index === 3) return ['in_progress', 'picked_up', 'driver_is_on_the_way', 'delivery_in_progress', 'delivered', 'completed'].includes(status);
+  return ['in_progress', 'picked_up', 'delivery_in_progress', 'delivered', 'completed'].includes(status);
 }
 
 /** Tailwind class for a filled lifecycle progress segment (see global.css order-bar-* utilities). */
@@ -73,10 +78,12 @@ export function orderSegmentBarFilledClass(index: OrderSegmentIndex): string {
     case 0:
       return 'order-bar-pending';
     case 1:
-      return 'order-bar-accepted';
+      return 'order-bar-payment';
     case 2:
-      return 'order-bar-in-progress';
+      return 'order-bar-accepted';
     case 3:
+      return 'order-bar-in-progress';
+    case 4:
       return 'order-bar-completed';
   }
 }
@@ -87,20 +94,23 @@ export function isCustomerLiveMapTrackingStatus(status: string | undefined): boo
 }
 
 /** Short label for customer dashboard / my-orders badge */
-export function customerStatusLabel(status: string): string {
+export function customerStatusLabel(status: string, paymentStatus?: string | null): string {
   switch (status) {
     case 'pending':
-      return 'Pending';
+      return isOrderPaymentReadyForAccept({ paymentStatus: paymentStatus ?? undefined })
+        ? 'Pending Driver Acceptance'
+        : 'Pending Payment';
     case 'accepted':
       return 'Accepted';
+    case 'driver_is_on_the_way':
+      return 'Driver is on the way';
     case 'in_progress':
     case 'picked_up':
-    case 'driver_is_on_the_way':
     case 'delivery_in_progress':
-      return 'In progress';
+      return 'Picked up';
     case 'completed':
     case 'delivered':
-      return 'Completed';
+      return 'Delivered';
     case 'cancelled':
     case 'canceled':
       return 'Cancelled';

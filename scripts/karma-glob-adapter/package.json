@@ -1,0 +1,7 @@
+{
+  "name": "moving-mate-karma-glob",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Karma 6 file matching on top of the project glob 14 override.",
+  "main": "index.js"
+}

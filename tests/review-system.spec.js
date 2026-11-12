@@ -121,11 +121,16 @@ test('review system: driver completes order, customer submits 5-star review', as
     await driverPage.goto(`${baseURL}/login`);
     await login(driverPage, bootstrap.driver?.email ?? driverEmail, bootstrap.driver?.password ?? driverPassword);
     await expect(driverPage).toHaveURL(/\/driver\/dashboard$/);
-    await driverPage.getByRole('link', { name: /my trips/i }).click();
+    await driverPage.getByRole('link', { name: /my moves/i }).click();
     await expect(driverPage).toHaveURL(/\/driver\/tasks$/);
 
     await driverPage.getByTestId(`start-delivery-${orderId}`).click();
-    await expect(driverPage.getByTestId(`driver-task-status-${orderId}`)).toContainText(/in progress|progress/i, {
+    await expect(driverPage.getByTestId(`driver-task-status-${orderId}`)).toContainText(/driver is on the way/i, {
+      timeout: 15000,
+    });
+
+    await driverPage.getByTestId(`mark-picked-up-${orderId}`).click();
+    await expect(driverPage.getByTestId(`driver-task-status-${orderId}`)).toContainText(/picked up/i, {
       timeout: 15000,
     });
 

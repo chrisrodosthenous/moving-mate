@@ -27,10 +27,10 @@ import {
 } from '../../../features/driver/state/driver.selectors';
 import { customerOrderListStagger } from '../customer/customer-animations';
 import { orderStatusToBadgeVariant } from '../../utils/order-tracking';
-import { normalizeOrderId, orderSubmissionDateIso } from '../../utils/order-utils';
+import { normalizeOrderId, orderShortId as orderShortIdLabel, orderSubmissionDateIso } from '../../utils/order-utils';
+import { downloadDriverMoveReceipt } from '../../utils/driver-move-receipt';
 import { UiButtonComponent } from '@/components/ui/button';
 import { DriverJobCardComponent } from './driver-job-card/driver-job-card.component';
-import { DRIVER_JOB_CTA_CLASS } from './driver-job-card/driver-job-card.theme';
 
 const POLL_MS = 10_000;
 
@@ -61,22 +61,13 @@ function driverCustomerName(order: TransportOrder): string {
 }
 
 function driverDisplayStatus(status: string): string {
-  if (status === 'picked_up' || status === 'driver_is_on_the_way') return 'In progress';
-  if (status === 'in_progress') return 'In progress';
-  if (status === 'delivered' || status === 'completed') return 'Completed';
+  if (status === 'driver_is_on_the_way') return 'Driver is on the way';
+  if (status === 'picked_up' || status === 'in_progress') return 'Picked up';
+  if (status === 'delivered' || status === 'completed') return 'Delivered';
   if (status === 'cancelled') return 'Cancelled';
   if (status === 'accepted') return 'Accepted';
   return status || '—';
 }
-
-/** Statuses where route preview is emphasized (aligned with customer My Orders View Route). */
-const DRIVER_ROUTE_PREVIEW_PROMINENT_STATUSES = new Set<string>([
-  'accepted',
-  'picked_up',
-  'in_progress',
-  'driver_is_on_the_way',
-  'delivery_in_progress',
-]);
 
 @Component({
   selector: 'app-driver-my-tasks',
@@ -94,7 +85,8 @@ const DRIVER_ROUTE_PREVIEW_PROMINENT_STATUSES = new Set<string>([
   animations: [customerOrderListStagger],
 })
 export class DriverMyTasksComponent {
-  readonly tripPrimaryBtnClass = DRIVER_JOB_CTA_CLASS;
+  readonly tripPrimaryBtnClass =
+    'inline-flex min-h-[44px] w-full min-w-0 flex-1 items-center justify-center rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 sm:w-auto sm:min-w-[8rem] sm:flex-none';
 
   private readonly store = inject(Store);
   private readonly auth = inject(AuthStore);
@@ -216,14 +208,13 @@ export class DriverMyTasksComponent {
     const base =
       'border min-h-[44px] shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2';
     return selected
-      ? `${base} border-primary bg-primary text-primary-foreground shadow-sm`
+      ? `${base} border-primary bg-primary text-primary-foreground`
       : `${base} border-border/40 bg-card/85 backdrop-blur-sm text-muted-foreground hover:border-border hover:bg-secondary/20`;
   }
 
   /** Compact order id for card headers (last 8 of Mongo `_id`). */
   orderShortId(order: TransportOrder): string {
-    const id = normalizeOrderId(order._id);
-    return id.length <= 8 ? id.toUpperCase() : id.slice(-8).toUpperCase();
+    return orderShortIdLabel(order._id);
   }
 
   constructor() {
@@ -241,16 +232,15 @@ export class DriverMyTasksComponent {
     return driverDisplayStatus(status);
   }
 
-  /**
-   * View Route styling — mirrors customer My Orders (emerald emphasis while trip is actionable).
-   */
-  viewRouteButtonClass(order: TransportOrder): string {
-    const base =
-      'inline-flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-lg border-border/40 bg-card/85 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-card-foreground hover:bg-secondary/20 sm:w-auto sm:min-w-[120px]';
-    if (DRIVER_ROUTE_PREVIEW_PROMINENT_STATUSES.has(order.status)) {
-      return `${base} border-primary/20 font-semibold text-primary shadow-sm ring-2 ring-primary/85 ring-offset-2 ring-offset-white`;
-    }
-    return `${base} text-foreground`;
+  /** Same View route control as customer My moves. */
+  viewRouteButtonClass(): string {
+    return 'inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-lg border border-border bg-secondary/40 px-4 py-2.5 text-xs font-medium text-foreground hover:bg-secondary/40 hover:text-foreground hover:shadow-btn-secondary sm:w-auto sm:min-w-[11rem]';
+  }
+
+  /** Same half-width list column as customer My moves while the route map is open. */
+  routeListColumnClass(): string {
+    const base = 'w-full shrink-0 overflow-y-auto p-4 transition-all duration-300 md:min-h-0';
+    return this.routePreviewOrder() ? `${base} lg:w-1/2` : base;
   }
 
   cargoImageUrl(order: TransportOrder): string {
@@ -271,6 +261,12 @@ export class DriverMyTasksComponent {
     this.cargoLightboxUrl.set(null);
   }
 
+  downloadReceipt(order: TransportOrder, event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+    void downloadDriverMoveReceipt(order);
+  }
+
   viewRoute(order: TransportOrder, event?: Event): void {
     event?.stopPropagation();
     if (this.routePreviewMatches(order)) {
@@ -281,16 +277,35 @@ export class DriverMyTasksComponent {
     this.logger.log('DriverMyTasks: route preview', String(order._id));
   }
 
+  /** Same Google Maps leg as the active delivery screen. */
+  openGoogleNavigation(order: TransportOrder, event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+    const pickup = order.pickupLocation;
+    const dropoff = order.dropoffLocation;
+    if (!pickup?.lat || !dropoff?.lat || typeof window === 'undefined') return;
+    const status = order.status;
+    const url =
+      status === 'picked_up' || status === 'in_progress'
+        ? `https://www.google.com/maps/dir/?api=1&origin=${pickup.lat},${pickup.lng}&destination=${dropoff.lat},${dropoff.lng}&travelmode=driving`
+        : `https://www.google.com/maps/dir/?api=1&destination=${pickup.lat},${pickup.lng}&travelmode=driving&dir_action=navigate`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
   closeRoutePreview(): void {
     this.routePreviewOrder.set(null);
   }
 
-  /** Full-bleed split row aligns with padded driver shell outlet. */
+  /**
+   * Closed list uses the shell padding, same as customer My moves.
+   * With the route open, cancel that desktop padding so the card column and map
+   * each take half of the same full content width as the customer page.
+   */
   tripsPageOuterClass(): string {
     const split = this.routePreviewOrder() !== null;
     return split
-      ? 'flex min-h-0 w-full flex-1 flex-col overflow-hidden -mx-6 md:-mx-8'
-      : 'mx-auto w-full max-w-7xl space-y-4 overflow-x-hidden sm:space-y-6';
+      ? 'flex min-h-0 w-full flex-1 flex-col overflow-hidden lg:w-[calc(100%+4rem)] lg:-mx-8'
+      : 'w-full space-y-4 overflow-x-hidden sm:space-y-6';
   }
 
   tripsRouteSplitRowClass(): string {
@@ -309,24 +324,28 @@ export class DriverMyTasksComponent {
     this.viewRoute(order);
   }
 
-  canShowMarkPickedUp(order: TransportOrder): boolean {
+  canShowOnTheWay(order: TransportOrder): boolean {
     return order.status === 'accepted';
   }
 
-  /** Server maps PATCH `{ status: 'in-transit' }` → `driver_is_on_the_way`; legacy rows may be `picked_up` / `in_progress`. */
+  canShowMarkPickedUp(order: TransportOrder): boolean {
+    return order.status === 'driver_is_on_the_way';
+  }
+
   canShowMarkDelivered(order: TransportOrder): boolean {
     const s = order.status;
-    return s === 'driver_is_on_the_way' || s === 'picked_up' || s === 'in_progress';
+    return s === 'picked_up' || s === 'in_progress';
   }
 
   /**
    * Exactly one active job: duplicate the primary status action above the driver bottom nav so it stays reachable without scrolling.
    */
-  readonly stickyTripPrimaryAction = computed((): null | { order: TransportOrder; kind: 'pickup' | 'deliver' } => {
+  readonly stickyTripPrimaryAction = computed((): null | { order: TransportOrder; kind: 'on-the-way' | 'pickup' | 'deliver' } => {
     if (this.activeTab() !== 'active') return null;
     const trips = this.activeTrips();
     if (trips.length !== 1) return null;
     const order = trips[0];
+    if (this.canShowOnTheWay(order)) return { order, kind: 'on-the-way' };
     if (this.canShowMarkPickedUp(order)) return { order, kind: 'pickup' };
     if (this.canShowMarkDelivered(order)) return { order, kind: 'deliver' };
     return null;
@@ -334,6 +353,10 @@ export class DriverMyTasksComponent {
 
   startDelivery(id: string): void {
     this.store.dispatch(DriverActions.updateDriverTripStatus({ id, status: 'in-transit' }));
+  }
+
+  markPickedUp(id: string): void {
+    this.store.dispatch(DriverActions.updateDriverTripStatus({ id, status: 'picked-up' }));
   }
 
   markCompleted(id: string): void {

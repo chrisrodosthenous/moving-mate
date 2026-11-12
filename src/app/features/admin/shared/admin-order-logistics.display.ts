@@ -32,27 +32,13 @@ export function adminOrderVehicleBadgeClass(vehicleType: AdminOrder['vehicleType
   return `${base} border-border/30 bg-secondary/30 text-foreground`;
 }
 
-export function adminOrderLaborLabel(labor: AdminOrder['laborRequired']): string {
-  switch (labor) {
-    case 'driver':
-      return 'Driver Helps';
-    case 'driver_plus_helper':
-      return 'Driver + 1 Helper';
-    default:
-      return 'Driver Only';
-  }
-}
-
-export function adminOrderLaborBadgeClass(labor: AdminOrder['laborRequired']): string {
-  const base = 'inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap';
-  switch (labor) {
-    case 'driver':
-      return `${base} border border-primary/25 bg-primary/10 text-primary`;
-    case 'driver_plus_helper':
-      return `${base} border-2 border-primary/40 bg-primary/15 text-primary shadow-[0_0_8px_rgba(34,197,94,0.15)]`;
-    default:
-      return `${base} text-muted-foreground`;
-  }
+export function adminElevatorAnswer(order: AdminOrder, side: 'pickup' | 'dropoff'): string {
+  const specific = side === 'pickup' ? order.pickupHasElevator : order.dropoffHasElevator;
+  if (specific === true) return 'Yes';
+  if (specific === false) return 'No';
+  if (order.hasElevator === true) return 'Yes';
+  if (order.hasElevator === false) return 'No';
+  return 'Not recorded';
 }
 
 export function adminOrderHasElevator(order: AdminOrder): boolean {
@@ -67,7 +53,6 @@ export function adminOrderLogisticsSearchBlob(order: AdminOrder): string {
   return [
     adminOrderVehicleLabel(order.vehicleType),
     adminOrderFloorsLine(order),
-    adminOrderLaborLabel(order.laborRequired),
     order.hasElevator === true ? 'elevator' : order.hasElevator === false ? 'no lift' : '',
   ].join(' ');
 }

@@ -88,6 +88,8 @@ export interface OrderPriceInput {
   pickupFloor?: string;
   destinationFloor?: string;
   hasElevator?: boolean;
+  pickupHasElevator?: boolean;
+  dropoffHasElevator?: boolean;
   laborRequired?: OrderLaborRequired;
 }
 
@@ -151,12 +153,29 @@ export function computeCrewCost(
 }
 
 /** Stairs scale with the load being carried, not with a flat per-floor fee. */
+function stairsApply(specific: boolean | undefined, legacy: boolean | undefined): boolean {
+  if (specific === true) return false;
+  if (specific === false) return true;
+  return legacy !== true;
+}
+
 export function computeAccessCost(
   handlingCost: number,
-  input: { pickupFloor?: string; destinationFloor?: string; hasElevator?: boolean },
+  input: {
+    pickupFloor?: string;
+    destinationFloor?: string;
+    hasElevator?: boolean;
+    pickupHasElevator?: boolean;
+    dropoffHasElevator?: boolean;
+  },
 ): number {
-  if (input.hasElevator === true) return 0;
-  const floors = parseFloorValue(input.pickupFloor) + parseFloorValue(input.destinationFloor);
+  let floors = 0;
+  if (stairsApply(input.pickupHasElevator, input.hasElevator)) {
+    floors += parseFloorValue(input.pickupFloor);
+  }
+  if (stairsApply(input.dropoffHasElevator, input.hasElevator)) {
+    floors += parseFloorValue(input.destinationFloor);
+  }
   if (floors <= 0) return 0;
   return roundMoney(handlingCost * STAIRS_SURCHARGE_PER_FLOOR * floors);
 }
@@ -220,6 +239,8 @@ export function calculateOrderPrice(input: OrderPriceInput): OrderPriceBreakdown
     pickupFloor: input.pickupFloor,
     destinationFloor: input.destinationFloor,
     hasElevator: input.hasElevator,
+    pickupHasElevator: input.pickupHasElevator,
+    dropoffHasElevator: input.dropoffHasElevator,
   });
   const distanceCost = computeDistanceCost(distanceKm, tier);
   const addonsTotal = roundMoney(crewCost + accessCost);

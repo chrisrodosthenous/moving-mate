@@ -95,7 +95,7 @@ export const acceptDriverOrderFailure = createAction(
 
 export const updateDriverTripStatus = createAction(
   '[Driver] Update Trip Status',
-  props<{ id: string; status: 'in-transit' | 'completed' }>(),
+  props<{ id: string; status: 'in-transit' | 'picked-up' | 'completed' }>(),
 );
 
 export const updateDriverTripStatusSuccess = createAction(

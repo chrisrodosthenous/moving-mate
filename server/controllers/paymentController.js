@@ -4,6 +4,14 @@ const {
   getPaymentStatusForOrder,
 } = require('../services/paymentService');
 const { isMockPayments } = require('../config/env');
+const TransportOrder = require('../models/TransportOrder');
+const { sendNewOrderToDriversPush } = require('../services/pushNotificationService');
+const {
+  emitNewOrderAvailable,
+  emitToUser,
+  emitToAdmins,
+  orderPayloadForEmit,
+} = require('../services/realtimeService');
 
 function mockPaymentsOnly(res) {
   if (isMockPayments()) return false;
@@ -53,6 +61,26 @@ async function postConfirmPayment(req, res, next) {
 
     const result = await confirmMockCheckout(req.params.orderId, customerId);
     if (!result.ok) return res.status(result.status).json({ message: result.message });
+
+    if (result.newlyAuthorized) {
+      const order = await TransportOrder.findById(req.params.orderId)
+        .populate('customerId', 'firstName lastName phoneNumber email fcmTokens')
+        .lean();
+      const io = req.app.get('io');
+      if (order && io) {
+        await emitNewOrderAvailable(io, order.pickupDistrict, order);
+        const payload = orderPayloadForEmit(order);
+        emitToAdmins(io, 'order_updated', payload);
+        emitToUser(io, customerId, 'order_updated', payload);
+      }
+      if (order) {
+        sendNewOrderToDriversPush({
+          orderId: String(order._id),
+          district: order.pickupDistrict,
+          vehicleType: order.vehicleType,
+        }).catch((err) => console.warn('[Push] sendNewOrderToDriversPush failed:', err.message));
+      }
+    }
 
     return res.json({
       ok: true,

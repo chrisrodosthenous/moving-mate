@@ -15,6 +15,8 @@ export interface OrderQuoteRequest {
   pickupFloor: string;
   destinationFloor: string;
   hasElevator: boolean;
+  pickupHasElevator: boolean;
+  dropoffHasElevator: boolean;
   laborRequired: OrderLaborRequired;
 }
 

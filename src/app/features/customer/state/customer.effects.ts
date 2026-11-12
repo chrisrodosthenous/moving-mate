@@ -43,7 +43,7 @@ export class CustomerEffects {
             catchError((err) =>
               of(
                 CustomerActions.loadCustomerOrdersFailure({
-                  error: err?.error?.message ?? 'Failed to load orders.',
+                  error: err?.error?.message ?? 'Failed to load moves.',
                 }),
               ),
             ),
@@ -85,7 +85,7 @@ export class CustomerEffects {
             catchError((err) =>
               of(
                 CustomerActions.loadCustomerOrdersMoreFailure({
-                  error: err?.error?.message ?? 'Failed to load more orders.',
+                  error: err?.error?.message ?? 'Failed to load more moves.',
                 }),
               ),
             ),
@@ -177,7 +177,7 @@ export class CustomerEffects {
                 error:
                   err?.error?.message ??
                   err?.error?.error ??
-                  'Failed to create order.',
+                  'Failed to create move.',
               }),
             ),
           ),

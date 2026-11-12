@@ -14,7 +14,116 @@
     />
   </div>
 
-  @if (loading()) {
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="min-w-0">
+      <label for="order-filter-id" class="mb-1 block text-xs font-medium text-secondary">Order ID</label>
+      <input
+        id="order-filter-id"
+        type="text"
+        [class]="table.search + ' !max-w-none'"
+        placeholder="Filter order ID"
+        [value]="idFilter()"
+        (input)="idFilter.set($any($event.target).value)"
+      />
+    </div>
+    <div class="min-w-0">
+      <label for="order-filter-customer" class="mb-1 block text-xs font-medium text-secondary">Customer</label>
+      <input
+        id="order-filter-customer"
+        type="text"
+        [class]="table.search + ' !max-w-none'"
+        placeholder="Filter customer"
+        [value]="customerFilter()"
+        (input)="customerFilter.set($any($event.target).value)"
+      />
+    </div>
+    <div class="min-w-0">
+      <label for="order-filter-driver" class="mb-1 block text-xs font-medium text-secondary">Driver</label>
+      <input
+        id="order-filter-driver"
+        type="text"
+        [class]="table.search + ' !max-w-none'"
+        placeholder="Filter driver"
+        [value]="driverFilter()"
+        (input)="driverFilter.set($any($event.target).value)"
+      />
+    </div>
+    <div class="min-w-0">
+      <label for="order-filter-place" class="mb-1 block text-xs font-medium text-secondary">District / Address</label>
+      <input
+        id="order-filter-place"
+        type="text"
+        [class]="table.search + ' !max-w-none'"
+        placeholder="Filter district or address"
+        [value]="placeFilter()"
+        (input)="placeFilter.set($any($event.target).value)"
+      />
+    </div>
+    <div class="min-w-0">
+      <label for="order-filter-vehicle" class="mb-1 block text-xs font-medium text-secondary">Vehicle</label>
+      <select
+        id="order-filter-vehicle"
+        class="min-h-[44px] w-full rounded-lg border border-border/50 bg-input/70 px-3 py-2.5 text-sm text-foreground"
+        [value]="vehicleFilter()"
+        (change)="vehicleFilter.set($any($event.target).value)"
+      >
+        <option value="all">All vehicles</option>
+        @for (vehicle of vehicleOptions(); track vehicle) {
+          <option [value]="vehicle">{{ vehicle }}</option>
+        }
+      </select>
+    </div>
+    <div class="min-w-0">
+      <label for="order-filter-logistics" class="mb-1 block text-xs font-medium text-secondary">Logistics / Floors</label>
+      <input
+        id="order-filter-logistics"
+        type="text"
+        [class]="table.search + ' !max-w-none'"
+        placeholder="Filter floors or elevator"
+        [value]="logisticsFilter()"
+        (input)="logisticsFilter.set($any($event.target).value)"
+      />
+    </div>
+    <div class="min-w-0">
+      <label for="order-filter-price" class="mb-1 block text-xs font-medium text-secondary">Price</label>
+      <input
+        id="order-filter-price"
+        type="text"
+        inputmode="decimal"
+        [class]="table.search + ' !max-w-none'"
+        placeholder="Filter price"
+        [value]="priceFilter()"
+        (input)="priceFilter.set($any($event.target).value)"
+      />
+    </div>
+    <div class="min-w-0">
+      <label for="order-filter-created" class="mb-1 block text-xs font-medium text-secondary">Created</label>
+      <input
+        id="order-filter-created"
+        type="text"
+        [class]="table.search + ' !max-w-none'"
+        placeholder="Filter date"
+        [value]="createdFilter()"
+        (input)="createdFilter.set($any($event.target).value)"
+      />
+    </div>
+    <div class="min-w-0">
+      <label for="order-filter-status" class="mb-1 block text-xs font-medium text-secondary">Status</label>
+      <select
+        id="order-filter-status"
+        class="min-h-[44px] w-full rounded-lg border border-border/50 bg-input/70 px-3 py-2.5 text-sm text-foreground"
+        [value]="statusFilter()"
+        (change)="statusFilter.set($any($event.target).value)"
+      >
+        <option value="all">All statuses</option>
+        @for (status of statusOptions; track status) {
+          <option [value]="status">{{ status }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (loading() || listLoading()) {
     <p class="text-sm text-muted-foreground" aria-live="polite">Loading orders…</p>
   }
 
@@ -30,7 +139,6 @@
             <th [class]="table.th" scope="col">District / Address</th>
             <th [class]="table.th" scope="col">Vehicle</th>
             <th [class]="table.th" scope="col">Logistics / Floors</th>
-            <th [class]="table.th" scope="col">Labor</th>
             <th [class]="table.th" scope="col">Price</th>
             <th [class]="table.th" scope="col">Created</th>
             <th [class]="table.th" scope="col">Status</th>
@@ -87,9 +195,6 @@
                   }
                 </div>
               </td>
-              <td [class]="table.td">
-                <span [class]="laborBadgeClass(order.laborRequired)">{{ laborLabel(order.laborRequired) }}</span>
-              </td>
               <td [class]="table.td + ' ' + table.tdPrimary + ' whitespace-nowrap font-semibold tabular-nums'">
                 €{{ order.price | number: '1.2-2' }}
               </td>
@@ -104,7 +209,7 @@
                   type="button"
                   variant="outline"
                   [className]="table.actionBtn"
-                  (click)="viewOrder.emit(order)"
+                  (click)="openOrder(order)"
                 >
                   View
                 </ui-button>
@@ -113,10 +218,10 @@
           } @empty {
             <tr class="bg-card/20">
               <td [attr.colspan]="colCount" class="px-4 py-10 text-center text-sm text-muted-foreground">
-                @if (loading()) {
+                @if (loading() || listLoading()) {
                   Loading…
-                } @else if (search()) {
-                  No orders match your search.
+                } @else if (search() || filtersActive()) {
+                  No orders match your filters.
                 } @else {
                   No orders found.
                 }
@@ -139,4 +244,112 @@
       </div>
     }
   </div>
+
+  @if (selected(); as order) {
+    <div
+      class="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="admin-order-details-title"
+      (click)="closeOrder()"
+    >
+      <div
+        class="max-h-[min(100dvh,100%)] w-full overflow-y-auto rounded-t-2xl border border-border/30 bg-card p-4 shadow-2xl sm:max-h-[90vh] sm:max-w-2xl sm:rounded-2xl sm:p-6"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <h2 id="admin-order-details-title" class="font-mono text-lg font-semibold text-foreground">
+              {{ shortId(order._id) }}
+            </h2>
+            <p class="mt-1 text-sm text-secondary">Order details</p>
+          </div>
+          <ui-button type="button" variant="outline" [className]="table.actionBtn" (click)="closeOrder()">
+            Close
+          </ui-button>
+        </div>
+
+        <dl class="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt class="text-xs text-secondary">Customer</dt>
+            <dd class="mt-1 text-foreground">{{ customerName(order) }}</dd>
+            @if (personEmail(order.customer)) {
+              <dd class="break-words text-xs text-secondary">{{ personEmail(order.customer) }}</dd>
+            }
+            @if (personPhone(order.customer)) {
+              <dd class="text-xs text-secondary">{{ personPhone(order.customer) }}</dd>
+            }
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Driver</dt>
+            <dd class="mt-1 text-foreground">
+              @if (driverName(order); as driver) {
+                {{ driver }}
+              } @else {
+                <span [class]="badgeClass('muted')">Unassigned</span>
+              }
+            </dd>
+            @if (personEmail(order.driver)) {
+              <dd class="break-words text-xs text-secondary">{{ personEmail(order.driver) }}</dd>
+            }
+            @if (personPhone(order.driver)) {
+              <dd class="text-xs text-secondary">{{ personPhone(order.driver) }}</dd>
+            }
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">District</dt>
+            <dd class="mt-1 text-foreground">{{ order.pickupDistrict || '—' }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Status</dt>
+            <dd class="mt-1">
+              <span [class]="statusClass(order.status)">{{ statusLabel(order.status) }}</span>
+            </dd>
+          </div>
+          <div class="sm:col-span-2">
+            <dt class="text-xs text-secondary">Pickup</dt>
+            <dd class="mt-1 text-foreground">{{ order.pickupLocation.address }}</dd>
+          </div>
+          <div class="sm:col-span-2">
+            <dt class="text-xs text-secondary">Drop-off</dt>
+            <dd class="mt-1 text-foreground">{{ order.dropoffLocation.address }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Vehicle</dt>
+            <dd class="mt-1">
+              <span [class]="vehicleBadgeClass(order.vehicleType)">
+                <lucide-icon [name]="vehicleIcon(order.vehicleType)" [size]="14" aria-hidden="true" />
+                {{ vehicleLabel(order.vehicleType) }}
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Logistics / Floors</dt>
+            <dd class="mt-1 text-foreground">{{ floorsLine(order) }}</dd>
+            <dd class="mt-1 text-xs text-secondary">
+              Pickup: {{ elevatorAnswer(order, 'pickup') }}. Drop-off: {{ elevatorAnswer(order, 'dropoff') }}.
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Price</dt>
+            <dd class="mt-1 font-semibold tabular-nums text-foreground">€{{ order.price | number: '1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Payment</dt>
+            <dd class="mt-1 text-foreground">{{ paymentLabel(order.paymentStatus) }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Distance</dt>
+            <dd class="mt-1 tabular-nums text-foreground">
+              {{ order.distanceKm != null ? (order.distanceKm | number: '1.1-1') + ' km' : '—' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-secondary">Created</dt>
+            <dd class="mt-1 text-foreground">{{ formatDate(order.createdAt) }}</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  }
 </section>

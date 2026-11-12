@@ -21,6 +21,7 @@ async function registerDriverViaApi(
     dateOfBirth = '1990-01-01',
     districts = ['Nicosia'],
     vehicleType = 'pickup',
+    plateNumber = 'KAA 123',
     includeLicense = true,
     includeVehiclePhoto = true,
   },
@@ -36,6 +37,7 @@ async function registerDriverViaApi(
     role: 'driver',
     districts: JSON.stringify(districts),
     vehicleType,
+    plateNumber,
   }
   if (includeLicense) {
     multipart.drivingLicense = {
@@ -57,6 +59,7 @@ async function registerDriverViaApi(
 /** Fill vehicle type + photo on the register UI (driver role must already be selected). */
 async function fillDriverVehicleSignup(page, vehiclePhotoPath) {
   await page.locator('select[formcontrolname="vehicleType"]').selectOption('pickup')
+  await page.locator('#plateNumber').fill('KAA 123')
   await page.locator('#vehiclePhoto').setInputFiles(vehiclePhotoPath)
 }
 

@@ -26,16 +26,16 @@ import {
   driverVehicleTypeLabel,
 } from '../../core/models/driver.model';
 import { UiBadgeComponent } from '@/components/ui/badge';
+import { PrivateDocImageComponent } from '../../shared/components/private-doc-image/private-doc-image.component';
+import { AdminService } from '../../core/services/admin.service';
 import { getPasswordPolicyErrors, validatePassword } from '../../shared/utils/password-policy';
 import { WalletService } from '../../core/services/wallet.service';
 import { leafShellOutletData } from '../../shared/routing/shell-route.helper';
 import {
   isImageDocumentPath,
   isPdfDocumentPath,
-  resolveUploadUrl,
 } from '../../shared/utils/document-url';
 
-const PHONE_PREFIX = '+357';
 const AUTO_CHECK_VERIFICATION_MS = 30_000;
 
 /** Must match server CYPRUS_DISTRICTS. */
@@ -63,6 +63,7 @@ export const DRIVER_WORKING_DISTRICTS = [
     UiCardContentComponent,
     UiInputDirective,
     UiBadgeComponent,
+    PrivateDocImageComponent,
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css',
@@ -72,6 +73,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   readonly driverVehicleTypeLabel = driverVehicleTypeLabel;
 
   authService = inject(AuthService);
+  private readonly documents = inject(AdminService);
   private readonly authStore = inject(AuthStore);
   private readonly store = inject(Store);
   private readonly actions$ = inject(Actions);
@@ -108,12 +110,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
   /** Local copy of current user; updated on check status so template refreshes. */
   readonly user = signal<AuthUser | null>(null);
 
-  /** Vehicle photo URL for driver profile thumbnail. */
-  readonly vehiclePhotoUrl = computed(() => resolveUploadUrl(this.user()?.vehiclePhotoUrl || ''));
-
   readonly vehicleTypeLabel = computed(() =>
     driverVehicleTypeLabel(this.user()?.vehicleType),
   );
+
+  readonly vehiclePlates = computed(() => (this.user()?.plateNumber ?? '').trim());
 
   readonly showVehiclePendingBadge = computed(
     () => this.user()?.role === 'driver' && this.user()?.isVerified !== true,
@@ -130,8 +131,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
   readonly driverLicensePath = computed(
     () => this.licenseUrl().trim() || (this.user()?.licenseUrl ?? '').trim(),
   );
-
-  readonly driverLicenseFullUrl = computed(() => resolveUploadUrl(this.driverLicensePath()));
 
   readonly driverLicenseIsImage = computed(() => isImageDocumentPath(this.driverLicensePath()));
 
@@ -178,10 +177,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   firstName = '';
   lastName = '';
-  phoneDigits = '';
-  loading = signal(false);
-  error = signal('');
-  success = signal(false);
 
   /** License upload: stored URL after successful upload (from API or current user). */
   licenseUrl = signal<string>('');
@@ -242,8 +237,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
     if (u) {
       this.firstName = u.firstName ?? u.name?.split(' ')[0] ?? '';
       this.lastName = u.lastName ?? u.name?.split(' ').slice(1).join(' ') ?? '';
-      const phone = u.phone ?? '';
-      this.phoneDigits = phone.startsWith(PHONE_PREFIX) ? phone.slice(PHONE_PREFIX.length) : phone.replace(/\D/g, '').slice(-8);
       if (u.role === 'driver' && u.licenseUrl) {
         this.licenseUrl.set(u.licenseUrl);
       }
@@ -401,11 +394,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
     });
   }
 
-  get fullPhoneNumber(): string {
-    const digits = this.phoneDigits.replace(/\D/g, '').slice(0, 8);
-    return digits.length === 8 ? PHONE_PREFIX + digits : '';
-  }
-
   /** Initials for the avatar disc (read-only; no image upload API in profile). */
   get userInitials(): string {
     const f = (
@@ -486,46 +474,17 @@ export class ProfileComponent implements OnInit, OnDestroy {
       });
   }
 
-  onSubmit(): void {
-    this.error.set('');
-    this.success.set(false);
-    if (!this.firstName.trim()) {
-      this.error.set('First name is required.');
-      return;
-    }
-    if (!this.lastName.trim()) {
-      this.error.set('Last name is required.');
-      return;
-    }
-    if (this.phoneDigits.replace(/\D/g, '').length !== 8) {
-      this.error.set('Phone number must be exactly 8 digits.');
-      return;
-    }
-
-    this.loading.set(true);
-    this.authService
-      .updateProfile({
-        firstName: this.firstName.trim(),
-        lastName: this.lastName.trim(),
-        phoneNumber: this.fullPhoneNumber,
-      })
-      .subscribe({
-        next: (res) => {
-          this.user.set(this.authService.user());
-          this.success.set(true);
-          this.toast.show('Profile updated successfully!', 'success');
-        },
-        error: () => {
-          /* HTTP error message shown by httpErrorInterceptor */
-        },
-        complete: () => this.loading.set(false),
-      });
-  }
-
   openDriverLicenseDocument(): void {
-    const url = this.driverLicenseFullUrl();
-    if (!url) return;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const id = this.user()?.id;
+    if (!id) return;
+    this.documents.getPrivateDocument(id, 'license').subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank', 'noopener,noreferrer');
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: () => this.toast.show('Could not open license document.', 'error'),
+    });
   }
 
   onLicenseFileChange(event: Event): void {

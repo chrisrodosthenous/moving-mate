@@ -27,6 +27,8 @@ import { SocketService } from '../../../core/services/socket.service';
 import { TrackingComponent } from './tracking/tracking.component';
 import { orderVehicleTypeDisplayLabel } from '../../../shared/utils/order-cargo-scoring.util';
 import type { TransportOrder } from '../../../core/services/orders.service';
+import { orderShortId as toOrderShortId } from '../../../shared/utils/order-utils';
+import { resolveDriverMapVehicle, type DriverMapVehicle } from '../../../shared/utils/driver-map-car-icon';
 
 @Component({
   selector: 'app-customer-order-details',
@@ -37,6 +39,13 @@ import type { TransportOrder } from '../../../core/services/orders.service';
 })
 export class CustomerOrderDetailsComponent implements OnInit {
   readonly vehicleTypeLabel = orderVehicleTypeDisplayLabel;
+  readonly orderShortId = toOrderShortId;
+
+  mapDriverVehicle(order: TransportOrder): DriverMapVehicle {
+    const driver = order.driverId;
+    const driverType = driver && typeof driver === 'object' ? driver.vehicleType : null;
+    return resolveDriverMapVehicle(driverType, order.vehicleType);
+  }
   private readonly store = inject(Store);
   private readonly route = inject(ActivatedRoute);
   private readonly mapsLoader = inject(GoogleMapsLoaderService);

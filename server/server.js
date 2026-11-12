@@ -27,6 +27,7 @@ const { joinUserSocketRooms, attachDriverLocationHandlers } = require('./service
 const { attachSocketPresenceToSocket } = require('./services/socketPresenceService');
 const { activeFcmTokens } = require('./utils/fcmTokens');
 const { validateGoogleMapsApiKeyAtStartup } = require('./config/mapsEnv');
+const User = require('./models/User');
 
 /** Legacy /api/test-email etc.: on when not production or ENABLE_TEST_ROUTES=true */
 const testRoutesEnabled =
@@ -67,15 +68,20 @@ const io = new Server(server, {
 });
 app.set('io', io);
 
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error('Authentication required'));
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    const account = await User.findById(decoded.userId).select('isSuspended role').lean();
+    if (account && account.role !== 'admin' && account.isSuspended) {
+      return next(new Error('Account suspended'));
+    }
     socket.userId = decoded.userId;
-    socket.role = decoded.role;
+    socket.role = account?.role || decoded.role;
     next();
-  } catch {
+  } catch (err) {
+    if (err?.message === 'Account suspended') return next(err);
     next(new Error('Invalid token'));
   }
 });
@@ -112,8 +118,16 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 // sanitizeInputMiddleware mutates inputs in place (see middleware/sanitizeInput.js).
 app.use(sanitizeInputMiddleware);
 
-// Disk copy first. MongoDB serves the same path after a deploy removes the file.
+// Licenses and vehicle photos are not public. Cargo and other uploads stay on this path.
+function blockPrivateUploads(req, res, next) {
+  const pathName = req.path || '';
+  if (pathName.startsWith('/licenses') || pathName.startsWith('/driver-documents')) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  return next();
+}
 const uploadsPath = path.join(__dirname, 'uploads');
+app.use('/uploads', blockPrivateUploads);
 app.use('/uploads', express.static(uploadsPath));
 app.use('/uploads', serveStoredUpload);
 
@@ -146,6 +160,9 @@ app.get('/api/health', (req, res) => {
 
 /** Grand audit: registered on app (not orderRoutes) so path is exactly /api/test/final-grand-audit — before /api/test router gate. */
 async function finalGrandAuditHandler(req, res) {
+  if (!testRoutesEnabled) {
+    return res.status(404).json({ message: 'Not found' });
+  }
   try {
     const { runFinalGrandAudit } = require('./scripts/finalGrandAudit');
     const reportCard = await runFinalGrandAudit();

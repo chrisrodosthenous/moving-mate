@@ -7,6 +7,7 @@ import { Observable, BehaviorSubject, catchError, map, tap, throwError } from 'r
 import { AuthStore, AuthUser } from '../../store/auth.store';
 import { FcmService } from './fcm.service';
 import { LoggerService } from './logger.service';
+import { SocketService } from './socket.service';
 
 // Re-export so existing consumers can keep `import { AuthUser } from 'auth.service'`.
 export type { AuthUser } from '../../store/auth.store';
@@ -33,6 +34,7 @@ export class AuthService {
   private readonly store = inject(AuthStore);
   private readonly fcm = inject(FcmService);
   private readonly logger = inject(LoggerService);
+  private readonly socket = inject(SocketService);
 
   /**
    * BehaviorSubject kept for backward compatibility with components using
@@ -61,6 +63,17 @@ export class AuthService {
   }
 
   /* ── Auth HTTP calls ────────────────────────────────────────────────── */
+
+  /** Open the account in a new tab. The login token stays on the redeem request. */
+  openImpersonatedTab(code: string, preview: Window): void {
+    preview.location.replace(`${window.location.origin}/impersonate?handoff=${encodeURIComponent(code)}`);
+  }
+
+  finishImpersonation(res: LoginResponse): void {
+    this.fcm.clearSessionRegistrationFlags();
+    this.store.beginIsolatedSession(res.token, res.user);
+    this.socket.refreshConnection();
+  }
 
   login(emailOrPhone: string, password: string): Observable<LoginResponse> {
     this.store.setLoading();
@@ -137,9 +150,17 @@ export class AuthService {
    * Use {@link FcmService.removeTokenFromBackend} only for explicit revocation (e.g. user turns off notifications).
    */
   async logout(): Promise<void> {
+    const isolated = this.store.hasIsolatedSession();
     this.fcm.clearSessionRegistrationFlags();
     this.store.logout();
-    this.router.navigate(['/login']);
+    if (isolated) {
+      this.socket.refreshConnection();
+      if (this.store.isLoggedIn()) {
+        await this.router.navigateByUrl(this.store.dashboardRoute());
+        return;
+      }
+    }
+    await this.router.navigate(['/login']);
   }
 
   /* ── Profile / user management ──────────────────────────────────────── */

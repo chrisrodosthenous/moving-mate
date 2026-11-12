@@ -15,7 +15,7 @@
       [class.is-open]="drawerOpen()"
     role="dialog"
       aria-modal="false"
-    aria-label="New order form"
+    aria-label="New move form"
   >
       <div
         class="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-2 pb-[max(6rem,calc(1rem+env(safe-area-inset-bottom)))] pt-2 xs:px-3 md:px-6 md:pb-8 md:pt-6 lg:px-8"
@@ -136,24 +136,4 @@
               />
             </div>
         </div>
-
-  @if (showBookingSuccess()) {
-    <div
-      class="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 px-3 backdrop-blur-sm"
-      role="status"
-    >
-      <div
-        class="flex w-full max-w-full flex-col items-center gap-5 rounded-2xl border border-border/40 bg-card/85 backdrop-blur-sm px-5 py-8 shadow-2xl xs:px-8 sm:px-12 sm:py-10"
-        @customerBookingSuccess
-      >
-        <div
-          class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 text-3xl font-bold leading-none text-primary"
-        >
-          ✓
-        </div>
-        <p class="text-lg font-semibold text-card-foreground">Order submitted</p>
-        <p class="max-w-xs text-center text-sm text-foreground">We are finding you a driver.</p>
-          </div>
-    </div>
-  }
 </div>

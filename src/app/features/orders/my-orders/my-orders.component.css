@@ -7,6 +7,10 @@
   width: 100%;
 }
 
+.active-order-copy .text-muted {
+  color: #bdbdbd;
+}
+
 .route-split-root--pinned {
   min-height: 0;
 }

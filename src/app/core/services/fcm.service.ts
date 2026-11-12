@@ -265,6 +265,8 @@ export class FcmService {
         return token;
       }
 
+      if (this.authStore.hasIsolatedSession()) return null;
+
       await firstValueFrom(
         this.http.post('/api/users/update-fcm-token', { fcmToken: token }, httpOptionsSkipGlobalErrorToast()),
       );
@@ -289,7 +291,7 @@ export class FcmService {
     if (typeof window === 'undefined') return { synced: false };
     const jwt = this.authStore.token();
     const stored = (localStorage.getItem(FCM_TOKEN_KEY) || '').trim();
-    if (!jwt || !stored) return { synced: false };
+    if (!jwt || !stored || this.authStore.hasIsolatedSession()) return { synced: false };
     const userId = this.authStore.user()?.id ?? '';
     if (
       sessionStorage.getItem(SESSION_FCM_REGISTERED) === stored &&

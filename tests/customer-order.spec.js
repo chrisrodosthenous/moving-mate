@@ -30,7 +30,7 @@ test('customer can create new order from /customer/book', async ({ page, baseURL
     await expect(page.getByTestId('sidebar')).toBeVisible()
     await page.getByTestId('sidebar').getByRole('link', { name: /dashboard/i }).click()
     await expect(page).toHaveURL(/\/customer\/dashboard$/)
-    await page.getByTestId('sidebar').getByRole('link', { name: /new order/i }).click()
+    await page.getByTestId('sidebar').getByRole('link', { name: /new move/i }).click()
     await expect(page).toHaveURL(/\/customer\/book$/)
     await expect(page.getByTestId('google-map-shell')).toBeVisible()
     await expect(page.getByTestId('google-map-shell')).not.toBeEmpty()
@@ -50,7 +50,7 @@ test('customer can create new order from /customer/book', async ({ page, baseURL
         resp.status() !== 0,
       { timeout: 120000 },
     )
-    await page.getByRole('button', { name: /confirm order/i }).click()
+    await page.getByRole('button', { name: /confirm move/i }).click()
     const createResp = await createRespPromise
     await expect(createResp.status()).toBe(201)
 

@@ -38,6 +38,8 @@ export interface TransportOrder {
         lastName?: string;
         phone?: string;
         phoneNumber?: string;
+        plateNumber?: string;
+        vehicleType?: string;
       }
     | string;
   pickupDistrict?: string;
@@ -64,6 +66,8 @@ export interface TransportOrder {
   pickupFloor?: string;
   destinationFloor?: string;
   hasElevator?: boolean;
+  pickupHasElevator?: boolean;
+  dropoffHasElevator?: boolean;
   laborRequired?: OrderLaborRequired;
   /** Relative or absolute URL to cargo photo (set after upload). */
   cargoImageUrl?: string;
@@ -234,8 +238,12 @@ export class OrdersService {
     return this.http.patch<TransportOrder>(`${API_URL}/${id}/accept`, {}, opt(opts));
   }
 
-  /** Driver: PATCH /api/orders/:id/status with body { status: 'in-transit' | 'completed' }. */
-  updateOrderStatus(id: string, status: 'in-transit' | 'completed', opts?: HttpToastControl): Observable<TransportOrder> {
+  /** Driver: PATCH /api/orders/:id/status. */
+  updateOrderStatus(
+    id: string,
+    status: 'in-transit' | 'picked-up' | 'completed',
+    opts?: HttpToastControl,
+  ): Observable<TransportOrder> {
     const url = `${API_URL}/${id}/status`;
     return this.http.patch<TransportOrder>(url, { status }, opt(opts));
   }

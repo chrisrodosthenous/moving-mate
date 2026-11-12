@@ -115,25 +115,24 @@ export class DriverJobDetailComponent implements OnInit {
   }
 
   displayStatus(status: string): string {
-    if (
-      status === 'picked_up' ||
-      status === 'driver_is_on_the_way' ||
-      status === 'in_progress'
-    ) {
-      return 'In progress';
-    }
-    if (status === 'delivered') return 'Completed';
+    if (status === 'driver_is_on_the_way') return 'Driver is on the way';
+    if (status === 'picked_up' || status === 'in_progress') return 'Picked up';
+    if (status === 'delivered' || status === 'completed') return 'Delivered';
     if (status === 'accepted') return 'Accepted';
     return status || '—';
   }
 
-  canShowMarkPickedUp(order: TransportOrder): boolean {
+  canShowOnTheWay(order: TransportOrder): boolean {
     return order.status === 'accepted';
+  }
+
+  canShowMarkPickedUp(order: TransportOrder): boolean {
+    return order.status === 'driver_is_on_the_way';
   }
 
   canShowMarkDelivered(order: TransportOrder): boolean {
     const s = order.status;
-    return s === 'driver_is_on_the_way' || s === 'picked_up' || s === 'in_progress';
+    return s === 'picked_up' || s === 'in_progress';
   }
 
   isTripBusy(id: string): boolean {
@@ -144,12 +143,21 @@ export class DriverJobDetailComponent implements OnInit {
     this.store.dispatch(DriverActions.updateDriverTripStatus({ id, status: 'in-transit' }));
   }
 
+  markPickedUp(id: string): void {
+    this.store.dispatch(DriverActions.updateDriverTripStatus({ id, status: 'picked-up' }));
+  }
+
   markCompleted(id: string): void {
     this.store.dispatch(DriverActions.updateDriverTripStatus({ id, status: 'completed' }));
   }
 
   viewRoute(order: TransportOrder, event?: Event): void {
     event?.stopPropagation();
+    const current = this.routePreviewOrder();
+    if (current && String(current._id) === String(order._id)) {
+      this.closeRoutePreview();
+      return;
+    }
     this.routePreviewOrder.set(order);
     this.logger.log('DriverJobDetail: route preview', String(order._id));
   }

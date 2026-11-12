@@ -8,6 +8,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const { applyThemeVariables } = require('../utils/themeCss');
 
 const router = express.Router();
 
@@ -53,36 +54,27 @@ router.post('/save-theme', async (req, res) => {
       });
     }
 
-    let cssContent = fs.readFileSync(GLOBAL_CSS_PATH, 'utf8');
+    const cssContent = fs.readFileSync(GLOBAL_CSS_PATH, 'utf8');
+    const scope = typeof req.body.scope === 'string' ? req.body.scope : 'global';
+    const applied = applyThemeVariables(cssContent, variables, scope);
 
-    // Update each variable in the CSS
-    for (const [varName, value] of Object.entries(variables)) {
-      if (!varName.startsWith('--')) continue;
-      
-      // Match the variable declaration with various formats
-      // Handles: --varname: value; with optional comments
-      const varRegex = new RegExp(
-        `(${escapeRegex(varName)}:\\s*)([^;]+)(;)`,
-        'g'
-      );
-
-      const newValue = String(value).trim();
-      
-      if (varRegex.test(cssContent)) {
-        cssContent = cssContent.replace(varRegex, `$1${newValue}$3`);
-      }
+    if (applied.updated.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No matching theme colors were found to update.',
+      });
     }
 
-    // Write the updated CSS back to file
-    fs.writeFileSync(GLOBAL_CSS_PATH, cssContent, 'utf8');
+    fs.writeFileSync(GLOBAL_CSS_PATH, applied.css, 'utf8');
 
-    console.log(`[DevTools] Theme saved to ${GLOBAL_CSS_PATH}`);
-    console.log(`[DevTools] Updated ${Object.keys(variables).length} variables`);
+    const where = scope === 'global' ? 'everywhere' : scope;
+    console.log(`[DevTools] Theme saved (${applied.updated.length} colors, ${where})`);
 
     res.json({
       success: true,
-      message: 'Theme saved successfully to global.css',
-      updatedVariables: Object.keys(variables).length,
+      message: scope === 'global' ? 'Theme saved everywhere.' : `Theme saved for ${scope} only.`,
+      updatedVariables: applied.updated.length,
+      scope,
     });
 
   } catch (error) {
@@ -183,12 +175,5 @@ router.post('/backup-theme', async (req, res) => {
     });
   }
 });
-
-/**
- * Escape special regex characters
- */
-function escapeRegex(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 module.exports = router;

@@ -8,7 +8,7 @@ import {
   effect,
   input,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { ThemeEditorService } from '../../../core/services/theme-editor.service';
 import { DESIGN_SCOPE_META } from '../../../core/config/admin-design-preview.config';
 import { LucideAngularModule } from 'lucide-angular';
@@ -16,7 +16,7 @@ import { LucideAngularModule } from 'lucide-angular';
 @Component({
   selector: 'app-theme-editor',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (showFloatingToggle()) {
@@ -35,7 +35,54 @@ import { LucideAngularModule } from 'lucide-angular';
       </button>
     }
 
-    @if (themeEditor.isOpen()) {
+    @if (themeEditor.pageEdit()) {
+      <div
+        class="design-edit-bar fixed inset-x-0 z-[10001] flex flex-col gap-2 border-t border-white/10 px-3 py-2 shadow-2xl sm:flex-row sm:items-center"
+        style="background: #111827;"
+      >
+        <p class="min-w-0 flex-1 text-[11px] leading-relaxed text-slate-300">
+          Click a part of this screen, then choose where the color applies.
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="min-h-11 rounded-lg px-3 text-xs font-semibold"
+            [class.bg-blue-600]="themeEditor.applyTarget() === 'everywhere'"
+            [class.text-white]="themeEditor.applyTarget() === 'everywhere'"
+            [class.text-slate-300]="themeEditor.applyTarget() !== 'everywhere'"
+            [attr.aria-pressed]="themeEditor.applyTarget() === 'everywhere'"
+            (click)="themeEditor.setApplyTarget('everywhere')"
+          >
+            Everywhere
+          </button>
+          @if (themeEditor.sideLabel(); as side) {
+            <button
+              type="button"
+              class="min-h-11 rounded-lg px-3 text-xs font-semibold"
+              [class.bg-blue-600]="themeEditor.applyTarget() === 'side'"
+              [class.text-white]="themeEditor.applyTarget() === 'side'"
+              [class.text-slate-300]="themeEditor.applyTarget() !== 'side'"
+              [attr.aria-pressed]="themeEditor.applyTarget() === 'side'"
+              (click)="themeEditor.setApplyTarget('side')"
+            >
+              Only {{ side }}
+            </button>
+          }
+        </div>
+        @if (themeEditor.saveMessage(); as msg) {
+          <p class="text-[11px] font-medium" [class.text-green-400]="msg.type === 'success'" [class.text-red-400]="msg.type === 'error'">{{ msg.text }}</p>
+        }
+        <div class="flex gap-2">
+          <button type="button" class="min-h-11 rounded-lg px-3 text-xs font-medium text-slate-300 hover:bg-white/10" (click)="backToScreens()">All screens</button>
+          <button type="button" class="min-h-11 rounded-lg px-3 text-xs font-medium text-slate-300 hover:bg-white/10 disabled:opacity-40" (click)="themeEditor.resetAll()" [disabled]="!themeEditor.hasChanges()">Reset</button>
+          <button type="button" class="min-h-11 rounded-lg bg-blue-600 px-3 text-xs font-bold text-white hover:bg-blue-500 disabled:opacity-40" (click)="themeEditor.saveTheme()" [disabled]="!themeEditor.hasChanges() || themeEditor.isSaving()">
+            {{ themeEditor.isSaving() ? 'Saving...' : 'Save' }}
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (themeEditor.isOpen() && !themeEditor.pageEdit()) {
       <div
         class="theme-editor-panel fixed z-[9998] flex flex-col overflow-hidden rounded-xl shadow-2xl bottom-[calc(8.5rem+env(safe-area-inset-bottom,0px))] md:bottom-20"
         [class.right-4]="anchor() === 'right'"
@@ -49,20 +96,9 @@ import { LucideAngularModule } from 'lucide-angular';
           <h2 class="flex items-center gap-2 text-sm font-bold text-white">
             <span>🎨</span> Theme Editor
           </h2>
-          <div class="flex items-center gap-1">
-            <button
-              type="button"
-              (click)="inspectMode.set(!inspectMode())"
-              class="rounded-lg px-2 py-1 text-[10px] font-medium transition"
-              [style.background]="inspectMode() ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255,255,255,0.1)'"
-              [style.color]="inspectMode() ? '#60a5fa' : '#9ca3af'"
-            >
-              {{ inspectMode() ? '✓ Inspect ON' : 'Inspect' }}
-            </button>
-            <button (click)="themeEditor.close()" class="p-1 text-gray-400 hover:text-white">
-              <lucide-icon name="x" [size]="16" />
-            </button>
-          </div>
+          <button type="button" (click)="themeEditor.close()" class="p-1 text-gray-400 hover:text-white" aria-label="Close theme editor">
+            <lucide-icon name="x" [size]="16" />
+          </button>
         </div>
 
         <!-- Main Content -->
@@ -70,6 +106,7 @@ import { LucideAngularModule } from 'lucide-angular';
           <!-- Quick Color Palette -->
           <div class="p-3" style="background: #1a1f2e;">
             <p class="mb-2 text-[10px] font-medium uppercase tracking-wide text-gray-500">Main Colors</p>
+            <p class="mb-2 text-[11px] leading-relaxed text-slate-400">Click any part of the page. Its colors open in a window.</p>
             <div class="grid grid-cols-5 gap-2">
               @for (color of mainColors(); track color.name) {
                 <button
@@ -124,65 +161,6 @@ import { LucideAngularModule } from 'lucide-angular';
                     </button>
                   }
                 </div>
-              </div>
-            </div>
-          }
-
-          <!-- Inspected Element -->
-          @if (inspectMode() && themeEditor.selectedElement(); as el) {
-            <div class="border-t border-gray-800 p-3">
-              <div class="mb-2 flex items-center justify-between">
-                <p class="text-[10px] font-medium text-blue-400">
-                  Inspecting: &lt;{{ el.tagName }}&gt;
-                </p>
-                <button
-                  (click)="themeEditor.clearSelection()"
-                  class="text-[10px] text-gray-500 hover:text-white"
-                >
-                  Clear
-                </button>
-              </div>
-              @if (el.designScope; as scope) {
-                <p
-                  class="mb-2 rounded-md bg-violet-900/30 px-2 py-1.5 text-[10px] leading-snug text-violet-200"
-                  [title]="scopeDescription(scope)"
-                >
-                  <span class="font-semibold">Scope: {{ el.designScopeLabel }}</span>
-                  — {{ scopeDescription(scope) }}
-                </p>
-              } @else {
-                <p class="mb-2 text-[10px] leading-snug text-gray-500">
-                  Scope: <span class="text-violet-300">Global</span> — theme tokens apply app-wide unless a role shell overrides layout.
-                </p>
-              }
-              <div class="space-y-2">
-                @for (c of el.colors; track c.id) {
-                  <div class="flex items-center gap-2 rounded bg-gray-800/50 p-2">
-                    <div
-                      class="h-6 w-6 rounded"
-                      [style.background]="c.actualHex"
-                      [style.border]="'1px solid rgba(255,255,255,0.2)'"
-                    ></div>
-                    <div class="min-w-0 flex-1">
-                      <p class="text-[10px] font-medium text-gray-300">{{ c.type | titlecase }}</p>
-                    </div>
-                    <select
-                      [value]="c.selectedVariable"
-                      (change)="onInspectVariableChange(c.id, $event)"
-                      class="rounded bg-gray-700 px-1 py-0.5 text-[10px] text-white"
-                    >
-                      @for (v of themeEditor.variables(); track v.name) {
-                        <option [value]="v.name">{{ v.label }}</option>
-                      }
-                    </select>
-                    <input
-                      type="color"
-                      [value]="getVariableHex(c.selectedVariable)"
-                      (input)="onColorChange(c.selectedVariable, $event)"
-                      class="h-6 w-8 cursor-pointer rounded"
-                    />
-                  </div>
-                }
               </div>
             </div>
           }
@@ -248,8 +226,133 @@ import { LucideAngularModule } from 'lucide-angular';
       </div>
     }
 
+    @if (themeEditor.selectedElement(); as el) {
+      <div
+        class="theme-color-popup z-[10002]"
+        [class.contents]="themeEditor.pageEdit()"
+        [class.fixed]="!themeEditor.pageEdit()"
+        [class.inset-0]="!themeEditor.pageEdit()"
+        [class.flex]="!themeEditor.pageEdit()"
+        [class.items-end]="!themeEditor.pageEdit()"
+        [class.justify-center]="!themeEditor.pageEdit()"
+        [class.bg-black/55]="!themeEditor.pageEdit()"
+        [class.p-3]="!themeEditor.pageEdit()"
+        [class.sm:items-center]="!themeEditor.pageEdit()"
+        (click)="onColorBackdrop($event)"
+        role="presentation"
+      >
+        <div
+          class="theme-color-popup z-[10002] flex max-h-[min(70dvh,24rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl shadow-2xl"
+          [class.fixed]="themeEditor.pageEdit()"
+          style="background: #111827; border: 1px solid rgba(59, 130, 246, 0.35);"
+          [style.top]="themeEditor.pageEdit() ? colorCardStyle()?.top : null"
+          [style.left]="themeEditor.pageEdit() ? colorCardStyle()?.left : null"
+          [style.width]="themeEditor.pageEdit() ? colorCardStyle()?.width : null"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="theme-color-popup-title"
+          (pointerdown)="pinColorCard()"
+          (click)="$event.stopPropagation()"
+        >
+          <div class="flex items-start justify-between gap-3 px-4 py-3" style="background: #1f2937;">
+            <div class="min-w-0">
+              <h2 id="theme-color-popup-title" class="text-sm font-bold text-white">Edit colors</h2>
+              <p class="mt-0.5 truncate text-[11px] text-slate-400">
+                {{ el.designScopeLabel || 'This page' }} · &lt;{{ el.tagName }}&gt;
+              </p>
+            </div>
+            <button type="button" (click)="closeColorPopup()" class="rounded p-1 text-slate-400 hover:text-white" aria-label="Close color editor">
+              <lucide-icon name="x" [size]="16" />
+            </button>
+          </div>
+
+          <div class="flex-1 space-y-3 overflow-y-auto p-4">
+            <p class="text-[11px] leading-relaxed text-slate-400">
+              @if (themeEditor.applyTarget() === 'side' && themeEditor.sideLabel(); as side) {
+                This color stays on {{ side }} only.
+              } @else {
+                This color changes the website and every dashboard.
+              }
+            </p>
+            @if (el.designScope; as scope) {
+              <p class="rounded-lg bg-violet-900/30 px-3 py-2 text-[11px] leading-snug text-violet-200">
+                {{ el.designScopeLabel }} — {{ scopeDescription(scope) }}
+              </p>
+            }
+            @for (c of el.colors; track c.id) {
+              @if (c.linked) {
+                <div class="rounded-xl bg-gray-800/70 p-3">
+                  <div class="mb-2 flex items-center justify-between gap-2">
+                    <p class="text-xs font-semibold text-white">{{ c.label }}</p>
+                    <span class="truncate text-[10px] text-slate-400">{{ c.selectedVariableLabel }}</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <input
+                      type="color"
+                      [value]="getVariableHex(c.selectedVariable)"
+                      (input)="onPopupColorChange(c.id, $event)"
+                      class="h-12 w-16 shrink-0 cursor-pointer rounded-lg"
+                      [attr.aria-label]="c.label + ' color'"
+                    />
+                    <input
+                      type="text"
+                      [value]="getVariableHex(c.selectedVariable)"
+                      (change)="onPopupHexChange(c.id, $event)"
+                      class="min-w-0 flex-1 rounded-lg bg-gray-900 px-3 py-2 font-mono text-sm text-white"
+                      maxlength="7"
+                      [attr.aria-label]="c.label + ' hex'"
+                    />
+                  </div>
+                </div>
+              } @else if (!(c.type === 'border' && c.isTransparent)) {
+                <div class="rounded-xl border border-dashed border-slate-700 px-3 py-2.5">
+                  <p class="text-xs font-semibold text-slate-300">{{ c.label }}</p>
+                  <p class="mt-1 text-[11px] leading-relaxed text-slate-500">
+                    {{ c.actualHex }} is painted on this piece itself. Save does not change it.
+                  </p>
+                </div>
+              }
+            }
+          </div>
+
+          <div class="flex flex-col gap-2 border-t border-gray-800 p-3 sm:flex-row sm:items-center">
+            @if (themeEditor.saveMessage(); as msg) {
+              <p
+                class="text-[11px] font-medium sm:flex-1"
+                [class.text-green-400]="msg.type === 'success'"
+                [class.text-red-400]="msg.type === 'error'"
+              >
+                {{ msg.text }}
+              </p>
+            } @else {
+              <p class="text-[11px] text-slate-500 sm:flex-1">
+                {{ modifiedCount() }} unsaved change{{ modifiedCount() === 1 ? '' : 's' }}
+              </p>
+            }
+            <div class="flex gap-2">
+              <button
+                type="button"
+                (click)="closeColorPopup()"
+                class="min-h-11 flex-1 rounded-lg px-3 py-2 text-xs font-medium text-slate-300 hover:bg-gray-800 sm:flex-none"
+              >
+                Done
+              </button>
+              <button
+                type="button"
+                (click)="themeEditor.saveTheme()"
+                [disabled]="!themeEditor.hasChanges() || themeEditor.isSaving()"
+                class="min-h-11 flex-1 rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-500 disabled:opacity-40 sm:flex-none"
+              >
+                {{ themeEditor.isSaving() ? 'Saving...' : 'Save' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
     <!-- Hover Highlight -->
-    @if (inspectMode() && themeEditor.isOpen() && hoveredEl()) {
+    @if (themeEditor.isOpen() && !themeEditor.selectedElement() && hoveredEl()) {
       <div
         class="pointer-events-none fixed z-[9990] rounded"
         style="border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.1);"
@@ -271,6 +374,15 @@ import { LucideAngularModule } from 'lucide-angular';
     .theme-editor-panel ::-webkit-scrollbar-track { background: transparent; }
     .theme-editor-panel ::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 3px; }
 
+    .design-edit-bar {
+      bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+    }
+    @media (min-width: 768px) {
+      .design-edit-bar {
+        bottom: 0;
+      }
+    }
+
     input[type="color"] {
       -webkit-appearance: none;
       appearance: none;
@@ -288,10 +400,13 @@ export class ThemeEditorComponent {
   readonly showFloatingToggle = input(true);
 
   readonly themeEditor = inject(ThemeEditorService);
-  
-  readonly inspectMode = signal(false);
+  private readonly router = inject(Router);
+
+  readonly inspectMode = signal(true);
   readonly selectedColorName = signal<string | null>(null);
   readonly hoveredEl = signal<HTMLElement | null>(null);
+  readonly colorPinned = signal(false);
+  private previewTimer: number | null = null;
 
   readonly mainColors = computed(() => {
     const vars = this.themeEditor.variables();
@@ -324,6 +439,22 @@ export class ThemeEditorComponent {
     return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
   });
 
+  readonly colorCardStyle = computed(() => {
+    const selected = this.themeEditor.selectedElement();
+    if (!selected) return null;
+    const rect = selected.element.getBoundingClientRect();
+    const width = Math.min(320, window.innerWidth - 24);
+    const height = 260;
+    let top = rect.bottom + 8;
+    let left = rect.left;
+    if (top + height > window.innerHeight - 96) {
+      top = Math.max(12, rect.top - height - 8);
+    }
+    if (left + width > window.innerWidth - 12) left = window.innerWidth - width - 12;
+    if (left < 12) left = 12;
+    return { top: `${top}px`, left: `${left}px`, width: `${width}px` };
+  });
+
   scopeDescription(scope: string): string {
     const meta = DESIGN_SCOPE_META[scope as keyof typeof DESIGN_SCOPE_META];
     return meta?.description ?? '';
@@ -345,8 +476,44 @@ export class ThemeEditorComponent {
   toggleEditor(): void {
     this.themeEditor.toggle();
     if (!this.themeEditor.isOpen()) {
-      this.inspectMode.set(false);
       this.selectedColorName.set(null);
+    }
+  }
+
+  closeColorPopup(): void {
+    this.colorPinned.set(false);
+    if (this.previewTimer !== null) {
+      window.clearTimeout(this.previewTimer);
+      this.previewTimer = null;
+    }
+    this.themeEditor.clearSelection();
+  }
+
+  pinColorCard(): void {
+    this.colorPinned.set(true);
+  }
+
+  onColorBackdrop(event: Event): void {
+    if (this.themeEditor.pageEdit()) return;
+    if (event.target === event.currentTarget) this.closeColorPopup();
+  }
+
+  backToScreens(): void {
+    this.themeEditor.stopPageEdit();
+    void this.router.navigateByUrl('/admin?section=design');
+  }
+
+  onPopupColorChange(colorId: string, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.themeEditor.updateDetectedColor(colorId, input.value);
+  }
+
+  onPopupHexChange(colorId: string, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    let hex = input.value.trim();
+    if (!hex.startsWith('#')) hex = '#' + hex;
+    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+      this.themeEditor.updateDetectedColor(colorId, hex);
     }
   }
 
@@ -372,38 +539,39 @@ export class ThemeEditorComponent {
     }
   }
 
-  onInspectVariableChange(colorId: string, event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    this.themeEditor.changeSelectedVariable(colorId, select.value);
-  }
-
   private onMouseMove = (e: MouseEvent): void => {
     const target = e.target as HTMLElement;
-    if (target.closest('.theme-editor-panel, .admin-design-hub-panel, .admin-design-hub-fab')) {
+    if (target.closest('.theme-editor-panel, .theme-color-popup, .design-edit-bar, .admin-design-hub-panel, .admin-design-hub-fab, app-sidebar, app-admin-mobile-nav, app-customer-mobile-nav, app-driver-mobile-nav')) {
       this.hoveredEl.set(null);
       return;
     }
     this.hoveredEl.set(target);
-    this.themeEditor.setHoveredElement(target);
+    if (!this.themeEditor.pageEdit() || this.colorPinned()) return;
+    if (this.previewTimer !== null) window.clearTimeout(this.previewTimer);
+    this.previewTimer = window.setTimeout(() => {
+      this.previewTimer = null;
+      if (this.colorPinned() || !this.themeEditor.pageEdit()) return;
+      this.themeEditor.selectElement(target);
+    }, 160);
   };
 
   private onMouseClick = (e: MouseEvent): void => {
     const target = e.target as HTMLElement;
-    if (target.closest('.theme-editor-panel, .admin-design-hub-panel, .admin-design-hub-fab')) return;
-    
+    if (target.closest('.theme-editor-panel, .theme-color-popup, .design-edit-bar, .admin-design-hub-panel, .admin-design-hub-fab, app-sidebar, app-admin-mobile-nav, app-customer-mobile-nav, app-driver-mobile-nav')) return;
+
     e.preventDefault();
     e.stopPropagation();
+    this.colorPinned.set(true);
     this.themeEditor.selectElement(target);
   };
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (this.inspectMode()) {
-      this.inspectMode.set(false);
+    if (this.themeEditor.selectedElement()) {
+      this.colorPinned.set(false);
+      this.themeEditor.clearSelection();
     } else if (this.selectedColorName()) {
       this.selectedColorName.set(null);
-    } else if (this.themeEditor.selectedElement()) {
-      this.themeEditor.clearSelection();
     } else {
       this.themeEditor.close();
     }

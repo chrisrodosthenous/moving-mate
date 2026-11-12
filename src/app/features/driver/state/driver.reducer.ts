@@ -98,7 +98,7 @@ export const driverReducer = createReducer(
   })),
   on(DriverActions.loadDriverAvailableSuccess, (state, { orders, total, silent, newIds }) => ({
     ...state,
-    availableOrders: orders.filter((o) => o.status === 'pending'),
+    availableOrders: orders.filter((o) => o.status === 'pending' && (o.paymentStatus === 'authorized' || o.paymentStatus === 'captured')),
     availableTotal: total,
     availableLoading: false,
     availableLoadingMore: false,
@@ -122,7 +122,7 @@ export const driverReducer = createReducer(
     ...state,
     availableOrders: appendOrdersDeduped(
       state.availableOrders,
-      page.filter((o) => o.status === 'pending'),
+      page.filter((o) => o.status === 'pending' && (o.paymentStatus === 'authorized' || o.paymentStatus === 'captured')),
     ),
     availableTotal: total,
     availableLoadingMore: false,

@@ -29,14 +29,6 @@
           </span>
         }
       </button>
-      <button
-        type="button"
-        (click)="driverTabChange.emit(fleetTabEnum.VERIFIED)"
-        class="tab-btn"
-        [class.tab-btn-active]="driverTab() === fleetTabEnum.VERIFIED"
-      >
-        Verified
-      </button>
     </div>
     <div class="list-scroll p-3">
       @if (driverTab() === fleetTabEnum.NOT_VERIFIED) {
@@ -90,48 +82,23 @@
                     <span [class]="driverVehicleBadgeClass + ' mt-2'">{{ vehicleTypeBadge(u.vehicleType) }}</span>
                   }
                 </div>
-                @if (vehiclePhotoSrc(u); as photoSrc) {
-                  <img
-                    [src]="photoSrc"
+                @if (u.vehiclePhotoUrl) {
+                  <app-private-doc-image
+                    [userId]="u._id"
+                    docType="vehicle-photo"
                     alt="Vehicle thumbnail"
-                    class="h-12 w-12 shrink-0 rounded-md border border-border/40 object-cover"
-                    (click)="onVehiclePhotoClick($event, u.vehiclePhotoUrl)"
+                    imgClass="h-12 w-12 shrink-0 rounded-md border border-border/40 object-cover"
+                    (click)="onVehiclePhotoClick($event, u._id)"
                   />
                 }
-                @if (licenseImageSrc(u); as licenseSrc) {
-                  <img
-                    [src]="licenseSrc"
+                @if (u.licenseUrl && licenseIsImage(u)) {
+                  <app-private-doc-image
+                    [userId]="u._id"
+                    docType="license"
                     alt="License thumbnail"
-                    class="h-12 w-12 shrink-0 rounded-md border border-border/40 object-cover"
+                    imgClass="h-12 w-12 shrink-0 rounded-md border border-border/40 object-cover"
                     (click)="onLicensePreviewClick(u); $event.stopPropagation()"
                   />
-                }
-              </div>
-            </button>
-          }
-        }
-      } @else if (driverTab() === fleetTabEnum.VERIFIED) {
-        @if (verifiedDrivers().length === 0) {
-          <app-empty-state
-            tone="admin"
-            title="No verified drivers yet"
-            hint="Approved drivers are listed here once verification is complete."
-          />
-        } @else {
-          @for (u of verifiedDrivers(); track u._id) {
-            <button
-              type="button"
-              (click)="selectDriver.emit(u)"
-              class="list-item"
-              [class.list-item-active]="selectedDriver()?._id === u._id"
-            >
-              <div class="flex items-start justify-between gap-2">
-                <div class="min-w-0">
-                  <p class="text-sm text-foreground">{{ (u.firstName + ' ' + u.lastName).trim() || u.email }}</p>
-                  <p class="text-xs text-primary">{{ u.phoneNumber || u.email }}</p>
-                </div>
-                @if (u.vehicleType) {
-                  <span [class]="driverVehicleBadgeClass">{{ vehicleTypeBadge(u.vehicleType) }}</span>
                 }
               </div>
             </button>
@@ -161,18 +128,19 @@
             } @else {
               <p class="text-xs text-muted-foreground mb-3">No vehicle category on file.</p>
             }
-            @if (vehiclePhotoSrc(driver); as photoSrc) {
+            @if (driver.vehiclePhotoUrl) {
               <p class="text-[11px] text-primary mb-1">Vehicle photo (verification)</p>
               <ui-button
                 type="button"
-                (click)="openVehiclePhotoPreview.emit(driver.vehiclePhotoUrl!)"
+                (click)="openVehiclePhotoPreview.emit(driver._id)"
                 variant="ghost"
                 [className]="'flex h-32 w-full max-w-xs items-center justify-center overflow-hidden rounded-lg border border-dashed border-border/40 bg-secondary/30 !p-1'"
               >
-                <img
-                  [src]="photoSrc"
+                <app-private-doc-image
+                  [userId]="driver._id"
+                  docType="vehicle-photo"
                   alt="Vehicle verification photo"
-                  class="max-h-full max-w-full object-contain"
+                  imgClass="max-h-full max-w-full object-contain"
                 />
               </ui-button>
               <p class="mt-1 text-[10px] text-muted-foreground">Click to open full-size preview</p>
@@ -192,10 +160,11 @@
                   [className]="'flex h-28 w-28 items-center justify-center overflow-hidden rounded border border-border/40 bg-secondary/30 !p-1'"
                   [attr.data-testid]="'admin-license-preview-' + driver._id"
                 >
-                  <img
-                    [src]="licenseImageSrc(driver)"
+                  <app-private-doc-image
+                    [userId]="driver._id"
+                    docType="license"
                     alt="License document"
-                    class="max-h-full max-w-full object-contain"
+                    imgClass="max-h-full max-w-full object-contain"
                   />
                 </ui-button>
                 <p class="mt-1 text-[10px] text-muted-foreground">Click to open full-size preview</p>

@@ -31,6 +31,15 @@
       <span class="truncate text-center leading-tight">Approvals</span>
     </a>
     <a
+      routerLink="/admin"
+      [queryParams]="{ section: 'design', fleetTab: null }"
+      [class.text-primary]="isActive('design')"
+      class="flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[9px] font-medium leading-tight text-foreground transition hover:text-primary xs:px-2 xs:text-[10px] sm:text-xs"
+    >
+      <lucide-icon name="palette" [size]="20" aria-hidden="true"></lucide-icon>
+      <span class="truncate">Design</span>
+    </a>
+    <a
       routerLink="/admin/settings/notifications"
       routerLinkActive="text-primary"
       class="flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[9px] font-medium leading-tight text-foreground transition hover:text-primary xs:px-2 xs:text-[10px] sm:text-xs"

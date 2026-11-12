@@ -99,4 +99,12 @@ export class OrderFormComponent {
   quantityFor(key: keyof OrderCargoInventory): number {
     return this.cargoInventory()[key] ?? 0;
   }
+
+  elevatorValue(control: 'pickupHasElevator' | 'dropoffHasElevator'): 'yes' | 'no' {
+    return this.logisticsForm().get(control)?.value === true ? 'yes' : 'no';
+  }
+
+  onElevatorChange(control: 'pickupHasElevator' | 'dropoffHasElevator', value: string): void {
+    this.logisticsForm().get(control)?.setValue(value === 'yes');
+  }
 }

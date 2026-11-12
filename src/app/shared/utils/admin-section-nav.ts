@@ -7,7 +7,8 @@ export type AdminSection =
   | 'ordersTable'
   | 'drivers'
   | 'orders'
-  | 'notify';
+  | 'notify'
+  | 'design';
 
 const VALID_SECTIONS = new Set<AdminSection>([
   'analytics',
@@ -17,6 +18,7 @@ const VALID_SECTIONS = new Set<AdminSection>([
   'drivers',
   'orders',
   'notify',
+  'design',
 ]);
 
 export function parseAdminNavFromUrl(url: string): { section: AdminSection; fleetTab?: AdminFleetTabId } {
@@ -44,7 +46,7 @@ export function adminSectionTitle(section: AdminSection, fleetTab?: AdminFleetTa
   if (section === 'ordersTable') return 'Orders';
   if (section === 'orders') return 'Order management';
   if (section === 'notify') return 'Developer tools';
-  if (fleetTab === ADMIN_FLEET_TAB.VERIFIED) return 'User management';
+  if (fleetTab === ADMIN_FLEET_TAB.VERIFIED) return 'Drivers';
   if (fleetTab === ADMIN_FLEET_TAB.PENDING) return 'Driver approvals';
   if (fleetTab === ADMIN_FLEET_TAB.NOT_VERIFIED) return 'Driver onboarding';
   return 'Fleet management';

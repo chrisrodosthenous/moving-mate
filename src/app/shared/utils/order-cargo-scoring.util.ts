@@ -78,10 +78,9 @@ export function computeCargoScore(inventory: OrderCargoInventory): number {
   );
 }
 
-/** Strict tier rules: 0–5 pickup, 6–15 minivan, 16–35 van, 36+ truck. */
+/** Tier rules: 0–4 pickup (up to 4 boxes), 5–35 van, 36+ truck. Minivan is no longer assigned. */
 export function vehicleTypeFromCargoScore(score: number): OrderVehicleType {
-  if (score <= 5) return 'pickup';
-  if (score <= 15) return 'minivan';
+  if (score <= 4) return 'pickup';
   if (score <= 35) return 'van';
   return 'truck';
 }
@@ -92,7 +91,7 @@ export function vehicleTypeFromCargoInventory(inventory: OrderCargoInventory): O
 
 export interface VehicleRecommendationCopy {
   vehicleType: OrderVehicleType;
-  icon: 'truck' | 'container';
+  icon: 'car' | 'bus' | 'van' | 'truck';
   message: string;
 }
 
@@ -101,35 +100,35 @@ export function vehicleRecommendationCopy(type: OrderVehicleType): VehicleRecomm
     case 'pickup':
       return {
         vehicleType: 'pickup',
-        icon: 'truck',
+        icon: 'car',
         message:
-          'Recommended vehicle: Pickup. Ideal for 2–4 small boxes or very small items.',
+          'Recommended vehicle: Pickup. Ideal for up to 4 small boxes or very small items.',
       };
     case 'minivan':
       return {
         vehicleType: 'minivan',
-        icon: 'truck',
+        icon: 'bus',
         message:
           'Recommended vehicle: Mini Van. Suitable for many boxes or one medium piece of furniture.',
       };
     case 'van':
       return {
         vehicleType: 'van',
-        icon: 'container',
+        icon: 'van',
         message:
           'Recommended vehicle: Van. Required for large furniture (sofa/bed) and household appliances.',
       };
     case 'truck':
       return {
         vehicleType: 'truck',
-        icon: 'container',
+        icon: 'truck',
         message:
           'Recommended vehicle: Truck. Required for full moves or heavy, bulky loads.',
       };
     default:
       return {
         vehicleType: 'pickup',
-        icon: 'truck',
+        icon: 'car',
         message: 'Recommended vehicle: Pickup.',
       };
   }

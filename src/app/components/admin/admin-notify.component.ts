@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminPushDeepLinkTesterComponent } from '../../features/admin/admin-push-deep-link-tester.component';
 import { notifyPanelEnter } from '../../features/admin/admin-animations';
@@ -11,7 +10,6 @@ import { UiCardComponent } from '@/components/ui/card';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    RouterLink,
     FormsModule,
     AdminPushDeepLinkTesterComponent,
     UiButtonComponent,

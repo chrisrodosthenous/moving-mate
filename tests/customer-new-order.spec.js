@@ -28,7 +28,7 @@ test('customer new order form: map fields + photo upload + submit', async ({ pag
     await page.locator('#password').fill(bootstrap.customer.password)
     await page.getByRole('button', { name: /sign in/i }).click()
     await expect(page).toHaveURL(/\/customer\/dashboard$/)
-    await page.getByTestId('sidebar').getByRole('link', { name: /new order/i }).click()
+    await page.getByTestId('sidebar').getByRole('link', { name: /new move/i }).click()
     await expect(page).toHaveURL(/\/customer\/book$/)
 
     await page.getByLabel('Pickup district').selectOption('Larnaca')
@@ -46,7 +46,7 @@ test('customer new order form: map fields + photo upload + submit', async ({ pag
       (resp) => resp.url().includes('/api/orders') && resp.request().method() === 'POST',
       { timeout: 120000 },
     )
-    await page.getByRole('button', { name: /confirm order/i }).click()
+    await page.getByRole('button', { name: /confirm move/i }).click()
     const createResp = await createRespPromise
     await expect(createResp.status()).toBe(201)
     await expect(page).toHaveURL(/\/customer\/orders$/)

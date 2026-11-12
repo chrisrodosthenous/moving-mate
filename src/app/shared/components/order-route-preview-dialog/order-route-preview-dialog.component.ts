@@ -25,7 +25,7 @@ import { LoggerService } from '../../../core/services/logger.service';
 import { SocketService } from '../../../core/services/socket.service';
 import { AuthStore } from '../../../store/auth.store';
 import { UiButtonComponent } from '../../../../components/ui/button';
-import { buildDriverCarGoogleIcon } from '../../utils/driver-map-car-icon';
+import { buildDriverCarGoogleIcon, resolveDriverMapVehicle } from '../../utils/driver-map-car-icon';
 import { isDriverMapTrackingStatus } from '../../utils/order-tracking';
 import { toSignal } from '@angular/core/rxjs-interop';
 
@@ -82,8 +82,10 @@ function geolocationWatch$(
     }
     const id = navigator.geolocation.watchPosition(
       (position) => subscriber.next(position),
-      (err) => subscriber.error(err),
-      { enableHighAccuracy: true, maximumAge: 3000, ...options },
+      () => {
+        /* A timeout or a temporary miss must not stop the watch. A later fix still draws the car. */
+      },
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000, ...options },
     );
     watchIdRef.current = id;
     return () => {
@@ -141,6 +143,18 @@ export class OrderRoutePreviewDialogComponent {
   });
 
   /**
+   * Driver “on the way” routes start at the live position. Rounded so a directions
+   * request is not fired on every GPS animation frame.
+   */
+  private readonly navigationDriverBucket = computed(() => {
+    if (!this.auth.isDriver()) return '';
+    if (this.order()?.status !== 'driver_is_on_the_way') return '';
+    const point = this.driverMarkerPosition();
+    if (!point) return 'wait';
+    return `${point.lat.toFixed(3)},${point.lng.toFixed(3)}`;
+  });
+
+  /**
    * Live tracking restart only when id/status/role change — not on every merged list refresh
    * (prevents geolocation/socket teardown + map refit storms).
    */
@@ -162,6 +176,15 @@ export class OrderRoutePreviewDialogComponent {
   readonly embedDropoffLatLngSig = signal<google.maps.LatLngLiteral | null>(null);
 
   readonly driverCarIcon = signal<google.maps.Icon | null>(null);
+
+  /** Driver's vehicle on their own map; the assigned driver's vehicle for a customer. */
+  readonly mapVehicle = computed(() => {
+    const order = this.order();
+    const assigned =
+      order?.driverId && typeof order.driverId === 'object' ? order.driverId.vehicleType : null;
+    const driverVehicle = this.auth.isDriver() ? (this.auth.user()?.vehicleType ?? assigned) : assigned;
+    return resolveDriverMapVehicle(driverVehicle, order?.vehicleType);
+  });
 
   readonly driverMarkerPosition = signal<{ lat: number; lng: number } | null>(null);
   readonly driverHeadingDeg = signal<number | null>(null);
@@ -186,7 +209,6 @@ export class OrderRoutePreviewDialogComponent {
     /** Manual `applyThreePointBounds` + optional driver follow; renderer must not also auto-fit. */
     preserveViewport: true,
     polylineOptions: {
-      strokeColor: '#22C55E',
       strokeOpacity: 0.92,
       strokeWeight: 5,
     },
@@ -281,12 +303,12 @@ export class OrderRoutePreviewDialogComponent {
     /** Icon uses `google.maps.Size` — library can surface `mapsEmbedReady` a tick before `google.maps` ctor is usable. */
     effect(() => {
       if (!this.mapsEmbedReady()) return;
+      const vehicle = this.mapVehicle();
       const tryBuildIcon = (): void =>
         untracked(() => {
           if (typeof google === 'undefined' || !google.maps?.Size) return;
-          if (this.driverCarIcon()) return;
           try {
-            this.driverCarIcon.set(buildDriverCarGoogleIcon());
+            this.driverCarIcon.set(buildDriverCarGoogleIcon(vehicle));
           } catch {
             /* Rare race — `@if (showDriverMarker)` still renders default pin via `driverMarkerOptions`. */
           }
@@ -325,6 +347,7 @@ export class OrderRoutePreviewDialogComponent {
     effect((onCleanup) => {
       const routeKey = this.directionsRouteKey();
       const ready = this.mapsEmbedReady();
+      const driverBucket = this.navigationDriverBucket();
       this.directionsSub?.unsubscribe();
       this.directionsSub = null;
 
@@ -339,8 +362,14 @@ export class OrderRoutePreviewDialogComponent {
         return;
       }
 
-      const origin = { lat: o.pickupLocation.lat, lng: o.pickupLocation.lng };
-      const destination = { lat: o.dropoffLocation.lat, lng: o.dropoffLocation.lng };
+      const leg = this.previewNavigationLeg(o, driverBucket);
+      if (!leg) {
+        this.directionsResult.set(null);
+        return;
+      }
+
+      const origin = leg.origin;
+      const destination = leg.destination;
 
       this.directionsSub = this.directionsService
         .route({
@@ -622,31 +651,58 @@ export class OrderRoutePreviewDialogComponent {
     if (!map || !o?.pickupLocation?.lat) return;
 
     const bounds = new google.maps.LatLngBounds();
+    const pickup = { lat: o.pickupLocation.lat, lng: o.pickupLocation.lng };
+    const dropoff = { lat: o.dropoffLocation.lat, lng: o.dropoffLocation.lng };
+    const driverNavigatingToPickup = this.auth.isDriver() && o.status === 'driver_is_on_the_way';
+    const driverNavigatingToDropoff =
+      this.auth.isDriver() && (o.status === 'picked_up' || o.status === 'in_progress');
 
-    bounds.extend({
-      lat: o.pickupLocation.lat,
-      lng: o.pickupLocation.lng,
-    });
-    bounds.extend({
-      lat: o.dropoffLocation.lat,
-      lng: o.dropoffLocation.lng,
-    });
+    if (driverNavigatingToPickup) {
+      const drv = this.driverMarkerPosition();
+      if (drv) bounds.extend(drv);
+      bounds.extend(pickup);
+    } else if (driverNavigatingToDropoff) {
+      bounds.extend(pickup);
+      bounds.extend(dropoff);
+    } else {
+      bounds.extend(pickup);
+      bounds.extend(dropoff);
+      const drv = this.driverMarkerPosition();
+      if (
+        drv &&
+        (this.auth.isDriver()
+          ? isDriverRoutePreviewTrackingStatus(o.status)
+          : isCustomerRouteDriverTrackingStatus(o.status))
+      ) {
+        bounds.extend(drv);
+      }
+    }
 
     const dirs = this.directionsResult();
     const rb = dirs?.routes?.[0]?.bounds;
     if (rb) bounds.union(rb);
 
-    const drv = this.driverMarkerPosition();
-    if (
-      drv &&
-      (this.auth.isDriver()
-        ? isDriverRoutePreviewTrackingStatus(o.status)
-        : isCustomerRouteDriverTrackingStatus(o.status))
-    ) {
-      bounds.extend(drv);
-    }
-
     map.fitBounds(bounds, MAP_FIT_PADDING);
+  }
+
+  /**
+   * Driver active-delivery legs. Customers, and drivers before they are on the way,
+   * keep the full pickup → drop-off preview.
+   */
+  private previewNavigationLeg(
+    order: TransportOrder,
+    driverBucket: string,
+  ): { origin: google.maps.LatLngLiteral; destination: google.maps.LatLngLiteral } | null {
+    const pickup = { lat: order.pickupLocation.lat, lng: order.pickupLocation.lng };
+    const dropoff = { lat: order.dropoffLocation.lat, lng: order.dropoffLocation.lng };
+    if (!this.auth.isDriver()) return { origin: pickup, destination: dropoff };
+    if (order.status === 'driver_is_on_the_way') {
+      if (!driverBucket || driverBucket === 'wait') return null;
+      const [lat, lng] = driverBucket.split(',').map(Number);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      return { origin: { lat, lng }, destination: pickup };
+    }
+    return { origin: pickup, destination: dropoff };
   }
 
   onClose(): void {

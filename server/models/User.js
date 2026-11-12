@@ -93,6 +93,11 @@ const userSchema = new mongoose.Schema(
       enum: ['none', 'pending', 'approved', 'rejected'],
       default: 'none',
     },
+    /** Admin block. Suspended customers cannot sign in. */
+    isSuspended: {
+      type: Boolean,
+      default: false,
+    },
     /** Set when admin rejects license verification; cleared on approve or new upload. */
     rejectionReason: {
       type: String,

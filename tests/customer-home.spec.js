@@ -25,7 +25,7 @@ test('customer dashboard home shows core Angular-parity elements', async ({ page
 
     await expect(page.getByText(/Quick stats/i)).toBeVisible()
     await expect(page.getByText(/Open moves/i)).toBeVisible()
-    await expect(page.getByRole('link', { name: /new order/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: /new move/i })).toBeVisible()
     await expect(page.getByText(/Moving-Mate/i)).toBeVisible()
   } finally {
     await backend.post('/api/test/e2e/cleanup', { data: { runId } }).catch(() => {})

@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { AdminUser, PendingVerificationUser } from '../../core/services/admin.service';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
+import { PrivateDocImageComponent } from '../../shared/components/private-doc-image/private-doc-image.component';
 import { formatOrderDateForDisplay } from '../../shared/utils/order-utils';
 import { UiButtonComponent } from '@/components/ui/button';
 import { ADMIN_FLEET_TAB, type AdminFleetTabId } from '../../core/constants/statuses';
 import {
   driverVehicleTypeLabel,
 } from '../../core/models/driver.model';
-import { isImageDocumentPath, resolveUploadUrl } from '../../shared/utils/document-url';
+import { isImageDocumentPath } from '../../shared/utils/document-url';
 
 export interface AdminLicensePreviewRequest {
   userId: string;
@@ -24,7 +25,7 @@ const DRIVER_VEHICLE_BADGE =
   selector: 'app-admin-fleet',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [EmptyStateComponent, UiButtonComponent],
+  imports: [EmptyStateComponent, UiButtonComponent, PrivateDocImageComponent],
   templateUrl: './admin-fleet.component.html',
   styleUrl: './admin-panels.css',
 })
@@ -37,9 +38,7 @@ export class AdminFleetComponent {
   readonly driverTab = input.required<AdminFleetTabId>();
   readonly notVerifiedDrivers = input<AdminUser[] | PendingVerificationUser[]>([]);
   readonly pendingDrivers = input<AdminUser[] | PendingVerificationUser[]>([]);
-  readonly verifiedDrivers = input<AdminUser[] | PendingVerificationUser[]>([]);
   readonly selectedDriver = input<AdminUser | PendingVerificationUser | null>(null);
-  readonly licenseBaseUrl = input.required<string>();
   readonly verifyingId = input<string | null>(null);
 
   readonly driverTabChange = output<AdminFleetTabId>();
@@ -60,18 +59,6 @@ export class AdminFleetComponent {
     return !!(driver.licenseUrl || driver.vehiclePhotoUrl);
   }
 
-  vehiclePhotoSrc(driver: AdminUser | PendingVerificationUser): string | null {
-    const url = driver.vehiclePhotoUrl?.trim();
-    if (!url) return null;
-    return resolveUploadUrl(url, this.licenseBaseUrl());
-  }
-
-  licenseImageSrc(driver: AdminUser | PendingVerificationUser): string | null {
-    const url = driver.licenseUrl?.trim();
-    if (!url || !isImageDocumentPath(url)) return null;
-    return resolveUploadUrl(url, this.licenseBaseUrl());
-  }
-
   licenseIsImage(driver: AdminUser | PendingVerificationUser): boolean {
     const url = driver.licenseUrl?.trim();
     return Boolean(url && isImageDocumentPath(url));
@@ -83,10 +70,9 @@ export class AdminFleetComponent {
     this.openLicensePreview.emit({ userId: driver._id, licenseUrl });
   }
 
-  onVehiclePhotoClick(event: Event, url: string | undefined | null): void {
+  onVehiclePhotoClick(event: Event, userId: string): void {
     event.stopPropagation();
-    const trimmed = url?.trim();
-    if (!trimmed) return;
-    this.openVehiclePhotoPreview.emit(trimmed);
+    if (!userId) return;
+    this.openVehiclePhotoPreview.emit(userId);
   }
 }

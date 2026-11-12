@@ -9,24 +9,24 @@
         <app-empty-state
           surface="card"
           title="We couldn’t open this rating"
-          hint="This order may not exist, or you don’t have access to rate it. Use My Orders to find deliveries you can review."
+          hint="This move may not exist, or you don’t have access to rate it. Use My moves to find deliveries you can review."
         >
           <a
             routerLink="/customer/orders"
-            class="inline-block rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[#16A34A] transition"
+            class="inline-block rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[#76b28c] transition"
           >
-            Back to my orders
+            Back to my moves
           </a>
         </app-empty-state>
       } @else if (order(); as o) {
         @if (o.rating != null || o.hasReview || ratingSuccess()) {
-          <p class="text-primary font-medium py-4">Thanks — this order has already been rated.</p>
+          <p class="text-primary font-medium py-4">Thanks — this move has already been rated.</p>
           <button
             type="button"
             (click)="goOrders()"
             class="inline-flex min-h-[48px] items-center rounded-lg bg-primary px-4 font-medium text-primary-foreground hover:bg-primary/90"
           >
-            View my orders
+            View my moves
           </button>
         } @else if (o.status !== 'delivered' && o.status !== 'completed') {
           <p class="text-sm text-muted-foreground py-4">
@@ -35,7 +35,7 @@
           <a
             routerLink="/customer/orders"
             class="inline-flex min-h-[44px] items-center font-medium text-primary hover:text-primary/90"
-            >Back to my orders</a
+            >Back to my moves</a
           >
         } @else {
           <p class="text-sm text-muted-foreground mb-4">
@@ -77,7 +77,7 @@
               type="button"
               (click)="submitRating()"
               [disabled]="ratingStars() < 1 || ratingSubmittingOrderId() === o._id"
-              class="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-lg font-medium text-primary-foreground bg-primary hover:bg-[#16A34A] disabled:opacity-60"
+              class="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-lg font-medium text-primary-foreground bg-primary hover:bg-[#76b28c] disabled:opacity-60"
             >
               {{ ratingSubmittingOrderId() === o._id ? 'Submitting…' : 'Submit rating' }}
             </button>
@@ -89,7 +89,7 @@
           </div>
         }
       } @else {
-        <app-empty-state title="Loading your order" hint="Fetching your latest order list…" />
+        <app-empty-state title="Loading your move" hint="Fetching your latest move list…" />
       }
     </div>
   </main>
