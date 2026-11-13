@@ -16,7 +16,6 @@ const {
   creditBalancesOnDelivery,
   getDriverWalletSummary,
   getPlatformWalletSummary,
-  requestDriverWithdrawal,
 } = require('../services/paymentService');
 const { applyCompletionCommission } = require('../utils/orderCommission');
 
@@ -34,7 +33,6 @@ describe('paymentService', () => {
       PaymentIntent.deleteMany({}),
       User.deleteMany({ email: /@payment-test\.local$/ }),
       mongoose.connection.collection('walletledgers').deleteMany({}),
-      mongoose.connection.collection('payouts').deleteMany({}),
     ]);
 
     const customer = await User.create({
@@ -129,12 +127,6 @@ describe('paymentService', () => {
     const platformWallet = await getPlatformWalletSummary();
     assert.equal(driverWallet.availableBalance, 40);
     assert.equal(platformWallet.availableBalance, 10);
-  });
-
-  it('allows driver withdrawal up to available balance', async () => {
-    const wd = await requestDriverWithdrawal(driverId, 15);
-    assert.equal(wd.ok, true);
-    assert.equal(wd.wallet.availableBalance, 25);
   });
 
   it('cancels authorization and refunds capture on customer cancel flow', async () => {

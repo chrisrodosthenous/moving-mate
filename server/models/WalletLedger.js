@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-/** Internal balance movements (delivery credits + withdrawal debits). */
+/** Internal balance movements (delivery credits). Legacy `withdrawal` rows may still exist in older DBs. */
 const walletLedgerSchema = new mongoose.Schema(
   {
     recipientType: {
@@ -18,9 +18,9 @@ const walletLedgerSchema = new mongoose.Schema(
       ref: 'TransportOrder',
       default: null,
     },
+    /** Legacy field from removed mock payouts; unused for new credits. */
     payoutId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Payout',
       default: null,
     },
     entryType: {

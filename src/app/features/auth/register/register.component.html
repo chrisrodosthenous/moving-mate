@@ -9,183 +9,373 @@
         <p class="mt-1 text-sm text-ice">Register for MovingMate</p>
       </div>
 
-      <form (ngSubmit)="onSubmit()" class="space-y-6">
-        @if (error) {
-          <div
-            class="alert-error px-5 py-4"
-            role="alert"
-          >
-            {{ error }}
-          </div>
-        }
+      <div
+        class="mb-6 grid grid-cols-2 gap-1 rounded-xl border border-border/50 bg-secondary/20 p-1"
+        role="tablist"
+        aria-label="Account type"
+      >
+        <button
+          type="button"
+          role="tab"
+          id="register-tab-customer"
+          class="min-h-[44px] rounded-lg px-3 text-sm font-semibold transition"
+          [class.bg-primary]="role === 'customer'"
+          [class.text-primary-foreground]="role === 'customer'"
+          [class.text-muted-foreground]="role !== 'customer'"
+          [attr.aria-selected]="role === 'customer'"
+          aria-controls="register-panel-customer"
+          (click)="selectRole('customer')"
+        >
+          Customer
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="register-tab-driver"
+          class="min-h-[44px] rounded-lg px-3 text-sm font-semibold transition"
+          [class.bg-primary]="role === 'driver'"
+          [class.text-primary-foreground]="role === 'driver'"
+          [class.text-muted-foreground]="role !== 'driver'"
+          [attr.aria-selected]="role === 'driver'"
+          aria-controls="register-panel-driver"
+          (click)="selectRole('driver')"
+        >
+          Driver
+        </button>
+      </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4">
-          <div>
-            <label for="firstName" class="mb-2 block text-sm font-medium text-muted-foreground"
-              >First name</label
-            >
-            <input
-              id="firstName"
-              type="text"
-              name="firstName"
-              uiInput
-              [(ngModel)]="firstName"
-              placeholder="First name"
-              [className]="'w-full px-4 py-3'"
-            />
-          </div>
-          <div>
-            <label for="lastName" class="mb-2 block text-sm font-medium text-muted-foreground"
-              >Last name</label
-            >
-            <input
-              id="lastName"
-              type="text"
-              name="lastName"
-              uiInput
-              [(ngModel)]="lastName"
-              placeholder="Last name"
-              [className]="'w-full px-4 py-3'"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label for="dateOfBirth" class="mb-2 block text-sm font-medium text-muted-foreground"
-            >Date of birth</label
-          >
-          <input
-            id="dateOfBirth"
-            type="date"
-            name="dateOfBirth"
-            uiInput
-            [(ngModel)]="dateOfBirth"
-            [max]="maxDateOfBirth"
-            [className]="
-              (dateOfBirth && dateOfBirthError
-                ? 'w-full border-primary/30 bg-destructive/30 px-4 py-3'
-                : 'w-full border-border/40 bg-input/70 px-4 py-3') + ''
-            "
-          />
-          @if (dateOfBirth && dateOfBirthError) {
-            <p class="mt-1.5 text-sm text-destructive-foreground">{{ dateOfBirthError }}</p>
+      @if (role === 'customer') {
+        <form
+          id="register-panel-customer"
+          role="tabpanel"
+          aria-labelledby="register-tab-customer"
+          (ngSubmit)="onSubmit()"
+          class="space-y-6"
+        >
+          @if (error) {
+            <div class="alert-error px-5 py-4" role="alert">{{ error }}</div>
           }
-        </div>
 
-        <div>
-          <label for="email" class="mb-2 block text-sm font-medium text-muted-foreground"
-            >Email</label
-          >
-          <input
-            id="email"
-            type="email"
-            name="email"
-            uiInput
-            [(ngModel)]="email"
-            placeholder="you@example.com"
-            [className]="
-              (emailTouched && emailError
-                ? 'w-full border-primary/30 bg-destructive/30 px-4 py-3'
-                : 'w-full border-border/40 bg-input/70 px-4 py-3') + ''
-            "
-            autocomplete="email"
-          />
-          @if (emailTouched && emailError) {
-            <p class="mt-1.5 text-sm text-destructive-foreground">{{ emailError }}</p>
-          }
-        </div>
-
-        <div>
-          <label for="phoneDigits" class="mb-2 block text-sm font-medium text-muted-foreground"
-            >Phone number</label
-          >
-          <div
-            class="flex overflow-hidden rounded-lg border bg-input/70 shadow-sm focus-within:ring-2 focus-within:ring-primary/20"
-            [class.border-border]="!phoneError"
-            [class.border-primary/30]="phoneDigitsOnly.length > 0 && phoneError"
-          >
-            <span
-              class="flex items-center border-r border-border/40 bg-secondary/30 px-4 py-3 text-sm font-medium text-muted-foreground"
-              >+357</span
-            >
-            <input
-              id="phoneDigits"
-              type="tel"
-              name="phoneDigits"
-              uiInput
-              [ngModel]="phoneDigits"
-              (ngModelChange)="onPhoneChange($event)"
-              placeholder="99123456"
-              maxlength="8"
-              inputmode="numeric"
-              [className]="'min-w-0 flex-1 rounded-none border-0 bg-input/70 px-4 py-3 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0'"
-            />
-          </div>
-          @if (phoneDigitsOnly.length > 0 && phoneError) {
-            <p class="mt-1.5 text-sm text-destructive-foreground">{{ phoneError }}</p>
-          }
-          <p class="mt-1 text-xs text-muted-foreground">Enter exactly 8 digits (e.g. 99123456)</p>
-        </div>
-
-        <div>
-          <label for="password" class="mb-2 block text-sm font-medium text-muted-foreground"
-            >Password</label
-          >
-          <input
-            id="password"
-            type="password"
-            name="password"
-            uiInput
-            [(ngModel)]="password"
-            placeholder="••••••••"
-            [className]="
-              (password.length > 0 && passwordErrors.length > 0
-                ? 'w-full border-primary/30 bg-destructive/30 px-4 py-3'
-                : 'w-full border-border/40 bg-input/70 px-4 py-3') + ''
-            "
-            autocomplete="new-password"
-          />
-          @if (password.length > 0 && passwordErrors.length > 0) {
-            <ul
-              class="mt-1.5 list-inside list-disc space-y-0.5 text-sm text-destructive-foreground"
-            >
-              @for (msg of passwordErrors; track msg) {
-                <li>{{ msg }}</li>
-              }
-            </ul>
-          }
-          @if (password.length > 0 && passwordValid) {
-            <p class="mt-1.5 text-sm text-primary">Password meets requirements</p>
-          }
-        </div>
-
-        <div>
-          <span class="mb-2 block text-sm font-medium text-muted-foreground">I am a</span>
-          <div class="flex flex-wrap gap-4 sm:gap-6">
-            <label class="flex cursor-pointer items-center gap-2">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-4">
+            <div>
+              <label for="customer-firstName" class="mb-2 block text-sm font-medium text-muted-foreground"
+                >First name</label
+              >
               <input
-                type="radio"
-                name="role"
-                [(ngModel)]="role"
-                value="customer"
-                class="h-4 w-4 border-border text-primary focus:ring-primary"
+                id="customer-firstName"
+                type="text"
+                name="firstName"
+                uiInput
+                [(ngModel)]="firstName"
+                placeholder="First name"
+                [className]="'w-full px-4 py-3'"
               />
-              <span class="text-foreground">Customer</span>
-            </label>
-            <label class="flex cursor-pointer items-center gap-2">
+            </div>
+            <div>
+              <label for="customer-lastName" class="mb-2 block text-sm font-medium text-muted-foreground"
+                >Last name</label
+              >
               <input
-                type="radio"
-                name="role"
-                [(ngModel)]="role"
-                value="driver"
-                class="h-4 w-4 border-border text-primary focus:ring-primary"
+                id="customer-lastName"
+                type="text"
+                name="lastName"
+                uiInput
+                [(ngModel)]="lastName"
+                placeholder="Last name"
+                [className]="'w-full px-4 py-3'"
               />
-              <span class="text-foreground">Driver</span>
-            </label>
+            </div>
           </div>
-        </div>
 
-        @if (role === 'driver') {
+          <div>
+            <label for="customer-dateOfBirth" class="mb-2 block text-sm font-medium text-muted-foreground"
+              >Date of birth</label
+            >
+            <input
+              id="customer-dateOfBirth"
+              type="date"
+              name="dateOfBirth"
+              uiInput
+              [(ngModel)]="dateOfBirth"
+              [max]="maxDateOfBirth"
+              [className]="
+                (dateOfBirth && dateOfBirthError
+                  ? 'w-full border-primary/30 bg-destructive/30 px-4 py-3'
+                  : 'w-full border-border/40 bg-input/70 px-4 py-3') + ''
+              "
+            />
+            @if (dateOfBirth && dateOfBirthError) {
+              <p class="mt-1.5 text-sm text-destructive-foreground">{{ dateOfBirthError }}</p>
+            }
+          </div>
+
+          <div>
+            <label for="customer-email" class="mb-2 block text-sm font-medium text-muted-foreground">Email</label>
+            <input
+              id="customer-email"
+              type="email"
+              name="email"
+              uiInput
+              [(ngModel)]="email"
+              placeholder="you@example.com"
+              [className]="
+                (emailTouched && emailError
+                  ? 'w-full border-primary/30 bg-destructive/30 px-4 py-3'
+                  : 'w-full border-border/40 bg-input/70 px-4 py-3') + ''
+              "
+              autocomplete="email"
+            />
+            @if (emailTouched && emailError) {
+              <p class="mt-1.5 text-sm text-destructive-foreground">{{ emailError }}</p>
+            }
+          </div>
+
+          <div>
+            <label for="customer-phoneDigits" class="mb-2 block text-sm font-medium text-muted-foreground"
+              >Phone number</label
+            >
+            <div
+              class="flex overflow-hidden rounded-lg border bg-input/70 shadow-sm focus-within:ring-2 focus-within:ring-primary/20"
+              [class.border-border]="!phoneError"
+              [class.border-primary/30]="phoneDigitsOnly.length > 0 && phoneError"
+            >
+              <span
+                class="flex items-center border-r border-border/40 bg-secondary/30 px-4 py-3 text-sm font-medium text-muted-foreground"
+                >+357</span
+              >
+              <input
+                id="customer-phoneDigits"
+                type="tel"
+                name="phoneDigits"
+                uiInput
+                [ngModel]="phoneDigits"
+                (ngModelChange)="onPhoneChange($event)"
+                placeholder="99123456"
+                maxlength="8"
+                inputmode="numeric"
+                [className]="'min-w-0 flex-1 rounded-none border-0 bg-input/70 px-4 py-3 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0'"
+              />
+            </div>
+            @if (phoneDigitsOnly.length > 0 && phoneError) {
+              <p class="mt-1.5 text-sm text-destructive-foreground">{{ phoneError }}</p>
+            }
+            <p class="mt-1 text-xs text-muted-foreground">Enter exactly 8 digits (e.g. 99123456)</p>
+          </div>
+
+          <div>
+            <label for="customer-password" class="mb-2 block text-sm font-medium text-muted-foreground"
+              >Password</label
+            >
+            <input
+              id="customer-password"
+              type="password"
+              name="password"
+              uiInput
+              [(ngModel)]="password"
+              placeholder="••••••••"
+              [className]="
+                (password.length > 0 && passwordErrors.length > 0
+                  ? 'w-full border-primary/30 bg-destructive/30 px-4 py-3'
+                  : 'w-full border-border/40 bg-input/70 px-4 py-3') + ''
+              "
+              autocomplete="new-password"
+            />
+            @if (password.length > 0 && passwordErrors.length > 0) {
+              <ul class="mt-1.5 list-inside list-disc space-y-0.5 text-sm text-destructive-foreground">
+                @for (msg of passwordErrors; track msg) {
+                  <li>{{ msg }}</li>
+                }
+              </ul>
+            }
+            @if (password.length > 0 && passwordValid) {
+              <p class="mt-1.5 text-sm text-primary">Password meets requirements</p>
+            }
+          </div>
+
+          <label class="mt-2 flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-muted-foreground">
+            <input
+              type="checkbox"
+              class="mt-1 h-4 w-4 shrink-0 rounded border-border text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              [(ngModel)]="acceptedLegal"
+              name="acceptedLegal"
+              required
+            />
+            <span>
+              I agree to the
+              <a
+                routerLink="/terms"
+                target="_blank"
+                rel="noopener"
+                class="font-medium text-primary underline-offset-2 hover:underline"
+                >Terms of Service</a
+              >
+              and
+              <a
+                routerLink="/privacy"
+                target="_blank"
+                rel="noopener"
+                class="font-medium text-primary underline-offset-2 hover:underline"
+                >Privacy Policy</a
+              >.
+            </span>
+          </label>
+
+          <ui-button
+            type="submit"
+            [disabled]="loading || !formValid"
+            [className]="'w-full justify-center py-3 rounded-lg'"
+          >
+            {{ loading ? 'Creating account…' : 'Create customer account' }}
+          </ui-button>
+        </form>
+      } @else {
+        <form
+          id="register-panel-driver"
+          role="tabpanel"
+          aria-labelledby="register-tab-driver"
+          (ngSubmit)="onSubmit()"
+          class="space-y-6"
+        >
+          @if (error) {
+            <div class="alert-error px-5 py-4" role="alert">{{ error }}</div>
+          }
+
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-4">
+            <div>
+              <label for="driver-firstName" class="mb-2 block text-sm font-medium text-muted-foreground"
+                >First name</label
+              >
+              <input
+                id="driver-firstName"
+                type="text"
+                name="firstName"
+                uiInput
+                [(ngModel)]="firstName"
+                placeholder="First name"
+                [className]="'w-full px-4 py-3'"
+              />
+            </div>
+            <div>
+              <label for="driver-lastName" class="mb-2 block text-sm font-medium text-muted-foreground"
+                >Last name</label
+              >
+              <input
+                id="driver-lastName"
+                type="text"
+                name="lastName"
+                uiInput
+                [(ngModel)]="lastName"
+                placeholder="Last name"
+                [className]="'w-full px-4 py-3'"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="driver-dateOfBirth" class="mb-2 block text-sm font-medium text-muted-foreground"
+              >Date of birth</label
+            >
+            <input
+              id="driver-dateOfBirth"
+              type="date"
+              name="dateOfBirth"
+              uiInput
+              [(ngModel)]="dateOfBirth"
+              [max]="maxDateOfBirth"
+              [className]="
+                (dateOfBirth && dateOfBirthError
+                  ? 'w-full border-primary/30 bg-destructive/30 px-4 py-3'
+                  : 'w-full border-border/40 bg-input/70 px-4 py-3') + ''
+              "
+            />
+            @if (dateOfBirth && dateOfBirthError) {
+              <p class="mt-1.5 text-sm text-destructive-foreground">{{ dateOfBirthError }}</p>
+            }
+          </div>
+
+          <div>
+            <label for="driver-email" class="mb-2 block text-sm font-medium text-muted-foreground">Email</label>
+            <input
+              id="driver-email"
+              type="email"
+              name="email"
+              uiInput
+              [(ngModel)]="email"
+              placeholder="you@example.com"
+              [className]="
+                (emailTouched && emailError
+                  ? 'w-full border-primary/30 bg-destructive/30 px-4 py-3'
+                  : 'w-full border-border/40 bg-input/70 px-4 py-3') + ''
+              "
+              autocomplete="email"
+            />
+            @if (emailTouched && emailError) {
+              <p class="mt-1.5 text-sm text-destructive-foreground">{{ emailError }}</p>
+            }
+          </div>
+
+          <div>
+            <label for="driver-phoneDigits" class="mb-2 block text-sm font-medium text-muted-foreground"
+              >Phone number</label
+            >
+            <div
+              class="flex overflow-hidden rounded-lg border bg-input/70 shadow-sm focus-within:ring-2 focus-within:ring-primary/20"
+              [class.border-border]="!phoneError"
+              [class.border-primary/30]="phoneDigitsOnly.length > 0 && phoneError"
+            >
+              <span
+                class="flex items-center border-r border-border/40 bg-secondary/30 px-4 py-3 text-sm font-medium text-muted-foreground"
+                >+357</span
+              >
+              <input
+                id="driver-phoneDigits"
+                type="tel"
+                name="phoneDigits"
+                uiInput
+                [ngModel]="phoneDigits"
+                (ngModelChange)="onPhoneChange($event)"
+                placeholder="99123456"
+                maxlength="8"
+                inputmode="numeric"
+                [className]="'min-w-0 flex-1 rounded-none border-0 bg-input/70 px-4 py-3 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0'"
+              />
+            </div>
+            @if (phoneDigitsOnly.length > 0 && phoneError) {
+              <p class="mt-1.5 text-sm text-destructive-foreground">{{ phoneError }}</p>
+            }
+            <p class="mt-1 text-xs text-muted-foreground">Enter exactly 8 digits (e.g. 99123456)</p>
+          </div>
+
+          <div>
+            <label for="driver-password" class="mb-2 block text-sm font-medium text-muted-foreground"
+              >Password</label
+            >
+            <input
+              id="driver-password"
+              type="password"
+              name="password"
+              uiInput
+              [(ngModel)]="password"
+              placeholder="••••••••"
+              [className]="
+                (password.length > 0 && passwordErrors.length > 0
+                  ? 'w-full border-primary/30 bg-destructive/30 px-4 py-3'
+                  : 'w-full border-border/40 bg-input/70 px-4 py-3') + ''
+              "
+              autocomplete="new-password"
+            />
+            @if (password.length > 0 && passwordErrors.length > 0) {
+              <ul class="mt-1.5 list-inside list-disc space-y-0.5 text-sm text-destructive-foreground">
+                @for (msg of passwordErrors; track msg) {
+                  <li>{{ msg }}</li>
+                }
+              </ul>
+            }
+            @if (password.length > 0 && passwordValid) {
+              <p class="mt-1.5 text-sm text-primary">Password meets requirements</p>
+            }
+          </div>
+
           <div
             class="driver-signup-block space-y-6 rounded-xl border border-[#49769F]/35 bg-[#001D39]/40 p-5 shadow-[0_4px_20px_rgba(0,18,36,0.25)]"
           >
@@ -243,7 +433,7 @@
               <p class="mb-2 text-xs text-[#BDD8E9]/70">The vehicle plates should be displayed in the photo.</p>
               <label
                 for="vehiclePhoto"
-                class="block cursor-pointer border-dashed border-2 border-border/60 rounded-lg p-4 bg-background/50 text-center transition hover:border-[#7BBDE8]/50 hover:bg-[#0A4174]/30"
+                class="block cursor-pointer rounded-lg border-2 border-dashed border-border/60 bg-background/50 p-4 text-center transition hover:border-[#7BBDE8]/50 hover:bg-[#0A4174]/30"
               >
                 <input
                   id="vehiclePhoto"
@@ -278,7 +468,9 @@
             <span class="mb-2 block text-sm font-medium text-muted-foreground">
               Districts <span class="text-primary" aria-hidden="true">*</span>
             </span>
-            <p class="mb-3 text-xs text-muted-foreground">Select all provinces where you want to see moves (at least one).</p>
+            <p class="mb-3 text-xs text-muted-foreground">
+              Select all provinces where you want to see moves (at least one).
+            </p>
             <div
               class="space-y-3 rounded-lg border px-5 py-4"
               [class.border-border]="!driverDistrictsError"
@@ -305,16 +497,44 @@
               <p class="mt-1.5 text-sm text-destructive-foreground">{{ driverDistrictsError }}</p>
             }
           </div>
-        }
 
-        <ui-button
-          type="submit"
-          [disabled]="loading || !formValid"
-          [className]="'w-full justify-center py-3 rounded-lg'"
-        >
-          {{ loading ? 'Creating account…' : 'Create account' }}
-        </ui-button>
-      </form>
+          <label class="mt-2 flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-muted-foreground">
+            <input
+              type="checkbox"
+              class="mt-1 h-4 w-4 shrink-0 rounded border-border text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              [(ngModel)]="acceptedLegal"
+              name="acceptedLegal"
+              required
+            />
+            <span>
+              I agree to the
+              <a
+                routerLink="/terms"
+                target="_blank"
+                rel="noopener"
+                class="font-medium text-primary underline-offset-2 hover:underline"
+                >Terms of Service</a
+              >
+              and
+              <a
+                routerLink="/privacy"
+                target="_blank"
+                rel="noopener"
+                class="font-medium text-primary underline-offset-2 hover:underline"
+                >Privacy Policy</a
+              >.
+            </span>
+          </label>
+
+          <ui-button
+            type="submit"
+            [disabled]="loading || !formValid"
+            [className]="'w-full justify-center py-3 rounded-lg'"
+          >
+            {{ loading ? 'Creating account…' : 'Create driver account' }}
+          </ui-button>
+        </form>
+      }
 
       <p class="mt-6 text-center text-sm text-muted-foreground">
         Already have an account?

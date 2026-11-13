@@ -109,7 +109,7 @@ Frontend on CDN + API on subdomain:
 - Customer checkout (authorize at booking)
 - Capture when driver accepts
 - 80/20 wallet credits on delivery
-- Driver/admin mock withdrawals + email notifications
+- Driver/admin earnings balances (delivery credits; no withdrawals)
 - **No real card charges or bank payouts**
 
 Checkout shows a **Test mode** banner while `mockPayments: true` in `environment.prod.ts`.

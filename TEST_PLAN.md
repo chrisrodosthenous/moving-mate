@@ -14,7 +14,7 @@ This plan is based on the repository as inspected on 3 Oct 2026. It describes wh
 | Frontend | Angular 21 (standalone components, Signals, NgRx Store/Effects, Tailwind) |
 | Backend | Node.js + Express 5 |
 | Language | TypeScript (Angular), JavaScript (Express) |
-| Database | MongoDB via Mongoose (`TransportOrder`, `User`, `Message`, `Review`, `PaymentIntent`, `WalletLedger`, `Payout`, `NotificationSetting`, `PricingConfig`) |
+| Database | MongoDB via Mongoose (`TransportOrder`, `User`, `Message`, `Review`, `PaymentIntent`, `WalletLedger`, `NotificationSetting`, `PricingConfig`) |
 | Auth | JWT (`Authorization: Bearer`), bcrypt passwords, role = `customer` \| `driver` \| `admin` |
 | Realtime | Socket.io (chat, presence, driver GPS, new-order events) |
 | External | Google Maps / Places / Directions, Firebase Cloud Messaging, Nodemailer/SMTP |
@@ -39,7 +39,7 @@ This plan is based on the repository as inspected on 3 Oct 2026. It describes wh
 - Orders: `POST /quote`, `POST /`, `GET /`, `GET /mine`, `GET /summary`, accept/pickup/deliver/cancel/complete, cargo upload, rate
 - Users: profile, districts, change-password, license upload, FCM token
 - Payments: checkout / confirm / status (mock)
-- Wallet: driver balance + mock withdraw; admin platform wallet
+- Wallet: driver/admin earnings balances (delivery credits; no withdrawals)
 - Chat / reviews / admin overview, verify driver, documents, notification settings, pricing-config
 - Dev-only: `/api/test/e2e/*` when `NODE_ENV !== production` or `ENABLE_TEST_ROUTES=true`
 
@@ -69,7 +69,7 @@ This plan is based on the repository as inspected on 3 Oct 2026. It describes wh
 5. Customer pays (mock checkout) then order becomes accept-able
 6. Verified driver sees district+vehicle-matched jobs, accepts, chats, starts trip, delivers
 7. Customer rates driver; both see completed history
-8. Driver / platform mock wallet withdraw
+8. Driver / platform earnings balances after delivery
 9. Admin: fleet, orders, analytics, notification test send, pricing config (local)
 10. Push / email / scheduler reminders (24h and 30m before `scheduledAt`)
 11. Marketing contact form (SMTP)
@@ -85,7 +85,7 @@ This plan is based on the repository as inspected on 3 Oct 2026. It describes wh
 | `utils/orderQuote.test.js` | Fingerprint stability, expire, tamper, audience |
 | `utils/driverVehicleMatching.test.js` | Full driver↔order vehicle matrix + district filter |
 | `utils/notificationDedupe.test.js` | Push/email de-dupe keys |
-| `services/paymentService.test.js` | Mock intent, authorize, capture, wallet credit, withdraw (Mongo) |
+| `services/paymentService.test.js` | Mock intent, authorize, capture, wallet credit (Mongo) |
 | `config/pricingDefaults.test.js` | Config normalize/merge + config-driven price (**not** in `npm test` glob today) |
 
 `driverAge.js` contains `runDriverAgeUnitTests()` but that function is **not** invoked by `npm test`.

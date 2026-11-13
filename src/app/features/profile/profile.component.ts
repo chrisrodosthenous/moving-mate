@@ -200,15 +200,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
   /** Shown in Security card after a successful password update (toasts are also used). */
   passwordChangeSuccess = signal(false);
 
-  /** Driver earnings wallet (mock payouts). */
+  /** Driver earnings balance (delivery credits). */
   readonly walletLoading = signal(false);
   readonly walletError = signal('');
   readonly walletAvailable = signal(0);
-  readonly walletWithdrawn = signal(0);
-  readonly walletCurrency = signal('EUR');
-  readonly withdrawAmount = signal('');
-  readonly withdrawLoading = signal(false);
-  readonly withdrawSuccess = signal(false);
 
   private readonly walletService = inject(WalletService);
 
@@ -267,38 +262,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.walletService.getDriverWallet().subscribe({
       next: (res) => {
         this.walletAvailable.set(res.wallet.availableBalance);
-        this.walletWithdrawn.set(res.wallet.totalWithdrawn);
-        this.walletCurrency.set(res.wallet.currency);
         this.walletLoading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.walletError.set(err?.error?.message ?? 'Could not load wallet');
+        this.walletError.set(err?.error?.message ?? 'Could not load earnings');
         this.walletLoading.set(false);
-      },
-    });
-  }
-
-  submitWithdrawal(): void {
-    const amount = Number(this.withdrawAmount().replace(',', '.'));
-    if (!Number.isFinite(amount) || amount <= 0) {
-      this.walletError.set('Enter a valid withdrawal amount');
-      return;
-    }
-    this.withdrawLoading.set(true);
-    this.walletError.set('');
-    this.withdrawSuccess.set(false);
-    this.walletService.withdrawDriverFunds(amount).subscribe({
-      next: (res) => {
-        this.walletAvailable.set(res.wallet.availableBalance);
-        this.walletWithdrawn.set(res.wallet.totalWithdrawn);
-        this.withdrawAmount.set('');
-        this.withdrawSuccess.set(true);
-        this.withdrawLoading.set(false);
-        this.toast.show('Withdrawal completed (mock)', 'success');
-      },
-      error: (err: HttpErrorResponse) => {
-        this.walletError.set(err?.error?.message ?? 'Withdrawal failed');
-        this.withdrawLoading.set(false);
       },
     });
   }

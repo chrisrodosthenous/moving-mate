@@ -6,7 +6,6 @@ import { BaseChartDirective } from 'ng2-charts';
 import type { AdminAnalyticsPayload, AdminAnalyticsSummary, AdminOrder, AdminUser } from '../../../core/services/admin.service';
 import { AdminService } from '../../../core/services/admin.service';
 import { WalletService } from '../../../core/services/wallet.service';
-import { UiButtonComponent } from '@/components/ui/button';
 import { ADMIN_CHART } from '../../../core/constants/admin-chart-theme';
 import { emptyAnalyticsPayload } from './admin-analytics.utils';
 import {
@@ -26,7 +25,7 @@ import {
 @Component({
   selector: 'app-admin-analytics',
   standalone: true,
-  imports: [BaseChartDirective, DecimalPipe, FormsModule, UiButtonComponent],
+  imports: [BaseChartDirective, DecimalPipe, FormsModule],
   templateUrl: './admin-analytics.component.html',
 })
 export class AdminAnalyticsComponent {
@@ -42,10 +41,7 @@ export class AdminAnalyticsComponent {
   readonly orderStatus = signal<AdminOrderStat>('all');
 
   readonly platformWalletAvailable = signal(0);
-  readonly platformWalletWithdrawn = signal(0);
   readonly platformWalletLoading = signal(false);
-  readonly platformWithdrawAmount = signal('');
-  readonly platformWithdrawLoading = signal(false);
   readonly platformWalletError = signal('');
 
   private readonly payload = signal<AdminAnalyticsPayload>(emptyAnalyticsPayload());
@@ -258,34 +254,11 @@ export class AdminAnalyticsComponent {
     this.walletService.getPlatformWallet().subscribe({
       next: (res) => {
         this.platformWalletAvailable.set(res.wallet.availableBalance);
-        this.platformWalletWithdrawn.set(res.wallet.totalWithdrawn ?? 0);
         this.platformWalletLoading.set(false);
       },
       error: () => {
-        this.platformWalletError.set('Could not load platform wallet');
+        this.platformWalletError.set('Could not load platform earnings');
         this.platformWalletLoading.set(false);
-      },
-    });
-  }
-
-  submitPlatformWithdraw(): void {
-    const amount = Number(String(this.platformWithdrawAmount()).replace(',', '.'));
-    if (!Number.isFinite(amount) || amount <= 0) {
-      this.platformWalletError.set('Enter a valid amount');
-      return;
-    }
-    this.platformWithdrawLoading.set(true);
-    this.platformWalletError.set('');
-    this.walletService.withdrawPlatformFunds(amount).subscribe({
-      next: (res) => {
-        this.platformWalletAvailable.set(res.wallet.availableBalance);
-        this.platformWalletWithdrawn.set(res.wallet.totalWithdrawn ?? 0);
-        this.platformWithdrawAmount.set('');
-        this.platformWithdrawLoading.set(false);
-      },
-      error: (err) => {
-        this.platformWalletError.set(err?.error?.message ?? 'Withdrawal failed');
-        this.platformWithdrawLoading.set(false);
       },
     });
   }

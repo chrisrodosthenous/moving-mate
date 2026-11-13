@@ -422,13 +422,6 @@ test.describe('operations lifecycle', () => {
         lockedPlatformCommission,
       );
 
-      const overdraw = await backend.post('/api/wallet/withdraw', {
-        headers: authHeaders(driverSession.token),
-        data: { amount: driverBalanceAfter + 1 },
-      });
-      expect(overdraw.status()).toBe(400);
-      expect((await overdraw.json()).message).toMatch(/Insufficient balance/i);
-
       const mine = await backend.get('/api/orders/mine?scope=active&view=summary&limit=10', {
         headers: authHeaders(customer.token),
       });

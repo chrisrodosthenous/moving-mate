@@ -18,3 +18,10 @@ export const NAV_LINKS: NavLink[] = [
   { label: 'Get the app', path: '/download' },
   { label: 'Contact', path: '/contact' },
 ];
+
+/** Public legal documents (marketing footer + register). */
+export const LEGAL_LINKS: NavLink[] = [
+  { label: 'Privacy Policy', path: '/privacy' },
+  { label: 'Terms of Service', path: '/terms' },
+  { label: 'Cookie notice', path: '/cookies' },
+];

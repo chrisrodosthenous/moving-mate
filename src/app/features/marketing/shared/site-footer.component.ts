@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { LogoComponent } from './logo.component';
-import { LOGIN_PATH, NAV_LINKS, REGISTER_PATH } from './brand';
+import { LEGAL_LINKS, LOGIN_PATH, NAV_LINKS, REGISTER_PATH } from './brand';
 
 @Component({
   selector: 'web-site-footer',
@@ -59,8 +59,24 @@ import { LOGIN_PATH, NAV_LINKS, REGISTER_PATH } from './brand';
           </div>
         </div>
 
+        <div class="mt-10 border-t border-border/40 pt-6">
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-foreground">Legal</h3>
+          <ul class="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-6 sm:gap-y-2">
+            @for (link of legalLinks; track link.path) {
+              <li>
+                <a
+                  [routerLink]="link.path"
+                  class="text-sm text-muted-foreground transition hover:text-primary"
+                >
+                  {{ link.label }}
+                </a>
+              </li>
+            }
+          </ul>
+        </div>
+
         <div
-          class="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border/40 pt-6 sm:flex-row"
+          class="mt-8 flex flex-col items-center justify-between gap-3 border-t border-border/40 pt-6 sm:flex-row"
         >
           <p class="text-sm text-muted-foreground">© {{ year }} Moving Mate. All rights reserved.</p>
           <p class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -75,6 +91,7 @@ import { LOGIN_PATH, NAV_LINKS, REGISTER_PATH } from './brand';
 })
 export class SiteFooterComponent {
   readonly navLinks = NAV_LINKS;
+  readonly legalLinks = LEGAL_LINKS;
   readonly loginPath = LOGIN_PATH;
   readonly registerPath = REGISTER_PATH;
   readonly year = new Date().getFullYear();

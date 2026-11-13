@@ -705,34 +705,6 @@ async function sendPaymentCapturedEmail({
   });
 }
 
-async function sendWithdrawalCompletedEmail({
-  to,
-  firstName,
-  amount,
-  remainingBalance,
-  payoutId,
-  recipientLabel = 'wallet',
-}) {
-  if (!to) return;
-  const amt = typeof amount === 'number' ? amount.toFixed(2) : String(amount ?? '0.00');
-  const bal =
-    typeof remainingBalance === 'number' ? remainingBalance.toFixed(2) : String(remainingBalance ?? '0.00');
-  return sendTemplateEmail({
-    to,
-    subject: 'Withdrawal completed — Moving Mate',
-    template: 'withdrawal-completed',
-    data: {
-      firstName: firstName || 'User',
-      amount: amt,
-      remainingBalance: bal,
-      payoutId: String(payoutId || ''),
-      recipientLabel,
-    },
-    text: `Hello ${firstName || 'User'}, your ${recipientLabel} withdrawal of EUR ${amt} completed. Remaining balance: EUR ${bal}.`,
-    notificationEvent: 'email_withdrawal_completed',
-  });
-}
-
 /**
  * Admin-only: send a sample of the template for `eventName` without checking notification toggles
  * (uses sendTemplateEmail without notificationEvent).
@@ -874,20 +846,6 @@ async function sendAdminTemplateTestForEvent(eventName, to) {
           ordersUrl: `${base}/customer/orders`,
         },
         text: 'Test: payment captured email.',
-      });
-    case 'email_withdrawal_completed':
-      return sendTemplateEmail({
-        to: addr,
-        subject: 'Withdrawal completed — Moving Mate',
-        template: 'withdrawal-completed',
-        data: {
-          firstName: 'Test',
-          amount: '25.00',
-          remainingBalance: '15.00',
-          payoutId: 'TEST-PAYOUT-001',
-          recipientLabel: 'driver wallet',
-        },
-        text: 'Test: withdrawal completed email.',
       });
     default:
       throw new Error(`No test template mapped for event: ${eventName}`);
@@ -1032,7 +990,6 @@ module.exports = {
   send24hReminderEmail,
   sendOrderCompletedEmail,
   sendPaymentCapturedEmail,
-  sendWithdrawalCompletedEmail,
   sendDeliverySuccessful,
   sendAdminTemplateTestForEvent,
   sendAdminScenarioEmail,

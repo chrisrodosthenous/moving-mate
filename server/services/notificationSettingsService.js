@@ -58,12 +58,6 @@ const DEFAULT_SETTINGS = [
     description: 'Sent to customer when payment is captured after a driver accepts the order.',
   },
   {
-    eventName: 'email_withdrawal_completed',
-    type: 'email',
-    label: 'Withdrawal completed',
-    description: 'Sent to driver or admin after a mock wallet withdrawal completes.',
-  },
-  {
     eventName: 'push_new_order',
     type: 'push',
     label: 'New Order (Drivers)',
@@ -118,7 +112,9 @@ function invalidateCache() {
 
 async function ensureDefaultSettings() {
   await NotificationSetting.deleteMany({
-    eventName: { $in: ['push_chat_message', 'push_new_chat_message'] },
+    eventName: {
+      $in: ['push_chat_message', 'push_new_chat_message', 'email_withdrawal_completed'],
+    },
   });
   for (const row of DEFAULT_SETTINGS) {
     await NotificationSetting.updateOne(

@@ -223,68 +223,23 @@
           <section>
             <ui-card [className]="'rounded-xl shadow-sm'">
               <ui-card-content [padding]="'standalone'" [className]="'p-4 sm:p-6 lg:p-5'">
-            <h2 class="text-lg font-semibold text-card-title">Earnings &amp; withdrawals</h2>
+            <h2 class="text-lg font-semibold text-card-title">Earnings</h2>
             <p class="mt-0.5 text-sm text-muted">
-              Available balance from completed deliveries (your share after platform commission). Mock bank withdrawal for testing.
+              Balance from completed deliveries (your share after platform commission).
             </p>
             <div class="mb-6 mt-6 border-b border-brand-slate/30" aria-hidden="true"></div>
 
             @if (walletLoading()) {
-              <p class="text-sm text-muted">Loading wallet…</p>
+              <p class="text-sm text-muted">Loading earnings…</p>
             } @else {
               @if (walletError()) {
                 <div class="mb-4 alert-error px-4 py-3 text-sm" role="alert">{{ walletError() }}</div>
               }
-              @if (withdrawSuccess()) {
-                <div
-                  class="mb-4 rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary"
-                  role="status"
-                >
-                  Withdrawal recorded successfully.
-                </div>
-              }
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div class="rounded-lg border border-primary/25 bg-primary/10 px-4 py-3">
-                  <p class="text-xs font-medium uppercase tracking-wide text-muted">Available</p>
-                  <p class="mt-1 text-2xl font-bold tabular-nums text-primary" data-testid="driver-wallet-available">
-                    €{{ walletAvailable() | number: '1.2-2' }}
-                  </p>
-                </div>
-                <div class="rounded-lg border border-border/30 bg-card/60 px-4 py-3">
-                  <p class="text-xs font-medium uppercase tracking-wide text-muted">Total withdrawn</p>
-                  <p class="mt-1 text-2xl font-bold tabular-nums text-card-title">
-                    €{{ walletWithdrawn() | number: '1.2-2' }}
-                  </p>
-                </div>
-              </div>
-              <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
-                <div class="min-w-0 flex-1">
-                  <label for="withdrawAmount" class="mb-2 block text-sm font-medium text-muted"
-                    >Withdraw amount ({{ walletCurrency() }})</label
-                  >
-                  <input
-                    id="withdrawAmount"
-                    name="withdrawAmount"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    uiInput
-                    [ngModel]="withdrawAmount()"
-                    (ngModelChange)="withdrawAmount.set($event)"
-                    placeholder="0.00"
-                    [className]="'w-full px-4 py-3'"
-                    data-testid="driver-withdraw-amount"
-                  />
-                </div>
-                <ui-button
-                  type="button"
-                  (click)="submitWithdrawal()"
-                  [disabled]="withdrawLoading()"
-                  [className]="'inline-flex min-h-[48px] w-full shrink-0 items-center justify-center px-6 sm:w-auto'"
-                  data-testid="driver-withdraw-submit"
-                >
-                  {{ withdrawLoading() ? 'Processing…' : 'Withdraw (mock)' }}
-                </ui-button>
+              <div class="rounded-lg border border-primary/25 bg-primary/10 px-4 py-3">
+                <p class="text-xs font-medium uppercase tracking-wide text-muted">Available</p>
+                <p class="mt-1 text-2xl font-bold tabular-nums text-primary" data-testid="driver-wallet-available">
+                  €{{ walletAvailable() | number: '1.2-2' }}
+                </p>
               </div>
             }
               </ui-card-content>

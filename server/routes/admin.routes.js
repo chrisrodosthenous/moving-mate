@@ -20,7 +20,7 @@ const {
   patchNotificationSetting,
   postAdminTestSendEmail,
 } = require('../controllers/notificationSettingsController');
-const { getPlatformWallet, postPlatformWithdraw } = require('../controllers/walletController');
+const { getPlatformWallet } = require('../controllers/walletController');
 const {
   getPricingConfig,
   putPricingConfig,
@@ -58,7 +58,6 @@ router.patch('/verify-driver/:id', (req, res, next) => {
 });
 
 router.get('/wallet', getPlatformWallet);
-router.post('/wallet/withdraw', postPlatformWithdraw);
 router.get('/pricing-config', getPricingConfig);
 router.put('/pricing-config', putPricingConfig);
 router.post('/pricing-config/preview', postPricingConfigPreview);

@@ -6,6 +6,7 @@ import { ToastComponent } from './shared/components/toast/toast.component';
 import { DialogComponent } from './shared/components/dialog/dialog.component';
 import { ThemeEditorComponent } from './shared/components/theme-editor/theme-editor.component';
 import { AdminDesignHubComponent } from './shared/components/admin-design-hub/admin-design-hub.component';
+import { CookieNoticeComponent } from './shared/components/cookie-notice/cookie-notice.component';
 import { FcmService } from './core/services/fcm.service';
 import { NotificationStore } from './store/notification.store';
 import { AuthStore } from './store/auth.store';
@@ -15,11 +16,19 @@ import { SidebarLayoutService } from './core/services/sidebar-layout.service';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ToastComponent, DialogComponent, ThemeEditorComponent, AdminDesignHubComponent],
+  imports: [
+    RouterOutlet,
+    ToastComponent,
+    DialogComponent,
+    ThemeEditorComponent,
+    AdminDesignHubComponent,
+    CookieNoticeComponent,
+  ],
   template: `
     <router-outlet />
     <app-toast [raised]="showAdminDesignTools()" />
     <app-dialog />
+    <app-cookie-notice />
     @if (showAdminDesignTools()) {
       <app-admin-design-hub />
       <app-theme-editor anchor="right" [showFloatingToggle]="false" />

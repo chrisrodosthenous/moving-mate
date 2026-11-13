@@ -1,12 +1,9 @@
 const PaymentIntent = require('../models/PaymentIntent');
-const Payout = require('../models/Payout');
 const WalletLedger = require('../models/WalletLedger');
 const TransportOrder = require('../models/TransportOrder');
-const User = require('../models/User');
 const mongoose = require('mongoose');
 const { roundMoney } = require('../utils/orderPricing');
 const { computeOrderCommission } = require('../utils/orderCommission');
-const { sendWithdrawalCompletedEmail } = require('./notificationService');
 
 function toObjectId(id) {
   if (!id) return null;
@@ -203,32 +200,14 @@ async function sumLedgerCredits(recipientType, userId = null) {
   return roundMoney(rows[0]?.total ?? 0);
 }
 
-async function sumLedgerWithdrawals(recipientType, userId = null) {
-  const filter = { recipientType, entryType: 'withdrawal' };
-  if (recipientType === 'driver' && userId) filter.userId = toObjectId(userId);
-  const rows = await WalletLedger.aggregate([
-    { $match: filter },
-    { $group: { _id: null, total: { $sum: '$amount' } } },
-  ]);
-  return roundMoney(rows[0]?.total ?? 0);
-}
-
 async function getDriverWalletSummary(driverId) {
-  const [credits, withdrawn] = await Promise.all([
-    sumLedgerCredits('driver', driverId),
-    sumLedgerWithdrawals('driver', driverId),
-  ]);
-  const availableBalance = roundMoney(Math.max(0, credits - withdrawn));
-  return { availableBalance, totalEarned: credits, totalWithdrawn: withdrawn, currency: 'EUR' };
+  const credits = await sumLedgerCredits('driver', driverId);
+  return { availableBalance: credits, totalEarned: credits, currency: 'EUR' };
 }
 
 async function getPlatformWalletSummary() {
-  const [credits, withdrawn] = await Promise.all([
-    sumLedgerCredits('platform'),
-    sumLedgerWithdrawals('platform'),
-  ]);
-  const availableBalance = roundMoney(Math.max(0, credits - withdrawn));
-  return { availableBalance, totalRevenue: credits, totalWithdrawn: withdrawn, currency: 'EUR' };
+  const credits = await sumLedgerCredits('platform');
+  return { availableBalance: credits, totalRevenue: credits, currency: 'EUR' };
 }
 
 /** Credit driver + platform internal balances when a delivery completes. Idempotent per order. */
@@ -276,108 +255,6 @@ async function creditBalancesOnDelivery(orderDoc) {
   return { ok: true, driverCredit, platformCredit };
 }
 
-async function requestDriverWithdrawal(driverId, amount, note = '') {
-  const parsed = roundMoney(amount);
-  if (parsed < 0.01) return { ok: false, status: 400, message: 'Minimum withdrawal is €0.01' };
-
-  const wallet = await getDriverWalletSummary(driverId);
-  if (parsed > wallet.availableBalance) {
-    return {
-      ok: false,
-      status: 400,
-      message: `Insufficient balance. Available: €${wallet.availableBalance.toFixed(2)}`,
-    };
-  }
-
-  const payout = await Payout.create({
-    userId: toObjectId(driverId),
-    recipientType: 'driver',
-    amount: parsed,
-    currency: 'EUR',
-    status: 'completed',
-    provider: 'mock',
-    note: note || 'Mock bank withdrawal',
-    completedAt: new Date(),
-  });
-
-  await WalletLedger.create({
-    recipientType: 'driver',
-    userId: toObjectId(driverId),
-    payoutId: payout._id,
-    entryType: 'withdrawal',
-    amount: parsed,
-    currency: 'EUR',
-  });
-
-  const updatedWallet = await getDriverWalletSummary(driverId);
-  const user = await User.findById(driverId).select('email firstName').lean();
-  if (user?.email) {
-    void sendWithdrawalCompletedEmail({
-      to: user.email,
-      firstName: user.firstName,
-      amount: parsed,
-      remainingBalance: updatedWallet.availableBalance,
-      payoutId: payout._id,
-      recipientLabel: 'driver wallet',
-    }).catch((err) => {
-      console.warn('[Notifications] driver withdrawal email failed:', err.message);
-    });
-  }
-  return { ok: true, payout, wallet: updatedWallet };
-}
-
-async function requestPlatformWithdrawal(adminUserId, amount, note = '') {
-  const parsed = roundMoney(amount);
-  if (parsed < 0.01) return { ok: false, status: 400, message: 'Minimum withdrawal is €0.01' };
-
-  const wallet = await getPlatformWalletSummary();
-  if (parsed > wallet.availableBalance) {
-    return {
-      ok: false,
-      status: 400,
-      message: `Insufficient platform balance. Available: €${wallet.availableBalance.toFixed(2)}`,
-    };
-  }
-
-  const payout = await Payout.create({
-    userId: adminUserId,
-    recipientType: 'platform',
-    amount: parsed,
-    currency: 'EUR',
-    status: 'completed',
-    provider: 'mock',
-    note: note || 'Mock platform withdrawal',
-    completedAt: new Date(),
-  });
-
-  await WalletLedger.create({
-    recipientType: 'platform',
-    userId: null,
-    payoutId: payout._id,
-    entryType: 'withdrawal',
-    amount: parsed,
-    currency: 'EUR',
-  });
-
-  const updatedWallet = await getPlatformWalletSummary();
-  if (adminUserId) {
-    const adminUser = await User.findById(adminUserId).select('email firstName').lean();
-    if (adminUser?.email) {
-      void sendWithdrawalCompletedEmail({
-        to: adminUser.email,
-        firstName: adminUser.firstName,
-        amount: parsed,
-        remainingBalance: updatedWallet.availableBalance,
-        payoutId: payout._id,
-        recipientLabel: 'platform wallet',
-      }).catch((err) => {
-        console.warn('[Notifications] platform withdrawal email failed:', err.message);
-      });
-    }
-  }
-  return { ok: true, payout, wallet: updatedWallet };
-}
-
 module.exports = {
   ensurePaymentIntentForOrder,
   createCheckoutSession,
@@ -389,6 +266,4 @@ module.exports = {
   creditBalancesOnDelivery,
   getDriverWalletSummary,
   getPlatformWalletSummary,
-  requestDriverWithdrawal,
-  requestPlatformWithdrawal,
 };

@@ -52,6 +52,8 @@ export class RegisterComponent implements OnDestroy {
   role: 'customer' | 'driver' = 'customer';
   /** Driver: one or more districts (checkboxes). */
   selectedDistricts: string[] = [];
+  /** Required acceptance of Terms + Privacy before create account. */
+  acceptedLegal = false;
   readonly driverDistrictOptions = [...DRIVER_DISTRICT_OPTIONS];
   readonly driverVehicleOptions = DRIVER_VEHICLE_OPTIONS;
   loading = false;
@@ -204,8 +206,15 @@ export class RegisterComponent implements OnDestroy {
       this.passwordValid &&
       !!this.role &&
       this.driverDistrictsValid &&
-      this.driverVehicleValid
+      this.driverVehicleValid &&
+      this.acceptedLegal
     );
+  }
+
+  selectRole(next: 'customer' | 'driver'): void {
+    if (this.role === next) return;
+    this.role = next;
+    this.error = '';
   }
 
   onPhoneChange(value: string): void {

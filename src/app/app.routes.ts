@@ -51,6 +51,27 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/marketing/pages/download/download.component').then(m => m.DownloadComponent),
       },
+      {
+        path: 'privacy',
+        title: 'Privacy Policy — Moving Mate',
+        data: { legalDoc: 'privacy' },
+        loadComponent: () =>
+          import('./features/marketing/legal/legal-document.component').then(m => m.LegalDocumentComponent),
+      },
+      {
+        path: 'terms',
+        title: 'Terms of Service — Moving Mate',
+        data: { legalDoc: 'terms' },
+        loadComponent: () =>
+          import('./features/marketing/legal/legal-document.component').then(m => m.LegalDocumentComponent),
+      },
+      {
+        path: 'cookies',
+        title: 'Cookie notice — Moving Mate',
+        data: { legalDoc: 'cookies' },
+        loadComponent: () =>
+          import('./features/marketing/legal/legal-document.component').then(m => m.LegalDocumentComponent),
+      },
     ],
   },
   {

@@ -53,7 +53,7 @@ function buildCreateOrderPayload({ price, distanceKm = 4, runId }) {
 }
 
 test.describe('Mock payment lifecycle', () => {
-  test('authorize → capture on accept → delivery credits → withdrawals', async () => {
+  test('authorize → capture on accept → delivery credits wallet', async () => {
     const runId = uniqueRunId();
     const backend = await request.newContext({ baseURL: API_BASE });
     const password = 'E2ePass1!';
@@ -116,12 +116,6 @@ test.describe('Mock payment lifecycle', () => {
       const dw = await driverWallet.json();
       expect(dw.wallet.availableBalance).toBeCloseTo(delivered.driverEarnings, 2);
 
-      const wd = await backend.post('/api/wallet/withdraw', {
-        headers: { Authorization: `Bearer ${driverToken}` },
-        data: { amount: 5 },
-      });
-      expect(wd.ok()).toBeTruthy();
-
       const adminToken = await loginToken(backend, bootstrap.admin.email, password);
       const platformWallet = await backend.get('/api/admin/wallet', {
         headers: { Authorization: `Bearer ${adminToken}` },
@@ -129,12 +123,6 @@ test.describe('Mock payment lifecycle', () => {
       expect(platformWallet.ok()).toBeTruthy();
       const pw = await platformWallet.json();
       expect(pw.wallet.availableBalance).toBeGreaterThan(0);
-
-      const adminWd = await backend.post('/api/admin/wallet/withdraw', {
-        headers: { Authorization: `Bearer ${adminToken}` },
-        data: { amount: 1 },
-      });
-      expect(adminWd.ok()).toBeTruthy();
     } finally {
       await backend.post('/api/test/e2e/cleanup', { data: { runId } }).catch(() => {});
       await backend.dispose();
